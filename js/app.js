@@ -79,16 +79,19 @@ function calc(){
   // 算法说明面板
   document.getElementById('algoCard').classList.remove('hidden');
   document.getElementById('algoBody').innerHTML=[
-    {icon:'🎯',name:'分差接近度',wt:20,desc:'综合分越接近往年录取分越推荐（40分满分）'},
-    {icon:'🏛️',name:'院校层次',wt:18,desc:'985/211/双一流/公办重点/普通/民办 9档细分'},
-    {icon:'📊',name:'软科排名',wt:10,desc:'A+→C- 7级连续评分，反映学术实力'},
-    {icon:'📋',name:'数据可信度',wt:12,desc:'有历史位次满分/无位次降权/预估分最低'},
-    {icon:'📍',name:'地理位置',wt:10,desc:'浙江>长三角>华东>其他，连续距离衰减'},
-    {icon:'💰',name:'学费合理度',wt:8,desc:'≤6000满分→1.2万/2万/3.5万/6万分段递减'},
-    {icon:'📋',name:'招生计划数',wt:5,desc:'计划多→竞争分散，30+满分，<3人最低'},
-    {icon:'🏅',name:'位次匹配度',wt:10,desc:'位次差距越小越好，连续评分'},
-    {icon:'🏙️',name:'城市级别',wt:7,desc:'杭州/宁波满分→新一线→二线→三线递减'},
-  ].map(d=>`<div class="algo-dim"><span class="dim-lbl">${d.icon} ${d.name}</span><div class="dim-bar"><div class="dim-fill" style="width:${d.wt/0.20*100}%"></div></div><span class="dim-val">${d.wt}%</span><span class="dim-desc">${d.desc}</span></div>`).join('')+`<div class="algo-total">📊 9维度加权评分，消除并列 · 满分100分 · 得分越高推荐度越高</div>`;
+    {icon:'🎯',name:'分差接近度',wt:25,desc:'综合分越接近往年录取分越推荐（平方衰减）'},
+    {icon:'🏛️',name:'院校层次',wt:20,desc:'985/211/双一流/艺术院校/公办/民办 9档'},
+    {icon:'📊',name:'软科排名',wt:6,desc:'A+→C- 7级评分，反映学术实力'},
+    {icon:'🎨',name:'专业特色',wt:9,desc:'国家级/省级一流/特色专业→有培养方案→普通'},
+    {icon:'🔧',name:'培养模式',wt:6,desc:'校企合作/实验班/导师制/实训基地分级加分'},
+    {icon:'🎓',name:'学历层次',wt:4,desc:'本科满分/公办专科42/民办专科18，独立评分'},
+    {icon:'📋',name:'数据可信度',wt:10,desc:'有历史位次满分/无位次降权/预估分最低'},
+    {icon:'📍',name:'地理位置',wt:4,desc:'弱化权重，浙江>长三角>华东>其他'},
+    {icon:'💰',name:'学费合理度',wt:4,desc:'≤6000满分→1.2万/2万/3.5万/6万分段'},
+    {icon:'📋',name:'招生计划数',wt:3,desc:'计划多→竞争分散，30+得高分'},
+    {icon:'🏅',name:'位次匹配度',wt:6,desc:'位次差距越小越好，连续评分'},
+    {icon:'🏙️',name:'城市级别',wt:3,desc:'杭州/宁波→新一线→二线→三线递减'},
+  ].map(d=>`<div class="algo-dim"><span class="dim-lbl">${d.icon} ${d.name}</span><div class="dim-bar"><div class="dim-fill" style="width:${d.wt/0.25*100}%"></div></div><span class="dim-val">${d.wt}%</span><span class="dim-desc">${d.desc}</span></div>`).join('')+`<div class="algo-total">📊 12维度严格评分 · 艺术院校独立加分 · 本专科分流 · 专业特色+培养模式加持</div>`;
 
   // 梯度说明卡片
   const tierExplain=document.getElementById('tierExplain');
@@ -152,6 +155,8 @@ function renderCards(){
     if(r.isPrivate)tags.push('<span class="tag tag-pv">民办</span>');
     if(r.scoreSource==='estimated')tags.push('<span class="tag tag-est">预估</span>');
     if(r.rankLevel){const rl=String(r.rankLevel);const lv=rl.includes('A+')?'🥇':rl.includes('A')?'🥈':rl.includes('B+')?'🥉':'';tags.push(`<span class="tag tag-985" style="background:#f0fdf4;color:#166534">${lv} ${esc(rl)}</span>`);}
+    // 艺术院校标签
+    if(isArtAcademy(r))tags.push('<span class="tag tag-df" style="background:#fef3c7;color:#92400e">🎨艺术</span>');
     // 评分详情条
     let scoreDetailHTML='';
     if(r.scoreDetail){
@@ -160,6 +165,9 @@ function renderCards(){
         {k:'proximity',icon:'🎯',color:'var(--g)'},
         {k:'tier',icon:'🏛️',color:'#3b82f6'},
         {k:'rank',icon:'📊',color:'#8b5cf6'},
+        {k:'major',icon:'🎨',color:'#f97316'},
+        {k:'cultivate',icon:'🔧',color:'#14b8a6'},
+        {k:'degree',icon:'🎓',color:'#3b82f6'},
         {k:'confidence',icon:'📋',color:'#06b6d4'},
         {k:'local',icon:'📍',color:'#f59e0b'},
         {k:'tuition',icon:'💰',color:'#10b981'},
@@ -506,4 +514,5 @@ function parseRows(rows,sn){
 function hs(s){let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0;}return Math.abs(h%10000);}
 function esc(s){if(!s)return'';const d=document.createElement('div');d.textContent=String(s);return d.innerHTML;}
 function escAttr(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;');}
+function isArtAcademy(r){const n=(r.schoolName||'');return /美术学?院|艺术学?院|音乐学?院|舞蹈学?院|戏曲学?院|电影学?院|戏剧学?院|传媒学?院|中央美术|中国美术|天津美术|西安美术|四川美术|鲁迅美术|湖北美术|广州美术|南京艺术|广西艺术|云南艺术|山东艺术|吉林艺术|新疆艺术|北京电影|中央戏剧|中国戏曲|上海戏剧|北京舞蹈|浙江传媒/i.test(n);}
 function toast(msg,err){const t=document.createElement('div');t.className='toast'+(err?' err':'');t.textContent=msg;document.body.appendChild(t);requestAnimationFrame(()=>t.classList.add('show'));setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),300);},3000);}

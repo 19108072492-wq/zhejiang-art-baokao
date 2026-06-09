@@ -40,26 +40,44 @@ function matchSchools(userScore,artKey,cultureScore,pool){
   }
   const ord={reach:0,match:1,safety:2,out:3};
   results.sort((a,b)=>ord[a.tier]-ord[b.tier]||Math.abs(a.diff)-Math.abs(b.diff));
-  // 推荐20校：冲6+稳8+保6，9维度严格评分
-  function scoredScore(r,raw){
-    // 1. 分差接近度 (weight: 30): 采用平方衰减，拉开差距
-    const diffAbs=Math.abs(r.diff||0);
-    const proximity=Math.pow(Math.max(0,1-diffAbs/50),2); // 平方加速衰减
+  // 推荐20校：冲6+稳8+保6，12维度严格评分，本专科分流
+  // 本专科检测：识别高职/专科/职业技术类院校
+  function isVocational(r){
+    const name=(r.schoolName||'')+(r.majorName||'');
+    return /职业|专科|高职|技术学院|职业技术学院|高等专科/.test(name);
+  }
+  // 艺术学院/美院检测：八大美院+六大艺术学院+其他艺术类院校
+  function isArtAcademy(r){
+    const n=(r.schoolName||'');
+    return /美术学?院|艺术学?院|音乐学?院|舞蹈学?院|戏曲学?院|电影学?院|戏剧学?院|传媒学?院|中央美术|中国美术|天津美术|西安美术|四川美术|鲁迅美术|湖北美术|广州美术|南京艺术|广西艺术|云南艺术|山东艺术|吉林艺术|新疆艺术|北京电影|中央戏剧|中国戏曲|上海戏剧|北京舞蹈|浙江传媒/i.test(n);
+  }
 
-    // 2. 院校层次 (weight: 22): 档位区间拉大，最高0.95→最低0.05
+  function scoredScore(r,raw){
+    // 1. 分差接近度 (weight: 25): 平方衰减
+    const diffAbs=Math.abs(r.diff||0);
+    const proximity=Math.pow(Math.max(0,1-diffAbs/50),2);
+
+    // 2. 院校层次 (weight: 20): 8档细分
     let tierScore=0.05,tierLabel='民办';
     if(r.is985){tierScore=0.95;tierLabel='985';}
     else if(r.is211){tierScore=0.78;tierLabel='211';}
     else if(r.isDoubleFirst){tierScore=0.62;tierLabel='双一流';}
+    else if(isArtAcademy(r)){
+      // 艺术类院校单独加分档
+      const name=r.schoolName||'';
+      if(/中央美术|中国美术/.test(name)){tierScore=0.82;tierLabel='顶级美院';}
+      else if(/八大美院|天津美术|西安美术|四川美术|鲁迅美术|湖北美术|广州美术|北京电影|中央戏剧|上海戏剧/.test(name)){tierScore=0.68;tierLabel='重点艺术院校';}
+      else if(/南京艺术|广西艺术|云南艺术|山东艺术|吉林艺术|新疆艺术|浙江传媒/.test(name)){tierScore=0.55;tierLabel='省属艺术院校';}
+      else{tierScore=0.45;tierLabel='艺术类院校';}
+    }
     else if(r.isPublic){
       const rl=String(r.rankLevel||'');
-      // 细拆公办内部
       if(rl.includes('A+')||rl.includes('A ')||rl==='A'){tierScore=0.48;tierLabel='公办(A级)';}
       else if(rl.includes('B+')||rl.includes('B ')){tierScore=0.36;tierLabel='公办(B级)';}
       else{tierScore=0.24;tierLabel='公办(普通)';}
     }else{tierScore=0.12;tierLabel='民办/独立学院';}
 
-    // 3. 软科排名 (weight: 8): 得分区间压缩，A+才0.9
+    // 3. 软科排名 (weight: 6)
     let rankScore=0;
     const rl=String(r.rankLevel||'');
     if(rl.includes('A+'))rankScore=0.90;
@@ -72,18 +90,46 @@ function matchSchools(userScore,artKey,cultureScore,pool){
     else if(rl.includes('C'))rankScore=0.08;
     else rankScore=0.04;
 
-    // 4. 数据可信度 (weight: 12)
-    const confidence=r.scoreSource==='estimated'?0.2:(r.rankPosition&&r.rankPosition>0?0.95:0.55);
+    // 4. 专业特色 (weight: 9): 国家级一流/省级一流/特色专业
+    const note=(r.note||''),course=(r.courseGuide||''),talent=(r.talentGoal||'');
+    let majorScore=0.10;
+    if(/国家级/.test(note)||/国家级/.test(course)||/国家一流/.test(note))majorScore=0.95;
+    else if(/省级/.test(note)||/省级一流/.test(note)||/省一流/.test(note))majorScore=0.75;
+    else if(/特色/.test(note)||/卓越/.test(note)||/重点/.test(note))majorScore=0.52;
+    else if(course.length>100||talent.length>80)majorScore=0.32; // 有详细课程/培养方案
+    else majorScore=0.15;
 
-    // 5. 地理位置 (weight: 6): 降低省内权重，避免过度偏向
+    // 5. 培养模式 (weight: 6): 校企合作/实验班/中外合作等
+    let cultivateScore=0.08;
+    const fullText=(note+course+talent).toLowerCase();
+    if(/校企合作|产教融合|订单培养|现代学徒|产业学院/.test(fullText))cultivateScore=0.88;
+    else if(/实验班|卓越班|精英班|创新班|拔尖/.test(fullText))cultivateScore=0.72;
+    else if(/工作室|导师制|项目制|工作坊/.test(fullText))cultivateScore=0.52;
+    else if(/实习基地|实训|实践教学|实习/.test(fullText))cultivateScore=0.32;
+    else cultivateScore=0.12;
+
+    // 6. 专科学历 (weight: 4): 本/专科独立评分，本科得满分
+    const isVoc=isVocational(r);
+    let degreeScore=0;
+    if(!isVoc)degreeScore=0.95; // 本科
+    else{
+      // 专科中再分档：公办专科>民办专科
+      if(r.isPublic)degreeScore=0.42;
+      else degreeScore=0.18;
+    }
+
+    // 7. 数据可信度 (weight: 10)
+    const confidence=r.scoreSource==='estimated'?0.20:(r.rankPosition&&r.rankPosition>0?0.95:0.55);
+
+    // 8. 地理位置 (weight: 4): 弱化
     const city=r.city||'';
     let localScore=0;
-    if(city.includes('浙江'))localScore=0.70;
-    else if(/上海|南京|苏州|无锡|常州|南通|杭州/.test(city))localScore=0.45;
-    else if(/江苏|安徽|福建|江西/.test(city))localScore=0.25;
+    if(city.includes('浙江'))localScore=0.55;
+    else if(/上海|南京|苏州|无锡|常州|南通/.test(city))localScore=0.38;
+    else if(/江苏|安徽|福建|江西/.test(city))localScore=0.20;
     else localScore=0.08;
 
-    // 6. 学费合理度 (weight: 6): 压分
+    // 9. 学费合理度 (weight: 4): 压分
     const t=r.tuition||0;
     let tuitionScore=0;
     if(t<=6000)tuitionScore=0.95;
@@ -93,52 +139,54 @@ function matchSchools(userScore,artKey,cultureScore,pool){
     else if(t<=60000)tuitionScore=0.15;
     else tuitionScore=0.05;
 
-    // 7. 计划数 (weight: 5): 压分
+    // 10. 计划数 (weight: 3)
     const plan=(r.plan25||r.plan24||0);
     let planScore=0;
-    if(plan>=30)planScore=0.90;
-    else if(plan>=15)planScore=0.60;
-    else if(plan>=8)planScore=0.35;
-    else if(plan>=3)planScore=0.18;
-    else planScore=0.06;
+    if(plan>=30)planScore=0.85;
+    else if(plan>=15)planScore=0.58;
+    else if(plan>=8)planScore=0.32;
+    else if(plan>=3)planScore=0.15;
+    else planScore=0.05;
 
-    // 8. 位次匹配度 (weight: 8)
-    let rankMatchScore=0.25;
+    // 11. 位次匹配度 (weight: 6)
+    let rankMatchScore=0.20;
     if(r.rankPosition&&typeof r.rankPosition==='number'&&r.rankPosition>0){
       const rankGap=Math.abs(r.rankPosition-100);
       rankMatchScore=Math.pow(Math.max(0,1-rankGap/Math.max(r.rankPosition,1)),1.5);
     }
 
-    // 9. 城市级别 (weight: 3): 继续压权
+    // 12. 城市级别 (weight: 3)
     let cityLevelScore=0.08;
-    if(/杭州|宁波/.test(city))cityLevelScore=0.85;
-    else if(/上海|北京|广州|深圳/.test(city))cityLevelScore=0.72;
-    else if(/南京|苏州|武汉|成都|重庆|天津|西安|长沙|青岛/.test(city))cityLevelScore=0.52;
-    else if(/温州|绍兴|金华|嘉兴|台州|湖州/.test(city))cityLevelScore=0.38;
-    else if(/福州|厦门|合肥|南昌|郑州|济南|无锡|常州/.test(city))cityLevelScore=0.25;
-    else if(/浙江/.test(city))cityLevelScore=0.18;
+    if(/杭州|宁波/.test(city))cityLevelScore=0.82;
+    else if(/上海|北京|广州|深圳/.test(city))cityLevelScore=0.68;
+    else if(/南京|苏州|武汉|成都|重庆|天津|西安|长沙|青岛/.test(city))cityLevelScore=0.48;
+    else if(/温州|绍兴|金华|嘉兴|台州|湖州/.test(city))cityLevelScore=0.35;
+    else if(/福州|厦门|合肥|南昌|郑州|济南|无锡|常州/.test(city))cityLevelScore=0.22;
+    else if(/浙江/.test(city))cityLevelScore=0.15;
     else cityLevelScore=0.10;
 
-    // 加权: 原始分 × 权重 → 归一化为0-1
-    const w=[0.30,0.22,0.08,0.12,0.06,0.06,0.05,0.08,0.03];
-    const scores=[proximity,tierScore,rankScore,confidence,localScore,tuitionScore,planScore,rankMatchScore,cityLevelScore];
+    // 加权: 12维
+    const w=[0.25,0.20,0.06,0.09,0.06,0.04,0.10,0.04,0.04,0.03,0.06,0.03];
+    const scores=[proximity,tierScore,rankScore,majorScore,cultivateScore,degreeScore,confidence,localScore,tuitionScore,planScore,rankMatchScore,cityLevelScore];
     let total=0;
     for(let i=0;i<w.length;i++)total+=w[i]*scores[i];
-    // 缩放至100分制
     total=Math.round(total*100);
 
     if(raw)return{
       total,
       details:{
-        proximity:{score:Math.round(proximity*100),weight:30,label:'分差接近度',raw:w[0]*proximity},
-        tier:{score:Math.round(tierScore*100),weight:22,label:'院校层次',extra:tierLabel,raw:w[1]*tierScore},
-        rank:{score:Math.round(rankScore*100),weight:8,label:'软科排名',raw:w[2]*rankScore},
-        confidence:{score:Math.round(confidence*100),weight:12,label:'数据可信度',raw:w[3]*confidence},
-        local:{score:Math.round(localScore*100),weight:6,label:'地理位置',raw:w[4]*localScore},
-        tuition:{score:Math.round(tuitionScore*100),weight:6,label:'学费合理度',raw:w[5]*tuitionScore},
-        plan:{score:Math.round(planScore*100),weight:5,label:'招生计划数',raw:w[6]*planScore},
-        rankMatch:{score:Math.round(rankMatchScore*100),weight:8,label:'位次匹配度',raw:w[7]*rankMatchScore},
-        cityLevel:{score:Math.round(cityLevelScore*100),weight:3,label:'城市级别',raw:w[8]*cityLevelScore},
+        proximity:{score:Math.round(proximity*100),weight:25,label:'分差接近度',raw:w[0]*proximity},
+        tier:{score:Math.round(tierScore*100),weight:20,label:'院校层次',extra:tierLabel,raw:w[1]*tierScore},
+        rank:{score:Math.round(rankScore*100),weight:6,label:'软科排名',raw:w[2]*rankScore},
+        major:{score:Math.round(majorScore*100),weight:9,label:'专业特色',raw:w[3]*majorScore},
+        cultivate:{score:Math.round(cultivateScore*100),weight:6,label:'培养模式',raw:w[4]*cultivateScore},
+        degree:{score:Math.round(degreeScore*100),weight:4,label:'学历层次',extra:isVoc?'专科':'本科',raw:w[5]*degreeScore},
+        confidence:{score:Math.round(confidence*100),weight:10,label:'数据可信度',raw:w[6]*confidence},
+        local:{score:Math.round(localScore*100),weight:4,label:'地理位置',raw:w[7]*localScore},
+        tuition:{score:Math.round(tuitionScore*100),weight:4,label:'学费合理度',raw:w[8]*tuitionScore},
+        plan:{score:Math.round(planScore*100),weight:3,label:'招生计划数',raw:w[9]*planScore},
+        rankMatch:{score:Math.round(rankMatchScore*100),weight:6,label:'位次匹配度',raw:w[10]*rankMatchScore},
+        cityLevel:{score:Math.round(cityLevelScore*100),weight:3,label:'城市级别',raw:w[11]*cityLevelScore},
       }
     };
     return total;
