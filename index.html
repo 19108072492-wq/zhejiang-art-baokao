@@ -66,16 +66,6 @@ body{font-family:var(--f);background:var(--bg);color:var(--t);line-height:1.65;-
 .tier-row .tr-body strong{display:block;margin-bottom:1px}
 .tier-row .tr-body span{color:var(--t3);font-size:.74rem}
 .auth-bar{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;font-size:.78rem;color:var(--t3);padding:6px 12px;background:var(--gb);border-radius:var(--rd)}
-.score-breakdown{margin-top:6px;padding:5px 6px;background:#f9fafb;border-radius:4px;font-size:.65rem;overflow:hidden;width:100%;box-sizing:border-box;max-width:100%}
-.score-breakdown .sb-title{font-weight:600;margin-bottom:3px;color:var(--t);font-size:.7rem}
-.score-breakdown .sb-row{display:flex;align-items:center;gap:2px;margin:1px 0;min-width:0;max-width:100%;overflow:hidden}
-.score-breakdown .sb-row .sbl{width:52px;flex-shrink:0;color:var(--t2);text-align:left;font-size:.58rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.1}
-.score-breakdown .sb-row .sbb{flex:1;height:3px;background:#e8e8e8;border-radius:1px;overflow:hidden;min-width:12px}
-.score-breakdown .sb-row .sbf{height:100%;border-radius:1px}
-.score-breakdown .sb-row .sbv{width:16px;text-align:right;font-weight:600;color:var(--t3);flex-shrink:0;font-size:.58rem;line-height:1.1}
-.data-source-card{background:var(--gb);border-radius:var(--rlg);padding:14px 20px;margin-top:16px;font-size:.76rem;color:var(--t2);border:1px solid var(--gl);line-height:1.8}
-.data-source-card h4{font-size:.85rem;font-weight:700;margin-bottom:6px;color:var(--t)}
-.data-source-card a{color:var(--g)}
 .sbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px}
 .stxt{font-size:.85rem;color:var(--t2)}
 .sch{display:flex;gap:8px;margin-bottom:12px;align-items:center}
@@ -113,6 +103,13 @@ body{font-family:var(--f);background:var(--bg);color:var(--t);line-height:1.65;-
 .tag-985{background:#fefce8;color:#854d0e}.tag-211{background:#ecfeff;color:#164e63}
 .tag-df{background:#f5f3ff;color:#5b21b6}.tag-pv{background:#fef2f2;color:#991b1b}
 .tag-est{background:#fefce8;color:#92400e;border:1px solid #fcd34d}
+.score-breakdown{margin-top:6px;padding:5px 6px;background:#f9fafb;border-radius:4px;font-size:.65rem;overflow:hidden;width:100%;box-sizing:border-box;max-width:100%}
+.score-breakdown .sb-title{font-weight:600;margin-bottom:3px;color:var(--t);font-size:.7rem}
+.score-breakdown .sb-row{display:flex;align-items:center;gap:2px;margin:1px 0;min-width:0;max-width:100%;overflow:hidden}
+.score-breakdown .sb-row .sbl{width:52px;flex-shrink:0;color:var(--t2);text-align:left;font-size:.58rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.1}
+.score-breakdown .sb-row .sbb{flex:1;height:3px;background:#e8e8e8;border-radius:1px;overflow:hidden;min-width:12px}
+.score-breakdown .sb-row .sbf{height:100%;border-radius:1px}
+.score-breakdown .sb-row .sbv{width:16px;text-align:right;font-weight:600;color:var(--t3);flex-shrink:0;font-size:.58rem;line-height:1.1}
 .flt{position:fixed;bottom:0;left:0;right:0;z-index:150;background:var(--w);border-top:1px solid var(--bd);padding:12px 20px;box-shadow:0 -4px 20px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:space-between;gap:12px;transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);padding-bottom:max(12px,env(safe-area-inset-bottom))}
 .flt.on{transform:translateY(0)}
 .flt .cnt{font-size:.85rem;font-weight:600}
@@ -172,6 +169,9 @@ body{font-family:var(--f);background:var(--bg);color:var(--t);line-height:1.65;-
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.err{background:var(--r)}
 .ft{text-align:center;padding:20px;font-size:.75rem;color:var(--t3);border-top:1px solid var(--bd);margin-top:8px}
+.data-source-card{background:var(--gb);border-radius:var(--rlg);padding:14px 20px;margin-top:16px;font-size:.76rem;color:var(--t2);border:1px solid var(--gl);line-height:1.8}
+.data-source-card h4{font-size:.85rem;font-weight:700;margin-bottom:6px;color:var(--t)}
+.data-source-card a{color:var(--g)}
 @media(max-width:640px){
   .main{padding:16px 10px 100px}.card{padding:16px 18px}.hero h1{font-size:1.25rem}
   .fcol{min-width:120px}.sbar{flex-direction:column;align-items:flex-start}
@@ -191,7 +191,19 @@ body{font-family:var(--f);background:var(--bg);color:var(--t);line-height:1.65;-
 </div></header>
 <div class="main">
   <div class="hero"><h1>浙江<span class="gold">艺考</span>志愿填报助手</h1><p>科学匹配院校 · 精准冲稳保 · 让每一分都有价值</p></div>
-  <div class="card" id="inputCard">
+
+  <!-- 未登录时的引导卡片 -->
+  <div class="card" id="gateCard">
+    <div class="card-tt">🔐 欢迎使用</div>
+    <div class="card-sub">请先注册或登录，即可使用完整的志愿填报功能</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+      <button class="btn btn-g" id="btnGateLogin">📝 注册 / 登录</button>
+      <button class="btn btn-o" id="btnGateTrial">🎁 免费体验 1 次</button>
+    </div>
+  </div>
+
+  <!-- 志愿填报卡片（登录/试用后显示） -->
+  <div class="card hidden" id="inputCard">
     <div class="card-tt">📝 成绩输入</div>
     <div class="card-sub">请输入高考文化课成绩与艺术统考成绩</div>
     <div class="frow">
@@ -200,11 +212,13 @@ body{font-family:var(--f);background:var(--bg);color:var(--t);line-height:1.65;-
       <div class="fcol"><label>艺术统考成绩</label><input type="number" id="art" placeholder="例：245" min="0" step="0.5"></div>
     </div>
     <button class="btn btn-g btn-blk" id="btnGo">🔍 开始匹配院校</button>
-    <div class="auth-bar" id="usesBar">剩余免费次数：<span style="font-weight:700;color:var(--g)">3</span> 次</div>
+    <div class="auth-bar" id="usesBar"></div>
     <div id="scoreBox" class="hidden"></div>
-    <details class="algo-card hidden" id="algoCard"><summary>📊 推荐算法说明（点击展开）</summary><div id="algoBody"></div><div class="algo-formula">综合评分 = 分差接近度×40% + 院校层次×25% + 数据可信度×15% + 省内优先×10% + 学费合理度×10%</div><div style="font-size:.72rem;color:var(--t3);margin-top:4px;text-align:center">数据来源：浙江省教育考试院历年录取数据 · 综合分公式依据浙教考〔2024〕</div></details>
+    <details class="algo-card hidden" id="algoCard"><summary>📊 推荐算法说明（点击展开）</summary><div id="algoBody"></div><div class="algo-formula">综合评分 = 分差接近度×25% + 院校层次×20% + 专业特色×9% + 培养模式×6% + 12维度加权</div><div style="font-size:.72rem;color:var(--t3);margin-top:4px;text-align:center">数据来源：浙江省教育考试院历年录取数据 · 综合分公式依据浙教考〔2024〕</div></details>
     <div class="tier-explain hidden" id="tierExplain"></div>
   </div>
+
+  <!-- 结果卡片 -->
   <div class="card hidden" id="resultBox">
     <div class="card-tt">🏫 匹配结果</div>
     <div class="sbar"><span class="stxt" id="summary"></span><span id="summaryActions"></span></div>
@@ -224,9 +238,9 @@ body{font-family:var(--f);background:var(--bg);color:var(--t);line-height:1.65;-
 <div class="mod hidden" id="cmpModal"><div class="mod-pn"><div class="mhdr"><h2>🔍 院校对比</h2><button class="btn btn-gh btn-sm" id="btnCmpClose">✕ 关闭</button></div><div class="mbody" id="cmpBody"></div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase.js?v=1"></script>
-<script src="js/auth.js?v=1"></script>
+<script src="js/auth.js?v=2"></script>
 <script src="js/data.js?v=2"></script>
 <script src="js/core.js?v=2"></script>
-<script src="js/app.js?v=2"></script>
+<script src="js/app.js?v=3"></script>
 </body>
 </html>
