@@ -101,8 +101,8 @@ body{font-family:var(--f);background:var(--bg);color:var(--t);line-height:1.65;-
 .sinfo{flex:1;min-width:0}
 .sname{font-size:.95rem;font-weight:700}
 .smaj{font-size:.82rem;color:var(--t2);margin-bottom:4px}
-.smeta{display:flex;flex-wrap:wrap;gap:8px;font-size:.74rem;color:var(--t3)}
-.smeta span{white-space:nowrap}
+.smeta{display:flex;flex-wrap:wrap;gap:8px;font-size:.74rem;color:var(--t3);overflow:hidden}
+.smeta span{white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .sdet{display:none;margin-top:10px;padding-top:10px;border-top:1px dashed var(--bd);font-size:.78rem;color:var(--t2);line-height:1.8;overflow:hidden;max-width:100%;word-break:break-all}
 .sc.exp .sdet{display:block}
 .sstat{text-align:right;flex-shrink:0;display:flex;flex-direction:column;justify-content:center;gap:2px;min-width:60px}
