@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>非凡教育 · 浙江艺考志愿助手</title>
+<style>
+:root{--g:#b08543;--gl:#d4b87a;--gb:#faf6f0;--bg:#f7f8fa;--w:#fff;--t:#333;--t2:#595959;--t3:#8c8c8c;--bd:#e8e8e8;--r:#c0392b;--o:#c07830;--gr:#3a7d5a;--rb:#fdf5f5;--ob:#fdf8f2;--gbg:#f4faf6;--rd:6px;--rlg:12px;--sh:0 2px 12px rgba(0,0,0,.06);--shl:0 4px 24px rgba(0,0,0,.1);--f:"PingFang SC","PingFangSC-Regular","Microsoft YaHei",sans-serif}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--f);background:var(--bg);color:var(--t);line-height:1.65;-webkit-font-smoothing:antialiased}
+.hidden{display:none!important}
+.hdr{position:sticky;top:0;z-index:100;background:var(--w);box-shadow:0 2px 16px rgba(0,0,0,.06);border-bottom:1px solid var(--bd)}
+.hdr-in{max-width:960px;margin:0 auto;padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:56px}
+.hdr-logo{display:flex;align-items:center;gap:10px;font-size:1.05rem;font-weight:700;color:var(--t);text-decoration:none}
+.hdr-logo .icon{width:32px;height:32px;background:linear-gradient(135deg,#b08543,#8b6530);border-radius:var(--rd);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.9rem}
+.hdr-nav{display:flex;gap:28px;font-size:.88rem}
+.hdr-nav a{color:var(--t2);text-decoration:none;position:relative;padding-bottom:4px;transition:color .2s}
+.hdr-nav a:hover,.hdr-nav a.active{color:var(--g)}
+.hdr-nav a.active::after{content:'';position:absolute;bottom:-2px;left:50%;transform:translateX(-50%);width:16px;height:2px;background:var(--g);border-radius:1px}
+.main{max-width:640px;margin:0 auto;padding:28px 16px 100px}
+.hero{text-align:center;padding:32px 0 16px}
+.hero h1{font-size:1.5rem;font-weight:700;color:var(--t);margin-bottom:4px}
+.hero h1 .gold{color:var(--g)}
+.hero p{color:var(--t3);font-size:.9rem;margin-top:6px}
+.card{background:var(--w);border-radius:var(--rlg);padding:20px 24px;box-shadow:var(--sh);margin-bottom:16px}
+.card-tt{font-size:1rem;font-weight:700;color:var(--t);margin-bottom:4px}
+.card-sub{color:var(--t3);font-size:.82rem;margin-bottom:16px}
+.frow{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px}
+.fcol{flex:1;min-width:140px;display:flex;flex-direction:column;gap:4px}
+.fcol label{font-size:.78rem;font-weight:600;color:var(--t2)}
+.fcol select,.fcol input{padding:10px 14px;border:1.5px solid var(--bd);border-radius:var(--rd);font-size:.92rem;font-family:var(--f);color:var(--t);background:var(--w);transition:all .2s}
+.fcol select:focus,.fcol input:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 3px var(--gb)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 22px;border-radius:var(--rd);font-size:.9rem;font-weight:600;font-family:var(--f);cursor:pointer;border:1.5px solid transparent;transition:all .2s;text-decoration:none}
+.btn-blk{width:100%}
+.btn-g{background:var(--g);color:#fff;border-color:var(--g)}.btn-g:hover{background:#9a7235}
+.btn-o{background:var(--w);color:var(--g);border-color:var(--g)}.btn-o:hover{background:var(--gb)}
+.btn-gh{background:var(--w);color:var(--t2);border-color:var(--bd)}.btn-gh:hover{background:var(--bg);color:var(--t)}
+.btn-sm{padding:6px 14px;font-size:.8rem}
+.sbox{margin-top:14px;padding:16px 20px;background:var(--gb);border-radius:var(--rlg);border:1.5px solid var(--gl);display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.sbox .lbl{font-size:.82rem;color:var(--t2)}
+.sbox .val{font-size:1.8rem;font-weight:800;color:var(--g)}
+.sbox .frm{font-size:.76rem;color:var(--t3)}
+.snote{margin-top:10px;padding:10px 14px;border-radius:var(--rd);font-size:.8rem}
+.snote.ok{color:#3a7d5a;background:#f4faf6;border:1px solid #3a7d5a}
+.snote.warn{color:#9a6b2a;background:var(--gb);border:1px solid var(--gl)}
+.sbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.stxt{font-size:.85rem;color:var(--t2)}
+.fil{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.fil button{padding:7px 18px;border-radius:20px;font-size:.8rem;font-weight:600;cursor:pointer;border:1.5px solid var(--bd);background:var(--w);color:var(--t2);transition:all .2s;font-family:var(--f)}
+.fil button.on[data-t="all"]{background:var(--g);border-color:var(--g);color:#fff}
+.fil button.on[data-t="reach"]{background:var(--r);border-color:var(--r);color:#fff}
+.fil button.on[data-t="match"]{background:var(--o);border-color:var(--o);color:#fff}
+.fil button.on[data-t="safety"]{background:var(--gr);border-color:var(--gr);color:#fff}
+.slist{display:flex;flex-direction:column;gap:10px}
+.sc{display:flex;gap:12px;padding:16px 18px;border-radius:var(--rlg);border:1.5px solid var(--bd);background:var(--w);cursor:pointer;position:relative;transition:all .2s}
+.sc:hover{box-shadow:var(--shl);transform:translateY(-1px)}
+.sc.reach{border-left:3px solid var(--r);background:var(--rb)}
+.sc.match{border-left:3px solid var(--o);background:var(--ob)}
+.sc.safety{border-left:3px solid var(--gr);background:var(--gbg)}
+.sc.sel{border-color:var(--g);box-shadow:0 0 0 2px var(--gb)}
+.cb{display:flex;align-items:flex-start;padding-top:3px;flex-shrink:0;cursor:pointer;user-select:none}
+.cb-box{width:20px;height:20px;border-radius:4px;border:2px solid var(--bd);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:#fff;transition:all .2s;background:var(--w)}
+.cb-box.on{background:var(--g);border-color:var(--g)}
+.sinfo{flex:1;min-width:0}
+.sname{font-size:.95rem;font-weight:700}
+.smaj{font-size:.82rem;color:var(--t2);margin-bottom:4px}
+.smeta{display:flex;flex-wrap:wrap;gap:8px;font-size:.74rem;color:var(--t3)}
+.smeta span{white-space:nowrap}
+.sdet{display:none;margin-top:10px;padding-top:10px;border-top:1px dashed var(--bd);font-size:.78rem;color:var(--t2);line-height:1.8}
+.sc.exp .sdet{display:block}
+.sstat{text-align:right;flex-shrink:0;display:flex;flex-direction:column;justify-content:center;gap:2px;min-width:60px}
+.sstat .sn{font-size:1.1rem;font-weight:800;color:var(--g)}
+.sstat .ss{font-size:.7rem;color:var(--t3)}
+.tag{display:inline-block;padding:1px 6px;border-radius:3px;font-size:.64rem;font-weight:700;white-space:nowrap}
+.tag-985{background:#fefce8;color:#854d0e}.tag-211{background:#ecfeff;color:#164e63}
+.tag-df{background:#f5f3ff;color:#5b21b6}.tag-pv{background:#fef2f2;color:#991b1b}
+.tag-est{background:#fefce8;color:#92400e;border:1px solid #fcd34d}
+.flt{position:fixed;bottom:0;left:0;right:0;z-index:150;background:var(--w);border-top:1px solid var(--bd);padding:12px 20px;box-shadow:0 -4px 20px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:space-between;gap:12px;transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);padding-bottom:max(12px,env(safe-area-inset-bottom))}
+.flt.on{transform:translateY(0)}
+.flt .cnt{font-size:.85rem;font-weight:600}
+.flt .cnt strong{color:var(--g)}
+.mod{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:center;justify-content:center}
+.mod-pn{background:var(--w);width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden}
+.mod-sm{min-width:340px;max-width:420px;background:var(--w);border-radius:var(--rlg);padding:28px;box-shadow:var(--shl);margin:20px}
+.mod-sm h3{font-size:1.05rem;margin-bottom:14px}
+.mod-sm input{width:100%;padding:10px 14px;border:1.5px solid var(--bd);border-radius:var(--rd);font-size:.95rem;font-family:var(--f);margin-bottom:10px}
+.mhdr{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--bd);background:var(--bg);flex-shrink:0}
+.mhdr h2{font-size:1.1rem;font-weight:700}
+.mbody{flex:1;overflow:auto;padding:20px}
+.gear{position:fixed;bottom:24px;right:24px;z-index:99;width:44px;height:44px;border-radius:50%;background:var(--w);border:1.5px solid var(--bd);box-shadow:var(--sh);font-size:1.2rem;cursor:pointer;opacity:.45;transition:all .25s;display:flex;align-items:center;justify-content:center}
+.gear:hover{opacity:1;border-color:var(--g);box-shadow:var(--shl)}
+.agrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin:16px 0}
+.aitem{border:1.5px solid var(--bd);border-radius:var(--rlg);padding:16px;background:var(--w);transition:border-color .2s}
+.aitem.has{border-color:var(--gr);background:var(--gbg)}
+.aitem h4{font-size:.9rem;font-weight:700;margin-bottom:6px}
+.aitem .ast{font-size:.75rem;color:var(--t3);line-height:1.6}
+.aitem .aact{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap}
+.vsec{margin-bottom:24px}
+.vsec h3{font-size:.95rem;font-weight:700;padding-bottom:6px;margin-bottom:10px;border-bottom:2px solid var(--bd)}
+.vsec.reach h3{color:var(--r);border-color:var(--r)}
+.vsec.match h3{color:var(--o);border-color:var(--o)}
+.vsec.safety h3{color:var(--gr);border-color:var(--gr)}
+.vsec h3 small{font-weight:400;font-size:.78rem;color:var(--t3)}
+.vtab{width:100%;border-collapse:collapse;font-size:.78rem}
+.vtab th,.vtab td{border:1px solid var(--bd);padding:7px 9px;text-align:left}
+.vtab th{background:var(--bg);font-weight:600;color:var(--t2);white-space:nowrap}
+.vtab .empty td{color:var(--t3);font-style:italic}
+.ctw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.ct{width:100%;border-collapse:collapse;min-width:500px;font-size:.8rem}
+.ct th,.ct td{border:1px solid var(--bd);padding:9px 12px;text-align:left;vertical-align:top}
+.ct th{background:var(--bg);font-weight:600;white-space:nowrap;color:var(--t2)}
+.ct .rlb{font-weight:600;background:var(--bg);white-space:nowrap;min-width:90px}
+.ct .dr td{background:var(--gb)}
+.ct .dr td.rlb{background:#f7edd8}
+.toast{position:fixed;bottom:40px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--t);color:#fff;padding:10px 24px;border-radius:20px;font-size:.85rem;font-weight:600;z-index:999;opacity:0;transition:all .35s cubic-bezier(.4,0,.2,1);pointer-events:none;max-width:90vw}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.err{background:var(--r)}
+.ft{text-align:center;padding:20px;font-size:.75rem;color:var(--t3);border-top:1px solid var(--bd);margin-top:8px}
+@media(max-width:640px){
+  .main{padding:16px 10px 100px}.card{padding:16px 18px}.hero h1{font-size:1.25rem}
+  .fcol{min-width:120px}.sbar{flex-direction:column;align-items:flex-start}
+  .sc{padding:14px;flex-direction:column}.sstat{flex-direction:row;text-align:left;gap:12px}
+  .agrid{grid-template-columns:1fr}.hdr-nav{display:none}
+}
+@media print{
+  .hdr,.flt,.gear,.fil,.ft,#inputCard{display:none!important}
+  .sc{break-inside:avoid;box-shadow:none!important;border:1px solid #ddd!important}
+}
+</style>
+</head>
+<body>
+<header class="hdr"><div class="hdr-in">
+  <a class="hdr-logo" href="/"><span class="icon">非凡</span>非凡教育 · 艺考志愿助手</a>
+  <nav class="hdr-nav"><a href="#inputCard" class="active">填报评估</a></nav>
+</div></header>
+<div class="main">
+  <div class="hero"><h1>浙江<span class="gold">艺考</span>志愿填报助手</h1><p>科学匹配院校 · 精准冲稳保 · 让每一分都有价值</p></div>
+  <div class="card" id="inputCard">
+    <div class="card-tt">📝 成绩输入</div>
+    <div class="card-sub">请输入高考文化课成绩与艺术统考成绩</div>
+    <div class="frow">
+      <div class="fcol"><label>艺术门类</label><select id="cat"><option value="">请选择</option><option value="finearts">🎨 美术与设计类</option><option value="music">🎵 音乐类</option><option value="dance">💃 舞蹈类</option><option value="broadcast">🎙️ 播音与主持类</option><option value="acting">🎭 表（导）演类</option><option value="calligraphy">✒️ 书法类</option></select></div>
+      <div class="fcol"><label>文化课总分（满分750）</label><input type="number" id="culture" placeholder="例：520" min="0" max="750" step="0.5"></div>
+      <div class="fcol"><label>艺术统考成绩</label><input type="number" id="art" placeholder="例：245" min="0" step="0.5"></div>
+    </div>
+    <button class="btn btn-g btn-blk" id="btnGo">🔍 开始匹配院校</button>
+    <div id="scoreBox" class="hidden"></div>
+  </div>
+  <div class="card hidden" id="resultBox">
+    <div class="card-tt">🏫 匹配结果</div>
+    <div class="sbar"><span class="stxt" id="summary"></span><span id="summaryActions"></span></div>
+    <div class="fil" id="filters"><button class="on" data-t="all">全部</button><button data-t="reach">🔴 冲刺</button><button data-t="match">🟡 稳妥</button><button data-t="safety">🟢 保底</button></div>
+    <div class="slist" id="list"></div>
+  </div>
+  <div class="flt" id="floatBar"><span class="cnt">已选 <strong id="floatCnt">0</strong> 所学校</span><div style="display:flex;gap:8px"><button class="btn btn-g btn-sm" id="btnForm" disabled>📋 生成志愿单</button><button class="btn btn-o btn-sm" id="btnCmp" disabled>🔍 对比(<span id="cmpCnt">0</span>/4)</button><button class="btn btn-gh btn-sm" id="btnClr">清空</button></div></div>
+  <div class="ft"><p>⚠️ 本工具仅供参考，不构成报考建议。最终填报请以浙江省教育考试院 (zjzs.net) 官方信息为准。</p><p>数据在浏览器本地处理，不会上传到任何服务器。</p></div>
+</div>
+<button class="gear" id="btnGear" title="数据管理">⚙️</button>
+<div class="mod hidden" id="lockModal"><div class="mod-sm"><h3>🔐 管理员验证</h3><input type="password" id="pwdInput" placeholder="请输入管理密码" autocomplete="off"><div style="display:flex;gap:8px"><button class="btn btn-g" id="btnUnlock">进入后台</button><button class="btn btn-gh" id="btnLockCancel">取消</button></div><p style="font-size:.75rem;color:var(--t3);margin-top:8px">默认密码：888888</p></div></div>
+<div class="mod hidden" id="adminModal"><div class="mod-pn"><div class="mhdr"><h2>📊 数据管理中心</h2><button class="btn btn-gh btn-sm" id="btnAdminClose">✕ 关闭</button></div><div class="mbody"><div class="agrid" id="adminGrid"></div><div style="margin-top:16px;display:flex;align-items:center;justify-content:space-between;font-size:.82rem;color:var(--t3)"><span>共 <strong id="totalCount" style="color:var(--g)">0</strong> 条记录</span><button class="btn btn-gh btn-sm" id="btnClearAll">🗑 清空全部</button></div></div></div></div>
+<div class="mod hidden" id="formModal"><div class="mod-pn"><div class="mhdr"><h2>📋 志愿填报参考单</h2><div style="display:flex;gap:8px"><button class="btn btn-g btn-sm" id="btnPrint">🖨 打印</button><button class="btn btn-gh btn-sm" id="btnFormClose">✕</button></div></div><div class="mbody" id="formBody"></div></div></div>
+<div class="mod hidden" id="cmpModal"><div class="mod-pn"><div class="mhdr"><h2>🔍 院校对比</h2><button class="btn btn-gh btn-sm" id="btnCmpClose">✕ 关闭</button></div><div class="mbody" id="cmpBody"></div></div></div>
+<script src="js/data.js?v=2"></script>
+<script src="js/core.js?v=2"></script>
+<script src="js/app.js?v=2"></script>
+</body>
+</html>
