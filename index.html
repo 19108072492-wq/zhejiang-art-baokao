@@ -46,6 +46,11 @@ body{font-family:var(--f);background:var(--bg);color:var(--t);line-height:1.65;-
 .snote.warn{color:#9a6b2a;background:var(--gb);border:1px solid var(--gl)}
 .sbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px}
 .stxt{font-size:.85rem;color:var(--t2)}
+.sch{display:flex;gap:8px;margin-bottom:12px;align-items:center}
+.sch input{flex:1;padding:8px 14px;border:1.5px solid var(--bd);border-radius:20px;font-size:.85rem;font-family:var(--f);outline:none;transition:border-color .2s;min-width:0}
+.sch input:focus{border-color:var(--g);box-shadow:0 0 0 3px var(--gb)}
+.sel-sort{padding:5px 10px;border:1.5px solid var(--bd);border-radius:var(--rd);font-size:.8rem;font-family:var(--f);background:var(--w);color:var(--t2);cursor:pointer;outline:none;flex-shrink:0}
+.sel-sort:focus{border-color:var(--g)}
 .fil{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
 .fil button{padding:7px 18px;border-radius:20px;font-size:.8rem;font-weight:600;cursor:pointer;border:1.5px solid var(--bd);background:var(--w);color:var(--t2);transition:all .2s;font-family:var(--f)}
 .fil button.on[data-t="all"]{background:var(--g);border-color:var(--g);color:#fff}
@@ -96,6 +101,24 @@ body{font-family:var(--f);background:var(--bg);color:var(--t);line-height:1.65;-
 .aitem h4{font-size:.9rem;font-weight:700;margin-bottom:6px}
 .aitem .ast{font-size:.75rem;color:var(--t3);line-height:1.6}
 .aitem .aact{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap}
+.adetail{margin-top:10px;padding-top:10px;border-top:1px dashed var(--bd)}
+.adetail table{width:100%;border-collapse:collapse;font-size:.73rem}
+.adetail td,.adetail th{border:1px solid var(--bd);padding:5px 7px;text-align:left;vertical-align:middle}
+.adetail th{background:var(--bg);font-weight:600;color:var(--t2);white-space:nowrap}
+.adetail .row-num{text-align:center;color:var(--t3);width:30px}
+.aedit-panel{display:none;margin-top:10px;padding:12px;background:var(--bg);border-radius:var(--rd);border:1.5px solid var(--bd)}
+.aedit-panel.on{display:block}
+.aedit-form{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.aedit-form label{font-size:.72rem;font-weight:600;color:var(--t2);display:flex;flex-direction:column;gap:2px}
+.aedit-form .full{grid-column:1/-1}
+.aedit-form input,.aedit-form select,.aedit-form textarea{padding:5px 8px;border:1.5px solid var(--bd);border-radius:3px;font-size:.78rem;font-family:var(--f);width:100%;box-sizing:border-box}
+.aedit-form textarea{min-height:50px;resize:vertical}
+.aedit-form input:focus,.aedit-form select:focus,.aedit-form textarea:focus{outline:none;border-color:var(--g)}
+.aedit-acts{display:flex;gap:6px;margin-top:8px;grid-column:1/-1}
+.apage{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;font-size:.75rem}
+.apage button{padding:3px 10px;border:1px solid var(--bd);border-radius:3px;background:var(--w);cursor:pointer;font-size:.72rem}
+.apage button.on{background:var(--g);color:#fff;border-color:var(--g)}
+.apage button:disabled{opacity:.4;cursor:default}
 .vsec{margin-bottom:24px}
 .vsec h3{font-size:.95rem;font-weight:700;padding-bottom:6px;margin-bottom:10px;border-bottom:2px solid var(--bd)}
 .vsec.reach h3{color:var(--r);border-color:var(--r)}
@@ -121,7 +144,7 @@ body{font-family:var(--f);background:var(--bg);color:var(--t);line-height:1.65;-
   .main{padding:16px 10px 100px}.card{padding:16px 18px}.hero h1{font-size:1.25rem}
   .fcol{min-width:120px}.sbar{flex-direction:column;align-items:flex-start}
   .sc{padding:14px;flex-direction:column}.sstat{flex-direction:row;text-align:left;gap:12px}
-  .agrid{grid-template-columns:1fr}.hdr-nav{display:none}
+  .agrid{grid-template-columns:1fr}.hdr-nav{display:none}.sch{flex-wrap:wrap}
 }
 @media print{
   .hdr,.flt,.gear,.fil,.ft,#inputCard{display:none!important}
@@ -150,15 +173,16 @@ body{font-family:var(--f);background:var(--bg);color:var(--t);line-height:1.65;-
   <div class="card hidden" id="resultBox">
     <div class="card-tt">🏫 匹配结果</div>
     <div class="sbar"><span class="stxt" id="summary"></span><span id="summaryActions"></span></div>
+    <div class="sch hidden" id="searchBar"><input type="text" id="searchInput" placeholder="🔍 搜索院校或专业名称..."><button class="btn btn-gh btn-sm" id="btnClearSearch" style="display:none">✕ 清除</button><select id="sortSelect" class="sel-sort"><option value="diff">分差排序</option><option value="nameAsc">院校 A→Z</option><option value="nameDesc">院校 Z→A</option><option value="scoreDesc">综合分 ↓</option><option value="scoreAsc">综合分 ↑</option><option value="tuitionAsc">学费 ↓</option><option value="tuitionDesc">学费 ↑</option><option value="cityAsc">城市 A→Z</option></select></div>
     <div class="fil" id="filters"><button class="on" data-t="all">全部</button><button data-t="reach">🔴 冲刺</button><button data-t="match">🟡 稳妥</button><button data-t="safety">🟢 保底</button></div>
     <div class="slist" id="list"></div>
   </div>
-  <div class="flt" id="floatBar"><span class="cnt">已选 <strong id="floatCnt">0</strong> 所学校</span><div style="display:flex;gap:8px"><button class="btn btn-g btn-sm" id="btnForm" disabled>📋 生成志愿单</button><button class="btn btn-o btn-sm" id="btnCmp" disabled>🔍 对比(<span id="cmpCnt">0</span>/4)</button><button class="btn btn-gh btn-sm" id="btnClr">清空</button></div></div>
+  <div class="flt" id="floatBar"><span class="cnt">已选 <strong id="floatCnt">0</strong> 所学校</span><div style="display:flex;gap:8px"><button class="btn btn-g btn-sm" id="btnForm" disabled>📋 生成志愿单</button><button class="btn btn-o btn-sm" id="btnCmp" disabled>🔍 对比(<span id="cmpCnt">0</span>/4)</button><button class="btn btn-o btn-sm" id="btnExport">📥 导出Excel</button><button class="btn btn-gh btn-sm" id="btnClr">清空</button></div></div>
   <div class="ft"><p>⚠️ 本工具仅供参考，不构成报考建议。最终填报请以浙江省教育考试院 (zjzs.net) 官方信息为准。</p><p>数据在浏览器本地处理，不会上传到任何服务器。</p></div>
 </div>
 <button class="gear" id="btnGear" title="数据管理">⚙️</button>
 <div class="mod hidden" id="lockModal"><div class="mod-sm"><h3>🔐 管理员验证</h3><input type="password" id="pwdInput" placeholder="请输入管理密码" autocomplete="off"><div style="display:flex;gap:8px"><button class="btn btn-g" id="btnUnlock">进入后台</button><button class="btn btn-gh" id="btnLockCancel">取消</button></div><p style="font-size:.75rem;color:var(--t3);margin-top:8px">默认密码：888888</p></div></div>
-<div class="mod hidden" id="adminModal"><div class="mod-pn"><div class="mhdr"><h2>📊 数据管理中心</h2><button class="btn btn-gh btn-sm" id="btnAdminClose">✕ 关闭</button></div><div class="mbody"><div class="agrid" id="adminGrid"></div><div style="margin-top:16px;display:flex;align-items:center;justify-content:space-between;font-size:.82rem;color:var(--t3)"><span>共 <strong id="totalCount" style="color:var(--g)">0</strong> 条记录</span><button class="btn btn-gh btn-sm" id="btnClearAll">🗑 清空全部</button></div></div></div></div>
+<div class="mod hidden" id="adminModal"><div class="mod-pn"><div class="mhdr"><h2>📊 数据管理中心</h2><button class="btn btn-gh btn-sm" id="btnAdminClose">✕ 关闭</button></div><div class="mbody"><div class="agrid" id="adminGrid"></div><div class="aedit-panel" id="editPanel"><h4 style="margin-bottom:10px" id="editTitle">编辑记录</h4><div class="aedit-form" id="editForm"></div><div class="aedit-acts"><button class="btn btn-g btn-sm" id="btnSaveEdit">💾 保存</button><button class="btn btn-gh btn-sm" id="btnCancelEdit">取消</button></div></div><div class="adetail" id="adminDetail" style="display:none"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px"><input type="text" id="adminSearch" placeholder="🔍 搜索记录..." style="padding:5px 10px;border:1.5px solid var(--bd);border-radius:var(--rd);font-size:.8rem;width:200px"><button class="btn btn-g btn-sm" id="btnAddNew">+ 新增记录</button></div><div class="ctw"><table><thead><tr><th class="row-num">#</th><th>院校</th><th>专业</th><th>综合分</th><th>城市</th><th>操作</th></tr></thead><tbody id="adminTableBody"></tbody></table></div><div class="apage" id="adminPager"></div></div><div style="margin-top:16px;display:flex;align-items:center;justify-content:space-between;font-size:.82rem;color:var(--t3)"><span>共 <strong id="totalCount" style="color:var(--g)">0</strong> 条记录</span><button class="btn btn-gh btn-sm" id="btnClearAll">🗑 清空全部</button></div></div></div></div>
 <div class="mod hidden" id="formModal"><div class="mod-pn"><div class="mhdr"><h2>📋 志愿填报参考单</h2><div style="display:flex;gap:8px"><button class="btn btn-g btn-sm" id="btnPrint">🖨 打印</button><button class="btn btn-gh btn-sm" id="btnFormClose">✕</button></div></div><div class="mbody" id="formBody"></div></div></div>
 <div class="mod hidden" id="cmpModal"><div class="mod-pn"><div class="mhdr"><h2>🔍 院校对比</h2><button class="btn btn-gh btn-sm" id="btnCmpClose">✕ 关闭</button></div><div class="mbody" id="cmpBody"></div></div></div>
 <script src="js/data.js?v=2"></script>

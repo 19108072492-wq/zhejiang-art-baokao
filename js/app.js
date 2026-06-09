@@ -1,12 +1,9 @@
 /**
  * 非凡教育 · 浙江艺考志愿助手 — UI 交互
  */
-let cur=[],curTier='all',sel=new Map(),MAX_CMP=4;
+let cur=[],curTier='all',sel=new Map(),MAX_CMP=4,curSearch='',curSort='diff';
 
 document.addEventListener('DOMContentLoaded',()=>{
-  // 每次启动清除旧缓存
-  for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('zjyk_'))localStorage.removeItem(k);}
-
   // 按钮绑定
   document.getElementById('btnGo').addEventListener('click',calc);
   document.getElementById('btnGear').addEventListener('click',()=>document.getElementById('lockModal').classList.remove('hidden'));
@@ -17,6 +14,18 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('btnLockCancel').addEventListener('click',()=>document.getElementById('lockModal').classList.add('hidden'));
   document.getElementById('btnAdminClose').addEventListener('click',()=>document.getElementById('adminModal').classList.add('hidden'));
   document.getElementById('btnClearAll').addEventListener('click',()=>{if(confirm('确定清空全部数据？')){CATS.forEach(c=>clearData(c.k));renderAdmin();toast('已清空');}});
+  document.getElementById('btnExport').addEventListener('click',exportExcel);
+  document.getElementById('btnAddNew').addEventListener('click',addNewRecord);
+  document.getElementById('btnSaveEdit').addEventListener('click',()=>{
+    if(__editingIdx===-1)saveNewRecord();else saveEditedRecord();
+  });
+  document.getElementById('btnCancelEdit').addEventListener('click',()=>{
+    document.getElementById('editPanel').classList.remove('on');
+    __editingIdx=null;
+  });
+  document.getElementById('adminSearch').addEventListener('input',function(){
+    __adminSearch=this.value.trim().toLowerCase();__adminPage=0;renderAdminDetail();
+  });
   document.getElementById('btnForm').addEventListener('click',openForm);
   document.getElementById('btnCmp').addEventListener('click',openCmp);
   document.getElementById('btnClr').addEventListener('click',()=>{sel.clear();updateFloat();renderCards();});
@@ -32,6 +41,19 @@ document.addEventListener('DOMContentLoaded',()=>{
     document.querySelectorAll('#filters button').forEach(x=>x.classList.remove('on'));
     b.classList.add('on');curTier=b.dataset.t;renderCards();
   }));
+  document.getElementById('searchInput').addEventListener('input',function(){
+    curSearch=this.value.trim().toLowerCase();
+    document.getElementById('btnClearSearch').style.display=curSearch?'':'none';
+    renderCards();
+  });
+  document.getElementById('btnClearSearch').addEventListener('click',()=>{
+    document.getElementById('searchInput').value='';curSearch='';
+    document.getElementById('btnClearSearch').style.display='none';
+    renderCards();
+  });
+  document.getElementById('sortSelect').addEventListener('change',function(){
+    curSort=this.value;renderCards();
+  });
   document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!['adminModal','lockModal'].some(id=>!document.getElementById(id).classList.contains('hidden')))calc();});
   renderAdmin();
 });
@@ -57,8 +79,13 @@ function calc(){
   const m=matchSchools(res.score,k,c,pool);
   cur=m.results;window.__rec=m.rec20;
   sel.clear();updateFloat();curTier='all';
+  curSearch='';curSort='diff';
+  document.getElementById('searchInput').value='';
+  document.getElementById('btnClearSearch').style.display='none';
+  document.getElementById('sortSelect').value='diff';
   document.querySelectorAll('#filters button').forEach(b=>{b.classList.remove('on');if(b.dataset.t==='all')b.classList.add('on');});
   document.getElementById('resultBox').classList.remove('hidden');
+  document.getElementById('searchBar').classList.remove('hidden');
   document.getElementById('list').innerHTML='';
   const rc=m.results.filter(x=>x.tier==='reach').length;
   const mt=m.results.filter(x=>x.tier==='match').length;
@@ -74,7 +101,20 @@ function renderCards(){
   const container=document.getElementById('list');
   let data=[...cur];
   if(curTier!=='all')data=data.filter(r=>r.tier===curTier);
-  if(!data.length){container.innerHTML='<p style="text-align:center;color:#8c8c8c;padding:40px 0">暂无匹配结果</p>';return;}
+  if(curSearch)data=data.filter(r=>{const n=(r.schoolName||'').toLowerCase(),m=(r.majorName||'').toLowerCase();return n.includes(curSearch)||m.includes(curSearch);});
+  // 排序
+  const sortMap={
+    diff:(a,b)=>Math.abs(a.diff||0)-Math.abs(b.diff||0),
+    nameAsc:(a,b)=>(a.schoolName||'').localeCompare(b.schoolName||'','zh'),
+    nameDesc:(a,b)=>(b.schoolName||'').localeCompare(a.schoolName||'','zh'),
+    scoreDesc:(a,b)=>(b.compositeScore||0)-(a.compositeScore||0),
+    scoreAsc:(a,b)=>(a.compositeScore||0)-(b.compositeScore||0),
+    tuitionAsc:(a,b)=>(a.tuition||0)-(b.tuition||0),
+    tuitionDesc:(a,b)=>(b.tuition||0)-(a.tuition||0),
+    cityAsc:(a,b)=>(a.city||'').localeCompare(b.city||'','zh'),
+  };
+  if(sortMap[curSort])data.sort(sortMap[curSort]);
+  if(!data.length){container.innerHTML='<p style="text-align:center;color:#8c8c8c;padding:40px 0">'+(!cur.length?'暂无匹配结果':curSearch?'没有找到匹配的院校':'该梯度暂无结果')+'</p>';return;}
   const tm={reach:{l:'🔴 冲刺',c:'reach'},match:{l:'🟡 稳妥',c:'match'},safety:{l:'🟢 保底',c:'safety'}};
   container.innerHTML=data.map((r,i)=>{
     const m=tm[r.tier]||{l:'?',c:''},key=`${r.schoolCode}|${r.majorCode}`,ck=sel.has(key);
@@ -143,12 +183,225 @@ function renderAdmin(){
   grid.innerHTML=CATS.map(c=>{
     const d=loadData(c.k),n=d.length,has=n>0;
     const a=d.filter(r=>!r.isSuspended&&r.scoreSource!=='estimated').length;
-    return`<div class="aitem${has?' has':''}"><h4>${c.i} ${c.l}</h4><div class="ast">${has?`${a}条历史+${n-a}条新增/停招`:'未加载'}</div><div class="aact"><label class="btn btn-o btn-sm" style="cursor:pointer">📁 上传<input type="file" accept=".xlsx,.xls" data-art="${c.k}" hidden onchange="up(this)"></label>${has?`<button class="btn btn-gh btn-sm" data-art="${c.k}" onclick="cls(this)">清空</button>`:''}</div><div class="ast" style="margin-top:6px" id="p-${c.k}"></div></div>`;
+    return`<div class="aitem${has?' has':''}" id="aitem-${c.k}"><h4>${c.i} ${c.l}</h4><div class="ast">${has?`${a}条历史+${n-a}条新增/停招`:'未加载'}</div><div class="aact"><label class="btn btn-o btn-sm" style="cursor:pointer">📁 上传<input type="file" accept=".xlsx,.xls" data-art="${c.k}" hidden onchange="up(this)"></label>${has?`<button class="btn btn-gh btn-sm" data-art="${c.k}" onclick="cls(this)">清空</button>`:''}${has?`<button class="btn btn-gh btn-sm" data-art="${c.k}" onclick="viewRecords('${c.k}')">📋 查看记录</button>`:''}</div><div class="ast" style="margin-top:6px" id="p-${c.k}"></div></div>`;
   }).join('');
   document.getElementById('totalCount').textContent=totalCount();
+  // 隐藏详情面板
+  document.getElementById('adminDetail').style.display='none';
+  document.getElementById('editPanel').classList.remove('on');
+  window.__adminCat=null;
 }
 
 function cls(btn){const k=btn.dataset.art;if(!confirm('确定清空？'))return;clearData(k);renderAdmin();toast('已清空');}
+
+// ===== 管理后台：查看/编辑/新增/删除记录 =====
+let __adminCat=null,__adminPage=0,__adminSearch='',__editingIdx=null;
+const PAGE_SIZE=20;
+
+function viewRecords(k){
+  __adminCat=k;__adminPage=0;__adminSearch='';
+  document.getElementById('adminSearch').value='';
+  document.getElementById('editPanel').classList.remove('on');
+  __editingIdx=null;
+  renderAdminDetail();
+}
+
+function renderAdminDetail(){
+  if(!__adminCat)return;
+  const panel=document.getElementById('adminDetail');
+  panel.style.display='block';
+  let data=loadData(__adminCat);
+  if(__adminSearch)data=data.filter(r=>{
+    const s=(r.schoolName||'')+(r.majorName||'')+(r.city||'');
+    return s.toLowerCase().includes(__adminSearch);
+  });
+  const total=data.length;
+  const pages=Math.ceil(total/PAGE_SIZE)||1;
+  if(__adminPage>=pages)__adminPage=pages-1;
+  if(__adminPage<0)__adminPage=0;
+  const start=__adminPage*PAGE_SIZE;
+  const pageData=data.slice(start,start+PAGE_SIZE);
+  document.getElementById('adminTableBody').innerHTML=pageData.map((r,i)=>{
+    const idx=start+i;
+    return`<tr><td class="row-num">${idx+1}</td><td>${esc(r.schoolName)}${r.isSuspended?' <span class="tag tag-pv">停招</span>':''}${r.scoreSource==='estimated'?' <span class="tag tag-est">预估</span>':''}</td><td>${esc(r.majorName||'')}</td><td>${r.compositeScore||'--'}</td><td>${esc(r.city||'')}</td><td><button class="btn btn-gh btn-sm" onclick="editRecord('${__adminCat}',${idx})" style="margin-right:4px">✏️</button><button class="btn btn-gh btn-sm" onclick="deleteRecord('${__adminCat}',${idx})">🗑</button></td></tr>`;
+  }).join('');
+  // 分页
+  let pager='';
+  if(pages>1){
+    pager+=`<button onclick="__adminPage=0;renderAdminDetail()" ${__adminPage===0?'disabled':''}>⏮</button>`;
+    pager+=`<button onclick="__adminPage--;renderAdminDetail()" ${__adminPage===0?'disabled':''}>◀</button>`;
+    for(let p=0;p<pages;p++){
+      pager+=`<button class="${p===__adminPage?'on':''}" onclick="__adminPage=${p};renderAdminDetail()">${p+1}</button>`;
+    }
+    pager+=`<button onclick="__adminPage++;renderAdminDetail()" ${__adminPage>=pages-1?'disabled':''}>▶</button>`;
+    pager+=`<button onclick="__adminPage=${pages-1};renderAdminDetail()" ${__adminPage>=pages-1?'disabled':''}>⏭</button>`;
+  }
+  document.getElementById('adminPager').innerHTML=pager;
+  document.getElementById('totalCount').textContent=totalCount();
+  // 滚动到详情区
+  panel.scrollIntoView({behavior:'smooth'});
+}
+
+function editRecord(k,idx){
+  const data=loadData(k);
+  if(idx<0||idx>=data.length)return toast('记录不存在',1);
+  __editingIdx=idx;
+  const r=data[idx];
+  const panel=document.getElementById('editPanel');
+  document.getElementById('editTitle').textContent=`编辑: ${r.schoolName} - ${r.majorName||''}`;
+  document.getElementById('editForm').innerHTML=`
+    <label>院校名称<input type="text" id="ef-schoolName" value="${escAttr(r.schoolName||'')}"></label>
+    <label>专业名称<input type="text" id="ef-majorName" value="${escAttr(r.majorName||'')}"></label>
+    <label>综合分<input type="number" id="ef-compositeScore" value="${r.compositeScore||''}" step="0.01"></label>
+    <label>城市<input type="text" id="ef-city" value="${escAttr(r.city||'')}"></label>
+    <label>学费(元/年)<input type="number" id="ef-tuition" value="${r.tuition||''}" step="0.01"></label>
+    <label>宿舍<input type="text" id="ef-dorm" value="${escAttr(r.dorm||'')}"></label>
+    <label>校区<input type="text" id="ef-campus" value="${escAttr(r.campus||'')}"></label>
+    <label>专业代码<input type="text" id="ef-majorCode" value="${escAttr(r.majorCode||'')}"></label>
+    <label>院校层次<input type="text" id="ef-schoolType" value="${escAttr(r.schoolType||'')}"></label>
+    <label>位次<input type="text" id="ef-rankPosition" value="${r.rankPosition||''}"></label>
+    <label>计划数(25届)<input type="number" id="ef-plan25" value="${r.plan25||''}" step="1"></label>
+    <label>数据来源<select id="ef-scoreSource"><option value="actual" ${r.scoreSource==='actual'?'selected':''}>实际</option><option value="estimated" ${r.scoreSource==='estimated'?'selected':''}>预估</option></select></label>
+    <label>状态<select id="ef-isSuspended"><option value="0" ${!r.isSuspended?'selected':''}>正常</option><option value="1" ${r.isSuspended?'selected':''}>停招</option></select></label>
+    <label class="full">备注<textarea id="ef-note">${esc(r.note||'')}</textarea></label>
+  `;
+  panel.classList.add('on');
+  panel.scrollIntoView({behavior:'smooth'});
+}
+
+function saveEditedRecord(){
+  if(__editingIdx===null||!__adminCat)return;
+  const data=loadData(__adminCat);
+  const r=__editingIdx>=0&&__editingIdx<data.length?data[__editingIdx]:null;
+  if(!r)return toast('记录不存在',1);
+  const get=(id)=>document.getElementById(id)?.value||'';
+  r.schoolName=get('ef-schoolName');
+  if(!r.schoolName)return toast('院校名称不能为空',1);
+  r.majorName=get('ef-majorName');
+  r.compositeScore=parseFloat(get('ef-compositeScore'))||r.compositeScore;
+  r.city=get('ef-city');
+  r.tuition=parseFloat(get('ef-tuition'))||r.tuition;
+  r.dorm=get('ef-dorm');
+  r.campus=get('ef-campus');
+  r.majorCode=get('ef-majorCode');
+  r.schoolType=get('ef-schoolType');
+  const st=r.schoolType||'';
+  r.is985=/985/.test(st);r.is211=/211/.test(st);r.isDoubleFirst=/双一流/.test(st);
+  r.isPublic=/公办/.test(st)&&!/民办/.test(st);r.isPrivate=/民办/.test(st)||/独立学院/.test(st);
+  r.rankPosition=get('ef-rankPosition');
+  const p25=parseFloat(get('ef-plan25'));
+  r.plan25=isNaN(p25)?r.plan25:p25;
+  r.scoreSource=get('ef-scoreSource');
+  r.isSuspended=get('ef-isSuspended')==='1';
+  r.note=get('ef-note');
+  saveData(__adminCat,data);
+  document.getElementById('editPanel').classList.remove('on');
+  __editingIdx=null;
+  renderAdminDetail();
+  renderAdmin();
+  toast('已保存');
+}
+
+function deleteRecord(k,idx){
+  const data=loadData(k);
+  if(idx<0||idx>=data.length)return toast('记录不存在',1);
+  const r=data[idx];
+  if(!confirm(`确定删除 "${r.schoolName} - ${r.majorName||''}"？`))return;
+  data.splice(idx,1);
+  saveData(k,data);
+  renderAdminDetail();
+  renderAdmin();
+  toast('已删除');
+}
+
+function addNewRecord(){
+  if(!__adminCat)return;
+  const panel=document.getElementById('editPanel');
+  __editingIdx=-1; // -1 表示新增
+  document.getElementById('editTitle').textContent='➕ 新增记录';
+  document.getElementById('editForm').innerHTML=`
+    <label>院校名称<input type="text" id="ef-schoolName" placeholder="必填"></label>
+    <label>专业名称<input type="text" id="ef-majorName"></label>
+    <label>综合分<input type="number" id="ef-compositeScore" step="0.01" placeholder="选填"></label>
+    <label>城市<input type="text" id="ef-city"></label>
+    <label>学费(元/年)<input type="number" id="ef-tuition" step="0.01"></label>
+    <label>宿舍<input type="text" id="ef-dorm"></label>
+    <label>校区<input type="text" id="ef-campus"></label>
+    <label>专业代码<input type="text" id="ef-majorCode"></label>
+    <label>院校层次<input type="text" id="ef-schoolType" placeholder="如: 公办、双一流、985"></label>
+    <label>位次<input type="text" id="ef-rankPosition"></label>
+    <label>计划数(25届)<input type="number" id="ef-plan25" step="1"></label>
+    <label>数据来源<select id="ef-scoreSource"><option value="actual">实际</option><option value="estimated">预估</option></select></label>
+    <label>状态<select id="ef-isSuspended"><option value="0">正常</option><option value="1">停招</option></select></label>
+    <label class="full">备注<textarea id="ef-note"></textarea></label>
+  `;
+  panel.classList.add('on');
+  panel.scrollIntoView({behavior:'smooth'});
+}
+
+function saveNewRecord(){
+  const name=document.getElementById('ef-schoolName')?.value?.trim();
+  if(!name)return toast('院校名称不能为空',1);
+  const data=loadData(__adminCat);
+  const st=document.getElementById('ef-schoolType')?.value||'';
+  const r={
+    schoolName:name,
+    majorName:document.getElementById('ef-majorName')?.value||'',
+    compositeScore:parseFloat(document.getElementById('ef-compositeScore')?.value)||null,
+    city:document.getElementById('ef-city')?.value||'',
+    tuition:parseFloat(document.getElementById('ef-tuition')?.value)||null,
+    dorm:document.getElementById('ef-dorm')?.value||'',
+    campus:document.getElementById('ef-campus')?.value||'',
+    majorCode:document.getElementById('ef-majorCode')?.value||'',
+    schoolType:st,
+    is985:/985/.test(st),is211:/211/.test(st),isDoubleFirst:/双一流/.test(st),
+    isPublic:/公办/.test(st)&&!/民办/.test(st),isPrivate:/民办/.test(st)||/独立学院/.test(st),
+    rankPosition:document.getElementById('ef-rankPosition')?.value||'',
+    plan25:parseFloat(document.getElementById('ef-plan25')?.value)||null,
+    scoreSource:document.getElementById('ef-scoreSource')?.value||'actual',
+    isSuspended:document.getElementById('ef-isSuspended')?.value==='1',
+    note:document.getElementById('ef-note')?.value||'',
+    schoolCode:'PS'+String(Math.abs(hs(name))%10000).padStart(4,'0'),
+    isNew:true,rawCategory:'',
+  };
+  data.push(r);
+  saveData(__adminCat,data);
+  document.getElementById('editPanel').classList.remove('on');
+  __editingIdx=null;
+  renderAdminDetail();
+  renderAdmin();
+  toast('已新增');
+}
+
+// ===== 导出 Excel =====
+function exportExcel(){
+  const selected=[...sel.values()];
+  if(!selected.length)return toast('请先勾选学校',1);
+  const X=window.XLSX;
+  if(!X){toast('XLSX组件未加载，请检查网络',1);return;}
+  const rows=selected.map(r=>({
+    '梯度':{reach:'冲刺',match:'稳妥',safety:'保底'}[r.tier]||'',
+    '院校名称':r.schoolName,
+    '专业名称':r.majorName,
+    '专业代码':r.majorCode||'',
+    '往年综合分':r.compositeScore,
+    '你的分差':(r.diff||0).toFixed(1),
+    '位次':r.rankPosition||'',
+    '城市':r.city||'',
+    '学费(元/年)':r.tuition||'',
+    '宿舍':r.dorm||'',
+    '院校层次':[r.is985?'985':'',r.is211?'211':'',r.isDoubleFirst?'双一流':''].filter(Boolean).join('/')||r.schoolType||'',
+    '数据来源':r.scoreSource==='estimated'?'预估':'实际',
+    '计划数(25届)':r.plan25||r.plan24||'',
+    '备注':r.note||''
+  }));
+  const ws=X.utils.json_to_sheet(rows);
+  ws['!cols']=[{wch:6},{wch:20},{wch:22},{wch:12},{wch:12},{wch:10},{wch:10},{wch:12},{wch:14},{wch:30},{wch:20},{wch:10},{wch:14},{wch:30}];
+  const wb=X.utils.book_new();
+  X.utils.book_append_sheet(wb,ws,'志愿选择');
+  X.writeFile(wb,`浙江艺考志愿_${new Date().toISOString().slice(0,10)}.xlsx`);
+  toast('✅ 已导出Excel');
+}
 
 async function up(input){
   const fs=Array.from(input.files).filter(f=>f.name.endsWith('.xlsx')||f.name.endsWith('.xls'));
@@ -204,4 +457,5 @@ function parseRows(rows,sn){
 }
 function hs(s){let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0;}return Math.abs(h%10000);}
 function esc(s){if(!s)return'';const d=document.createElement('div');d.textContent=String(s);return d.innerHTML;}
+function escAttr(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;');}
 function toast(msg,err){const t=document.createElement('div');t.className='toast'+(err?' err':'');t.textContent=msg;document.body.appendChild(t);requestAnimationFrame(()=>t.classList.add('show'));setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),300);},3000);}

@@ -40,24 +40,43 @@ function matchSchools(userScore,artKey,cultureScore,pool){
   }
   const ord={reach:0,match:1,safety:2,out:3};
   results.sort((a,b)=>ord[a.tier]-ord[b.tier]||Math.abs(a.diff)-Math.abs(b.diff));
-  // 推荐20校：冲6+稳8+保6，每个梯度内去重
+  // 推荐20校：冲6+稳8+保6，多维度评分
+  function scoredScore(r){
+    // 分差接近度 (40%): 分差越小越好
+    const diffAbs=Math.abs(r.diff||0);
+    const proximity=1-Math.min(diffAbs/35,1);
+    // 院校层次 (25%): 985>211>双一流>公办>民办
+    let tier=0;
+    if(r.is985)tier=1.0;else if(r.is211)tier=0.8;else if(r.isDoubleFirst)tier=0.6;else if(r.isPublic)tier=0.4;else tier=0.2;
+    // 数据可信度 (15%)
+    const confidence=r.scoreSource==='estimated'?0.3:1.0;
+    // 浙江省内 (10%)
+    const local=(r.city||'').includes('浙江')?1:0;
+    // 学费合理度 (10%)
+    const t=r.tuition||0;
+    let tuition=0;if(t<=15000)tuition=1;else if(t<=30000)tuition=0.7;else if(t<=60000)tuition=0.4;else tuition=0.1;
+    return proximity*0.4+tier*0.25+confidence*0.15+local*0.1+tuition*0.1;
+  }
   const rec=[];
   const seen=new Set();
-  function pickByTier(tier,maxCount){
-    for(const r of results){
-      if(r.tier===tier&&!seen.has(r.schoolName)){
-        seen.add(r.schoolName);rec.push(r);
-        if(rec.filter(x=>x.tier===tier).length>=maxCount)break;
-      }
+  function pickByTier(tierKey,maxCount){
+    const pool=results.filter(r=>r.tier===tierKey&&!seen.has(r.schoolName));
+    pool.sort((a,b)=>scoredScore(b)-scoredScore(a));
+    for(const r of pool){
+      if(rec.filter(x=>x.tier===tierKey).length>=maxCount)break;
+      seen.add(r.schoolName);rec.push(r);
     }
   }
   pickByTier('reach',6);
   pickByTier('match',8);
   pickByTier('safety',6);
-  // 不足20时从剩余补齐
-  for(const r of results){
+  // 不足20时从剩余补齐 (也按评分排序)
+  const rest=[];
+  for(const r of results){if(!seen.has(r.schoolName)){seen.add(r.schoolName);rest.push(r);}}
+  rest.sort((a,b)=>scoredScore(b)-scoredScore(a));
+  for(const r of rest){
     if(rec.length>=20)break;
-    if(!seen.has(r.schoolName)){seen.add(r.schoolName);rec.push(r);}
+    rec.push(r);
   }
   return{results,stats,rec20:rec};
 }
