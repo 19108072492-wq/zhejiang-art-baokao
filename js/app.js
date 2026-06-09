@@ -58,7 +58,10 @@ document.addEventListener('DOMContentLoaded',()=>{
   renderAdmin();
 });
 
-function calc(){
+async function calc(){
+  // 认证检查
+  if(!(await checkAuthAndSpend()))return;
+
   const c=parseFloat(document.getElementById('culture').value);
   const a=parseFloat(document.getElementById('art').value);
   const k=document.getElementById('cat').value;
