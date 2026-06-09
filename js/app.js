@@ -177,7 +177,8 @@ function renderCards(){
       ];
       const dimHtmls=dims.map(d=>{
         const v=sd[d.k];const sc=v.score||0;
-        return`<div class="sb-row"><span class="sbl" title="${v.label}(${v.weight}%)">${d.icon} ${v.label}</span><div class="sbb"><div class="sbf" style="width:${sc}%;background:${d.color}"></div></div><span class="sbv">${sc}</span></div>`;
+        const lbl=v.label||'';const shortLbl=lbl.length>4?lbl.slice(0,3):lbl;
+        return`<div class="sb-row"><span class="sbl" title="${v.label}(${v.weight}%)">${d.icon}${shortLbl}</span><div class="sbb"><div class="sbf" style="width:${Math.min(sc,100)}%;background:${d.color}"></div></div><span class="sbv">${sc}</span></div>`;
       });
       scoreDetailHTML=`<div class="score-breakdown"><div class="sb-title">📊 推荐评分 <span style="font-weight:400;color:var(--g);font-size:.8rem">${r.recScore||0}分</span></div>${dimHtmls.join('')}</div>`;
     }
