@@ -41,21 +41,36 @@ function matchSchools(userScore,artKey,cultureScore,pool){
   const ord={reach:0,match:1,safety:2,out:3};
   results.sort((a,b)=>ord[a.tier]-ord[b.tier]||Math.abs(a.diff)-Math.abs(b.diff));
   // 推荐20校：冲6+稳8+保6，多维度评分
-  function scoredScore(r){
+  function scoredScore(r,raw){
     // 分差接近度 (40%): 分差越小越好
     const diffAbs=Math.abs(r.diff||0);
     const proximity=1-Math.min(diffAbs/35,1);
     // 院校层次 (25%): 985>211>双一流>公办>民办
-    let tier=0;
-    if(r.is985)tier=1.0;else if(r.is211)tier=0.8;else if(r.isDoubleFirst)tier=0.6;else if(r.isPublic)tier=0.4;else tier=0.2;
+    let tierScore=0,tierLabel='民办';
+    if(r.is985){tierScore=1.0;tierLabel='985';}
+    else if(r.is211){tierScore=0.8;tierLabel='211';}
+    else if(r.isDoubleFirst){tierScore=0.6;tierLabel='双一流';}
+    else if(r.isPublic){tierScore=0.4;tierLabel='公办';}
+    else tierScore=0.2;
     // 数据可信度 (15%)
     const confidence=r.scoreSource==='estimated'?0.3:1.0;
     // 浙江省内 (10%)
     const local=(r.city||'').includes('浙江')?1:0;
     // 学费合理度 (10%)
     const t=r.tuition||0;
-    let tuition=0;if(t<=15000)tuition=1;else if(t<=30000)tuition=0.7;else if(t<=60000)tuition=0.4;else tuition=0.1;
-    return proximity*0.4+tier*0.25+confidence*0.15+local*0.1+tuition*0.1;
+    let tuitionScore=0;if(t<=15000)tuitionScore=1;else if(t<=30000)tuitionScore=0.7;else if(t<=60000)tuitionScore=0.4;else tuitionScore=0.1;
+    const total=proximity*0.4+tierScore*0.25+confidence*0.15+local*0.1+tuitionScore*0.1;
+    if(raw)return{
+      total,
+      details:{
+        proximity:{score:proximity,weight:40,label:'分差接近度'},
+        tier:{score:tierScore,weight:25,label:'院校层次',extra:tierLabel},
+        confidence:{score:confidence,weight:15,label:'数据可信度'},
+        local:{score:local,weight:10,label:'省内优先'},
+        tuition:{score:tuitionScore,weight:10,label:'学费合理度'},
+      }
+    };
+    return total;
   }
   const rec=[];
   const seen=new Set();
@@ -77,6 +92,16 @@ function matchSchools(userScore,artKey,cultureScore,pool){
   for(const r of rest){
     if(rec.length>=20)break;
     rec.push(r);
+  }
+  // 为每个结果附上评分详情（用于前端展示）
+  for(const r of results){
+    r.scoreDetail=scoredScore(r,true).details;
+    r.recScore=scoredScore(r);
+  }
+  // 为推荐结果也附上
+  for(const r of rec){
+    if(!r.scoreDetail)r.scoreDetail=scoredScore(r,true).details;
+    if(r.recScore===undefined)r.recScore=scoredScore(r);
   }
   return{results,stats,rec20:rec};
 }

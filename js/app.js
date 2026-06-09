@@ -76,6 +76,28 @@ function calc(){
   const minC=CULTURE_MIN[k]||369,canB=c>=minC;
   sb.innerHTML=`<div class="sbox"><span class="lbl">你的综合分</span><span class="val">${res.score.toFixed(2)}</span><span class="frm">${res.text}</span></div><div class="snote ${canB?'ok':'warn'}">${canB?`✅ 文化分 ${c} ≥ ${minC}，已展示本科及专科结果`:`⚠️ 文化分 ${c} < ${minC}，仅展示专科及低分段结果`}</div>`;
 
+  // 算法说明面板
+  document.getElementById('algoCard').classList.remove('hidden');
+  document.getElementById('algoBody').innerHTML=[
+    {icon:'🎯',name:'分差接近度',wt:40,desc:'综合分越接近往年录取分，推荐度越高（保底35分满分）'},
+    {icon:'🏛️',name:'院校层次',wt:25,desc:'985(满分) > 211 > 双一流 > 公办 > 民办'},
+    {icon:'📋',name:'数据可信度',wt:15,desc:'实际录取数据满分，新增/预估数据降权'},
+    {icon:'📍',name:'省内优先',wt:10,desc:'浙江省内院校加满分，便于就近就读'},
+    {icon:'💰',name:'学费合理度',wt:10,desc:'≤1.5万/年满分，分段递减，减轻家庭负担'},
+  ].map(d=>`<div class="algo-dim"><span class="dim-lbl">${d.icon} ${d.name}</span><div class="dim-bar"><div class="dim-fill" style="width:${d.wt/0.4}%"></div></div><span class="dim-val">${d.wt}%</span><span class="dim-desc">${d.desc}</span></div>`).join('')+`<div class="algo-total">📊 综合评分 = 五个维度加权求和，满分100分</div>`;
+
+  // 梯度说明卡片
+  const tierExplain=document.getElementById('tierExplain');
+  tierExplain.classList.remove('hidden');
+  tierExplain.innerHTML=`<h4>📌 冲·稳·保 梯度说明</h4>
+    <div class="tier-row"><div class="tr-icon">🔴</div><div class="tr-body"><strong>冲刺志愿</strong><span>你的综合分低于该校往年录取分 → 需要一定运气，适合“梦想院校”</span></div></div>
+    <div class="tier-row"><div class="tr-icon">🟡</div><div class="tr-body"><strong>稳妥志愿</strong><span>你的综合分高于该校0~15分 → 录取概率较高，重点填报的核心区域</span></div></div>
+    <div class="tier-row"><div class="tr-icon">🟢</div><div class="tr-body"><strong>保底志愿</strong><span>你的综合分高于该校15~35分 → 高概率录取，确保有学上</span></div></div>
+    <div class="tier-row"><div class="tr-icon">⚠️</div><div class="tr-body"><strong>预估分说明</strong><span>标注“预估”的院校为新招专业或无往年数据，系统自动降一档处理（稳妥→冲刺，保底→稳妥）</span></div></div>`;
+
+  // 数据来源卡片
+  document.getElementById('dataSourceCard').classList.remove('hidden');
+
   const m=matchSchools(res.score,k,c,pool);
   cur=m.results;window.__rec=m.rec20;
   sel.clear();updateFloat();curTier='all';
@@ -125,7 +147,26 @@ function renderCards(){
     if(r.isDoubleFirst)tags.push('<span class="tag tag-df">双一流</span>');
     if(r.isPrivate)tags.push('<span class="tag tag-pv">民办</span>');
     if(r.scoreSource==='estimated')tags.push('<span class="tag tag-est">预估</span>');
-    return `<div class="sc ${m.c}${ck?' sel':''}" data-key="${key}" data-idx="${i}"><div class="cb" data-act="sel"><div class="cb-box${ck?' on':''}">${ck?'✓':''}</div></div><div class="sinfo"><div class="sname">${esc(r.schoolName)} <span style="font-weight:400;font-size:.75rem">${tags.join(' ')}</span></div><div class="smaj">${esc(r.majorName)} <span style="font-size:.72rem;color:#8c8c8c">${r.majorCode||''}</span></div><div class="smeta"><span>📍 ${esc(r.city||'')}</span><span>💰 ${typeof r.tuition=='number'?r.tuition.toLocaleString()+'/年':(r.tuition||'--')}</span><span>🏠 ${esc(r.dorm||'')||'--'}</span>${r.plan25?`<span>📋 ${r.plan25}人</span>`:r.plan24?`<span>📋 ${r.plan24}人</span>`:''}${r.rankPosition?`<span>📊 位次${r.rankPosition}</span>`:''}</div>${r.scoreLineReq?`<div style="margin-top:4px;font-size:.74rem;color:#9a6b2a;background:#faf6f0;padding:3px 8px;border-radius:4px;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📋 ${esc(r.scoreLineReq)}</div>`:''}<div class="sdet">${r.note?`<p>📝 ${esc(r.note)}</p>`:''}${r.courseGuide?`<p>📚 ${esc(r.courseGuide)}</p>`:''}${r.talentGoal?`<p>🎯 ${esc(r.talentGoal)}</p>`:''}${r.scoreSource==='estimated'?'<p style="color:#c0392b">⚠️ 预估分，请谨慎参考</p>':''}</div></div><div class="sstat"><span class="sn">${r.compositeScore}</span><span class="ss">往年录取分</span><span class="ss">${dt}</span>${r.scoreSource==='estimated'?'<span class="ss" style="color:#c0392b">预估</span>':''}</div></div>`;
+    if(r.rankLevel){const rl=String(r.rankLevel);const lv=rl.includes('A+')?'🥇':rl.includes('A')?'🥈':rl.includes('B+')?'🥉':'';tags.push(`<span class="tag tag-985" style="background:#f0fdf4;color:#166534">${lv} ${esc(rl)}</span>`);}
+    // 评分详情条
+    let scoreDetailHTML='';
+    if(r.scoreDetail){
+      const sd=r.scoreDetail;
+      const dims=[
+        {k:'proximity',icon:'🎯',color:'var(--g)'},
+        {k:'tier',icon:'🏛️',color:'#3b82f6'},
+        {k:'confidence',icon:'📋',color:'#8b5cf6'},
+        {k:'local',icon:'📍',color:'#f59e0b'},
+        {k:'tuition',icon:'💰',color:'#10b981'},
+      ];
+      const dimHtmls=dims.map(d=>{
+        const v=sd[d.k];const pct=Math.round((v.score||0)*100);
+        return`<div class="sb-row"><span class="sbl">${d.icon} ${v.label}</span><div class="sbb"><div class="sbf" style="width:${pct}%;background:${d.color}"></div></div><span class="sbv">${pct}%</span></div>`;
+      });
+      const totalPct=Math.round((r.recScore||0)*100);
+      scoreDetailHTML=`<div class="score-breakdown"><div class="sb-title">📊 推荐评分 <span style="font-weight:400;color:var(--g);font-size:.8rem">${totalPct}分</span></div>${dimHtmls.join('')}</div>`;
+    }
+    return `<div class="sc ${m.c}${ck?' sel':''}" data-key="${key}" data-idx="${i}"><div class="cb" data-act="sel"><div class="cb-box${ck?' on':''}">${ck?'✓':''}</div></div><div class="sinfo"><div class="sname">${esc(r.schoolName)} <span style="font-weight:400;font-size:.75rem">${tags.join(' ')}</span></div><div class="smaj">${esc(r.majorName)} <span style="font-size:.72rem;color:#8c8c8c">${r.majorCode||''}</span></div><div class="smeta"><span>📍 ${esc(r.city||'')}</span><span>💰 ${typeof r.tuition=='number'?r.tuition.toLocaleString()+'/年':(r.tuition||'--')}</span><span>🏠 ${esc(r.dorm||'')||'--'}</span>${r.plan25?`<span>📋 ${r.plan25}人</span>`:r.plan24?`<span>📋 ${r.plan24}人</span>`:''}${r.rankPosition?`<span>📊 位次${r.rankPosition}</span>`:''}</div>${r.scoreLineReq?`<div style="margin-top:4px;font-size:.74rem;color:#9a6b2a;background:#faf6f0;padding:3px 8px;border-radius:4px;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📋 ${esc(r.scoreLineReq)}</div>`:''}<div class="sdet">${r.note?`<p>📝 ${esc(r.note)}</p>`:''}${r.courseGuide?`<p>📚 ${esc(r.courseGuide)}</p>`:''}${r.talentGoal?`<p>🎯 ${esc(r.talentGoal)}</p>`:''}${r.scoreSource==='estimated'?'<p style="color:#c0392b">⚠️ 预估分，请谨慎参考</p>':''}${scoreDetailHTML}</div></div><div class="sstat"><span class="sn">${r.compositeScore}</span><span class="ss">往年录取分</span><span class="ss">${dt}</span>${r.scoreSource==='estimated'?'<span class="ss" style="color:#c0392b">预估</span>':''}</div></div>`;
   }).join('');
   container.onclick=function(e){
     const selEl=e.target.closest('[data-act="sel"]');
