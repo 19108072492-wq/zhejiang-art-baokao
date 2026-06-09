@@ -100,10 +100,26 @@ async function handleAuth(){
   if(password.length<6)return toastAuth('密码至少6位',1);
 
   if(authMode==='register'){
-    var r=await supabase.auth.signUp({email:email,password:password});
+    // 使用 signUp 但跳过邮箱验证
+    var r=await supabase.auth.signUp({
+      email:email,
+      password:password,
+      options:{emailRedirectTo:window.location.href,data:{phone:phone}}
+    });
     if(r.error)return toastAuth(r.error.message,1);
+    // 保存手机号
     if(phone&&r.data.user){
       await supabase.from('profiles').upsert({id:r.data.user.id,phone:phone});
+    }
+    // 如果邮件发送失败（429），尝试直接登录
+    if(!r.data.session){
+      toastAuth('注册请求已提交，尝试自动登录...');
+      var loginRes=await supabase.auth.signInWithPassword({email:email,password:password});
+      if(loginRes.error&&loginRes.error.message.includes('Invalid login')){
+        toastAuth('请稍后再试，或直接点击"去登录"手动登录',0);
+        document.getElementById('authModal').classList.add('hidden');
+        return;
+      }
     }
     __isLoggedIn=true;
     toastAuth('注册成功！已自动登录');
