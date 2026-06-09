@@ -40,12 +40,24 @@ function matchSchools(userScore,artKey,cultureScore,pool){
   }
   const ord={reach:0,match:1,safety:2,out:3};
   results.sort((a,b)=>ord[a.tier]-ord[b.tier]||Math.abs(a.diff)-Math.abs(b.diff));
-  // 推荐20校：去重
+  // 推荐20校：冲6+稳8+保6，每个梯度内去重
   const rec=[];
   const seen=new Set();
+  function pickByTier(tier,maxCount){
+    for(const r of results){
+      if(r.tier===tier&&!seen.has(r.schoolName)){
+        seen.add(r.schoolName);rec.push(r);
+        if(rec.filter(x=>x.tier===tier).length>=maxCount)break;
+      }
+    }
+  }
+  pickByTier('reach',6);
+  pickByTier('match',8);
+  pickByTier('safety',6);
+  // 不足20时从剩余补齐
   for(const r of results){
-    if(!seen.has(r.schoolName)){seen.add(r.schoolName);rec.push(r);}
     if(rec.length>=20)break;
+    if(!seen.has(r.schoolName)){seen.add(r.schoolName);rec.push(r);}
   }
   return{results,stats,rec20:rec};
 }
