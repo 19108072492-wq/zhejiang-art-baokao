@@ -1,47 +1,31 @@
 /**
- * 非凡教育 · 浙江艺考志愿助手 — 认证与次数管理 v2
+ * 非凡教育 · 浙江艺考志愿助手 — 极简认证（手机号收集）
+ * 流程：用户输入手机号 → 匿名登录 → 手机号存入 Supabase → 无限使用
  */
-var authMode='register';
-
-// 页面加载时默认显示注册界面
-(function(){
-  var t=document.getElementById('authTitle');
-  if(t)t.textContent='📝 注册账号';
-  var b=document.getElementById('btnAuthSubmit');
-  if(b)b.textContent='注册';
-  var s=document.getElementById('btnAuthSwitch');
-  if(s)s.textContent='去登录';
-  var h=document.getElementById('authHint');
-  if(h)h.textContent='已有账号？点击"去登录"';
-  var p=document.getElementById('authPhone');
-  if(p)p.style.display='';
-})();
-
-// 初始化认证状态
 var __isLoggedIn=false;
+
+// 初始化
 (async function initAuth(){
+  // 检查是否已有匿名登录 session
   var s=await supabase.auth.getSession();
-  var session=s.data.session;
-  if(session){
+  if(s.data.session){
     __isLoggedIn=true;
     showInputCard();
-    updateUsesDisplay(-1);
   }else{
-    // 未登录：显示引导卡片，隐藏输入卡片
     document.getElementById('gateCard').classList.remove('hidden');
     document.getElementById('inputCard').classList.add('hidden');
   }
 
-  // 引导卡片按钮
+  // 引导卡片按钮：进入手机号输入弹窗
   document.getElementById('btnGateLogin').addEventListener('click',function(){
     document.getElementById('authModal').classList.remove('hidden');
-    document.getElementById('authMsg').textContent='注册登录后即可使用完整的志愿填报功能';
   });
+
+  // 试用按钮
   document.getElementById('btnGateTrial').addEventListener('click',doTrial);
 
-  // 认证弹窗事件
-  document.getElementById('btnAuthSubmit').addEventListener('click',handleAuth);
-  document.getElementById('btnAuthSwitch').addEventListener('click',switchAuthMode);
+  // 认证弹窗按钮
+  document.getElementById('btnAuthSubmit').addEventListener('click',handlePhoneAuth);
   document.getElementById('btnAuthCancel').addEventListener('click',function(){
     document.getElementById('authModal').classList.add('hidden');
   });
@@ -49,28 +33,25 @@ var __isLoggedIn=false;
     if(e.target===this)this.classList.add('hidden');
   });
 
-  // 如果之前试用过，显示试用状态
-  var trialed=localStorage.getItem('zjyk_trialed');
-  if(trialed){
-    document.getElementById('gateCard').querySelector('.card-sub').textContent='你已用尽免费体验次数，请注册登录后继续使用';
-    document.getElementById('btnGateTrial').disabled=true;
-    document.getElementById('btnGateTrial').textContent='✅ 已体验';
-    document.getElementById('btnGateTrial').style.opacity='0.5';
-  }
+  // 隐藏不需要的元素
+  var ep=document.getElementById('authEmail');if(ep)ep.style.display='none';
+  var pp=document.getElementById('authPassword');if(pp)pp.style.display='none';
+  var ps=document.getElementById('authPhone');if(ps){ps.style.display='';ps.placeholder='请输入手机号';}
+  var sb=document.getElementById('btnAuthSwitch');if(sb)sb.style.display='none';
+  var hh=document.getElementById('authHint');if(hh)hh.style.display='none';
+  var tt=document.getElementById('authTitle');if(tt)tt.textContent='📱 输入手机号即可使用';
+  var mg=document.getElementById('authMsg');if(mg)mg.textContent='输入手机号后自动登录，无需注册';
+  var bts=document.getElementById('btnAuthSubmit');if(bts)bts.textContent='🚀 开始使用';
 })();
 
 function doTrial(){
   var trialed=localStorage.getItem('zjyk_trialed');
   if(trialed){
     document.getElementById('authModal').classList.remove('hidden');
-    document.getElementById('authMsg').textContent='免费体验次数已用完，注册登录后即可继续使用';
     return;
   }
-  // 标记已试用
   localStorage.setItem('zjyk_trialed','1');
-  // 显示输入卡片
   showInputCard();
-  // 标记"试用中"：只能使用1次
   localStorage.setItem('zjyk_free_uses','1');
 }
 
@@ -92,80 +73,42 @@ function updateUsesDisplay(n){
   }
 }
 
-async function handleAuth(){
-  var email=document.getElementById('authEmail').value.trim();
-  var password=document.getElementById('authPassword').value.trim();
+async function handlePhoneAuth(){
   var phone=document.getElementById('authPhone').value.trim();
-  if(!email||!password)return toastAuth('请填写邮箱和密码',1);
-  if(password.length<6)return toastAuth('密码至少6位',1);
+  if(!phone)return toastAuth('请输入手机号',1);
+  if(!/^1[3-9]\d{9}$/.test(phone))return toastAuth('请输入有效的11位手机号',1);
 
-  if(authMode==='register'){
-    // 使用 signUp 但跳过邮箱验证
-    var r=await supabase.auth.signUp({
-      email:email,
-      password:password,
-      options:{emailRedirectTo:window.location.href,data:{phone:phone}}
-    });
-    if(r.error)return toastAuth(r.error.message,1);
-    // 保存手机号
-    if(phone&&r.data.user){
-      await supabase.from('profiles').upsert({id:r.data.user.id,phone:phone});
-    }
-    // 如果邮件发送失败（429），尝试直接登录
-    if(!r.data.session){
-      toastAuth('注册请求已提交，尝试自动登录...');
-      var loginRes=await supabase.auth.signInWithPassword({email:email,password:password});
-      if(loginRes.error&&loginRes.error.message.includes('Invalid login')){
-        toastAuth('请稍后再试，或直接点击"去登录"手动登录',0);
-        document.getElementById('authModal').classList.add('hidden');
-        return;
-      }
-    }
-    __isLoggedIn=true;
-    toastAuth('注册成功！已自动登录');
-    document.getElementById('authModal').classList.add('hidden');
-    showInputCard();
-  }else{
-    var r2=await supabase.auth.signInWithPassword({email:email,password:password});
-    if(r2.error)return toastAuth(r2.error.message,1);
-    __isLoggedIn=true;
-    toastAuth('登录成功！');
-    document.getElementById('authModal').classList.add('hidden');
-    showInputCard();
-  }
-}
+  var btn=document.getElementById('btnAuthSubmit');
+  btn.disabled=true;btn.textContent='⏳ 登录中...';
 
-function switchAuthMode(){
-  if(authMode==='login'){
-    authMode='register';
-    document.getElementById('authTitle').textContent='📝 注册账号';
-    document.getElementById('btnAuthSubmit').textContent='注册';
-    document.getElementById('btnAuthSwitch').textContent='去登录';
-    document.getElementById('authHint').textContent='已有账号？点击"去登录"';
-    document.getElementById('authPhone').style.display='';
-  }else{
-    authMode='login';
-    document.getElementById('authTitle').textContent='🔐 登录后继续使用';
-    document.getElementById('btnAuthSubmit').textContent='登录';
-    document.getElementById('btnAuthSwitch').textContent='去注册';
-    document.getElementById('authHint').textContent='没有账号？点击"去注册"';
-    document.getElementById('authPhone').style.display='none';
+  // 匿名登录
+  var r=await supabase.auth.signInAnonymously();
+  if(r.error){
+    btn.disabled=false;btn.textContent='🚀 开始使用';
+    return toastAuth('登录失败，请刷新页面重试',1);
   }
+
+  // 存入手机号
+  var uid=r.data.user.id;
+  await supabase.from('profiles').upsert({id:uid,phone:phone});
+
+  __isLoggedIn=true;
+  toastAuth('登录成功！');
+  document.getElementById('authModal').classList.add('hidden');
+  showInputCard();
+  btn.disabled=false;btn.textContent='🚀 开始使用';
 }
 
 // 供 app.js 调用的入口检查
 async function checkAuthAndSpend(){
   if(__isLoggedIn)return true;
-  // 试用模式：检查剩余次数
   var uses=parseInt(localStorage.getItem('zjyk_free_uses')||'0');
   if(uses>0){
     uses--;localStorage.setItem('zjyk_free_uses',uses);
     updateUsesDisplay(uses);
     return true;
   }
-  // 次数用完
   document.getElementById('authModal').classList.remove('hidden');
-  document.getElementById('authMsg').textContent='免费次数已用完，注册登录后即可继续使用';
   return false;
 }
 
