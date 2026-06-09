@@ -32,13 +32,13 @@ var __isLoggedIn=false;
   });
 
   // 隐藏邮箱/密码/切换按钮
-  var ep=document.getElementById('authEmail');if(ep)ep.style.display='none';
-  var pp=document.getElementById('authPassword');if(pp)pp.style.display='none';
+  var ep=document.getElementById('authEmail');if(ep)ep.style.display='';
+  var pp=document.getElementById('authPassword');if(pp)pp.style.display='';
   var ps=document.getElementById('authPhone');if(ps){ps.style.display='';ps.placeholder='请输入手机号';}
-  var sb=document.getElementById('btnAuthSwitch');if(sb)sb.style.display='none';
-  var hh=document.getElementById('authHint');if(hh)hh.style.display='none';
+  var sb=document.getElementById('btnAuthSwitch');if(sb)sb.style.display='';
+  var hh=document.getElementById('authHint');if(hh)hh.style.display='';
   var tt=document.getElementById('authTitle');if(tt)tt.textContent='📱 输入手机号即可使用';
-  var mg=document.getElementById('authMsg');if(mg)mg.textContent='无需注册，输入手机号立即使用';
+  var mg=document.getElementById('authMsg');if(mg)mg.textContent='简单注册即可继续使用完整功能';
   var bts=document.getElementById('btnAuthSubmit');if(bts)bts.textContent='🚀 开始使用';
 })();
 
