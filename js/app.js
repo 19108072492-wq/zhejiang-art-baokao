@@ -200,10 +200,10 @@ function openForm(){
   let html='';
   for(const tier of['reach','match','safety']){
     const list=groups[tier].slice(0,slots[tier]);
-    html+=`<div class="vsec ${tier}"><h3>${labels[tier]} <small>(${list.length}/${slots[tier]})</small></h3><table class="vtab"><thead><tr><th>#</th><th>院校</th><th>专业</th><th>综合分</th><th>位次</th><th>学费</th><th>城市</th></tr></thead><tbody>`;
+    html+=`<div class="vsec ${tier}"><h3>${labels[tier]} <small>(${list.length}/${slots[tier]})</small></h3><table class="vtab"><thead><tr><th>#</th><th>院校</th><th>专业</th><th>综合分</th><th>评分</th><th>位次</th><th>学费</th><th>城市</th></tr></thead><tbody>`;
     for(let i=0;i<slots[tier];i++){
-      if(i<list.length){const r=list[i];html+=`<tr><td>${i+1}</td><td>${esc(r.schoolName)}${r.scoreSource==='estimated'?' ⚠️':''}</td><td>${esc(r.majorName)}</td><td>${r.compositeScore}</td><td>${r.rankPosition||'--'}</td><td>${typeof r.tuition=='number'?r.tuition.toLocaleString():r.tuition||'--'}</td><td>${esc(r.city)}</td></tr>`;}
-      else html+=`<tr class="empty"><td>${i+1}</td><td colspan="6">（未选择）</td></tr>`;
+      if(i<list.length){const r=list[i];html+=`<tr><td>${i+1}</td><td>${esc(r.schoolName)}${r.scoreSource==='estimated'?' ⚠️':''}</td><td>${esc(r.majorName)}</td><td>${r.compositeScore}</td><td style="font-weight:700;color:var(--g)">${r.recScore||'--'}分</td><td>${r.rankPosition||'--'}</td><td>${typeof r.tuition=='number'?r.tuition.toLocaleString():r.tuition||'--'}</td><td>${esc(r.city)}</td></tr>`;}
+      else html+=`<tr class="empty"><td>${i+1}</td><td colspan="7">（未选择）</td></tr>`;
     }
     html+='</tbody></table></div>';
   }
