@@ -1,7 +1,16 @@
 /**
  * 非凡教育 · 浙江艺考志愿助手 — 认证与次数管理
  */
-var authMode='login';
+var authMode='register';
+
+// 页面加载时默认显示注册界面
+(function(){
+  document.getElementById('authTitle').textContent='📝 注册账号';
+  document.getElementById('btnAuthSubmit').textContent='注册';
+  document.getElementById('btnAuthSwitch').textContent='去登录';
+  document.getElementById('authHint').textContent='已有账号？点击"去登录"';
+  document.getElementById('authPhone').style.display='';
+})();
 
 // 初始化：检查现有 session + 显示剩余次数
 (async function initAuth(){
