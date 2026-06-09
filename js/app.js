@@ -79,12 +79,16 @@ function calc(){
   // 算法说明面板
   document.getElementById('algoCard').classList.remove('hidden');
   document.getElementById('algoBody').innerHTML=[
-    {icon:'🎯',name:'分差接近度',wt:40,desc:'综合分越接近往年录取分，推荐度越高（保底35分满分）'},
-    {icon:'🏛️',name:'院校层次',wt:25,desc:'985(满分) > 211 > 双一流 > 公办 > 民办'},
-    {icon:'📋',name:'数据可信度',wt:15,desc:'实际录取数据满分，新增/预估数据降权'},
-    {icon:'📍',name:'省内优先',wt:10,desc:'浙江省内院校加满分，便于就近就读'},
-    {icon:'💰',name:'学费合理度',wt:10,desc:'≤1.5万/年满分，分段递减，减轻家庭负担'},
-  ].map(d=>`<div class="algo-dim"><span class="dim-lbl">${d.icon} ${d.name}</span><div class="dim-bar"><div class="dim-fill" style="width:${d.wt/0.4}%"></div></div><span class="dim-val">${d.wt}%</span><span class="dim-desc">${d.desc}</span></div>`).join('')+`<div class="algo-total">📊 综合评分 = 五个维度加权求和，满分100分</div>`;
+    {icon:'🎯',name:'分差接近度',wt:20,desc:'综合分越接近往年录取分越推荐（40分满分）'},
+    {icon:'🏛️',name:'院校层次',wt:18,desc:'985/211/双一流/公办重点/普通/民办 9档细分'},
+    {icon:'📊',name:'软科排名',wt:10,desc:'A+→C- 7级连续评分，反映学术实力'},
+    {icon:'📋',name:'数据可信度',wt:12,desc:'有历史位次满分/无位次降权/预估分最低'},
+    {icon:'📍',name:'地理位置',wt:10,desc:'浙江>长三角>华东>其他，连续距离衰减'},
+    {icon:'💰',name:'学费合理度',wt:8,desc:'≤6000满分→1.2万/2万/3.5万/6万分段递减'},
+    {icon:'📋',name:'招生计划数',wt:5,desc:'计划多→竞争分散，30+满分，<3人最低'},
+    {icon:'🏅',name:'位次匹配度',wt:10,desc:'位次差距越小越好，连续评分'},
+    {icon:'🏙️',name:'城市级别',wt:7,desc:'杭州/宁波满分→新一线→二线→三线递减'},
+  ].map(d=>`<div class="algo-dim"><span class="dim-lbl">${d.icon} ${d.name}</span><div class="dim-bar"><div class="dim-fill" style="width:${d.wt/0.20*100}%"></div></div><span class="dim-val">${d.wt}%</span><span class="dim-desc">${d.desc}</span></div>`).join('')+`<div class="algo-total">📊 9维度加权评分，消除并列 · 满分100分 · 得分越高推荐度越高</div>`;
 
   // 梯度说明卡片
   const tierExplain=document.getElementById('tierExplain');
@@ -155,9 +159,13 @@ function renderCards(){
       const dims=[
         {k:'proximity',icon:'🎯',color:'var(--g)'},
         {k:'tier',icon:'🏛️',color:'#3b82f6'},
-        {k:'confidence',icon:'📋',color:'#8b5cf6'},
+        {k:'rank',icon:'📊',color:'#8b5cf6'},
+        {k:'confidence',icon:'📋',color:'#06b6d4'},
         {k:'local',icon:'📍',color:'#f59e0b'},
         {k:'tuition',icon:'💰',color:'#10b981'},
+        {k:'plan',icon:'📋',color:'#ef4444'},
+        {k:'rankMatch',icon:'🏅',color:'#ec4899'},
+        {k:'cityLevel',icon:'🏙️',color:'#6366f1'},
       ];
       const dimHtmls=dims.map(d=>{
         const v=sd[d.k];const pct=Math.round((v.score||0)*100);
