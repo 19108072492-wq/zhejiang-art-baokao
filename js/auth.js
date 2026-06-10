@@ -39,9 +39,9 @@ var __isLoggedIn=false;
   var dr=document.getElementById('authDirection');if(dr)dr.style.display='';
   var sb=document.getElementById('btnAuthSwitch');if(sb)sb.style.display='none';
   var hh=document.getElementById('authHint');if(hh)hh.style.display='none';
-  var tt=document.getElementById('authTitle');if(tt)tt.textContent='📱 填写信息即可使用';
-  var mg=document.getElementById('authMsg');if(mg)mg.textContent='填写手机号和基本信息即可使用';
-  var bts=document.getElementById('btnAuthSubmit');if(bts)bts.textContent='🚀 开始使用';
+  var tt=document.getElementById('authTitle');if(tt)tt.textContent='📱 注册';
+  var mg=document.getElementById('authMsg');if(mg)mg.textContent='注册后即可使用完整功能';
+  var bts=document.getElementById('btnAuthSubmit');if(bts)bts.textContent='🚀 注册';
 })();
 
 function doTrial(){
@@ -123,7 +123,7 @@ async function handlePhoneSubmit(){
   toastAuth(msg);
   document.getElementById('authModal').classList.add('hidden');
   showInputCard();
-  btn.disabled=false;btn.textContent='🚀 开始使用';
+  btn.disabled=false;btn.textContent='🚀 注册';
 }
 
 // 供 app.js 调用
