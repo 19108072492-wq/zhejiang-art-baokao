@@ -544,20 +544,20 @@ function showAdminSection(section){
 
 async function renderUsers(){
   var body=document.getElementById('adminUsersBody');
-  body.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--t3);padding:20px">⏳ 加载中...</td></tr>';
+  body.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--t3);padding:20px">⏳ 加载中...</td></tr>';
   var allUsers=[];
 
   // 1. 读取本地存储的手机号
   try{
     var localList=JSON.parse(localStorage.getItem('zjyk_phone_list')||'[]');
     localList.forEach(function(u){
-      allUsers.push({phone:u.phone,time:u.time,source:'本地'});
+      allUsers.push({phone:u.phone,grade:u.grade||'',direction:u.direction||'',time:u.time,source:'本地'});
     });
   }catch(e){}
 
   // 2. 尝试从 Supabase 拉取
   try{
-    var resp=await fetch('https://nhewhebhbknydhcbvjnv.supabase.co/rest/v1/phone_registrations?select=id,phone,created_at&order=created_at.desc&limit=500',{
+    var resp=await fetch('https://nhewhebhbknydhcbvjnv.supabase.co/rest/v1/phone_registrations?select=id,phone,grade,direction,created_at&order=created_at.desc&limit=500',{
       headers:{
         'apikey':'sb_publishable_9XfINH7l5nqjYbdEy4MqTQ__5O4BhnZ',
         'Authorization':'Bearer sb_publishable_9XfINH7l5nqjYbdEy4MqTQ__5O4BhnZ'
@@ -568,7 +568,7 @@ async function renderUsers(){
       remoteList.forEach(function(u){
         var exists=allUsers.some(function(x){return x.phone===u.phone;});
         if(!exists){
-          allUsers.push({phone:u.phone,time:u.created_at||u.id||'',source:'云端'});
+          allUsers.push({phone:u.phone,grade:u.grade||'',direction:u.direction||'',time:u.created_at||u.id||'',source:'云端'});
         }
       });
     }
@@ -578,14 +578,14 @@ async function renderUsers(){
   allUsers.sort(function(a,b){return (b.time||'').localeCompare(a.time||'');});
 
   if(!allUsers.length){
-    body.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--t3);padding:20px">暂无注册用户</td></tr>';
+    body.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--t3);padding:20px">暂无注册用户</td></tr>';
     return;
   }
 
   body.innerHTML=allUsers.map(function(u,i){
     var timeDisplay=u.time;
     try{timeDisplay=new Date(u.time).toLocaleString('zh-CN');}catch(e){}
-    return '<tr><td class="row-num">'+(i+1)+'</td><td style="font-weight:600">'+esc(u.phone)+'</td><td style="font-size:.78rem;color:var(--t2)">'+timeDisplay+'</td><td style="font-size:.74rem">'+(u.source==='云端'?'<span style="color:var(--gr);font-weight:600">☁️ 云端</span>':'<span style="color:var(--o)">💻 本地</span>')+'</td></tr>';
+    return '<tr><td class="row-num">'+(i+1)+'</td><td style="font-weight:600">'+esc(u.phone)+'</td><td>'+esc(u.grade||'--')+'</td><td>'+esc(u.direction||'--')+'</td><td style="font-size:.78rem;color:var(--t2)">'+timeDisplay+'</td><td style="font-size:.74rem">'+(u.source==='云端'?'<span style="color:var(--gr);font-weight:600">☁️ 云端</span>':'<span style="color:var(--o)">💻 本地</span>')+'</td></tr>';
   }).join('');
 }
 
@@ -598,8 +598,8 @@ document.addEventListener('DOMContentLoaded',function(){
     if(bex)bex.addEventListener('click',function(){
       var phoneList=JSON.parse(localStorage.getItem('zjyk_phone_list')||'[]');
       if(!phoneList.length)return toast('暂无数据可导出',1);
-      var csv='手机号,注册时间\n';
-      phoneList.forEach(function(u){csv+=u.phone+','+new Date(u.time).toLocaleString('zh-CN')+'\n';});
+      var csv='手机号,年级,专业方向,注册时间\n';
+      phoneList.forEach(function(u){csv+=u.phone+','+(u.grade||'')+','+(u.direction||'')+','+new Date(u.time).toLocaleString('zh-CN')+'\n';});
       var blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
       var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='注册用户_'+new Date().toISOString().slice(0,10)+'.csv';
       a.click();toast('✅ 已导出CSV');

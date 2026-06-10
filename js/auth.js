@@ -31,14 +31,16 @@ var __isLoggedIn=false;
     if(e.target===this)this.classList.add('hidden');
   });
 
-  // 隐藏邮箱/密码/切换按钮，只显示手机号
+  // 隐藏邮箱/密码/切换按钮，只显示手机号+年级+方向
   var ep=document.getElementById('authEmail');if(ep)ep.style.display='none';
   var pp=document.getElementById('authPassword');if(pp)pp.style.display='none';
   var ps=document.getElementById('authPhone');if(ps){ps.style.display='';ps.placeholder='请输入手机号';}
+  var gr=document.getElementById('authGrade');if(gr)gr.style.display='';
+  var dr=document.getElementById('authDirection');if(dr)dr.style.display='';
   var sb=document.getElementById('btnAuthSwitch');if(sb)sb.style.display='none';
   var hh=document.getElementById('authHint');if(hh)hh.style.display='none';
-  var tt=document.getElementById('authTitle');if(tt)tt.textContent='📱 输入手机号即可使用';
-  var mg=document.getElementById('authMsg');if(mg)mg.textContent='简单注册即可继续使用完整功能';
+  var tt=document.getElementById('authTitle');if(tt)tt.textContent='📱 填写信息即可使用';
+  var mg=document.getElementById('authMsg');if(mg)mg.textContent='填写手机号和基本信息即可使用';
   var bts=document.getElementById('btnAuthSubmit');if(bts)bts.textContent='🚀 开始使用';
 })();
 
@@ -76,15 +78,18 @@ async function handlePhoneSubmit(){
   if(!phone)return toastAuth('请输入手机号',1);
   if(!/^1[3-9]\d{9}$/.test(phone))return toastAuth('请输入有效的11位手机号',1);
 
+  var grade=document.getElementById('authGrade').value;
+  var direction=document.getElementById('authDirection').value;
+
   var btn=document.getElementById('btnAuthSubmit');
   btn.disabled=true;btn.textContent='⏳ 提交中...';
 
-  // 始终先在本地标记登录（注册入口不能因为云端失败而卡住）
+  // 始终先在本地标记登录
   __isLoggedIn=true;
   localStorage.setItem('zjyk_logged_in','1');
   localStorage.setItem('zjyk_phone',phone);
   var phoneList=JSON.parse(localStorage.getItem('zjyk_phone_list')||'[]');
-  phoneList.push({phone:phone,time:new Date().toISOString()});
+  phoneList.push({phone:phone,grade:grade,direction:direction,time:new Date().toISOString()});
   localStorage.setItem('zjyk_phone_list',JSON.stringify(phoneList));
 
   // 异步尝试写入 Supabase（不阻塞注册流程）
@@ -92,7 +97,7 @@ async function handlePhoneSubmit(){
   try{
     // 生成 UUID（profiles 表的 id 列要求 UUID 格式）
     var id=crypto.randomUUID?crypto.randomUUID():('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0,v=c==='x'?r:(r&0x3|0x8);return v.toString(16);}));
-    var body={id:id,phone:phone};
+    var body={id:id,phone:phone,grade:grade,direction:direction};
     // 方案1：用 supabase 客户端库
     var {error}=await supabase.from('phone_registrations').insert(body);
     if(error){
