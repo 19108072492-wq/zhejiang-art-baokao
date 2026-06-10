@@ -112,14 +112,6 @@ async function handlePhoneSubmit(){
       else{var e=await resp.json().catch(function(){return{};});console.error('[Auth] REST insert failed:',resp.status,e);}
     }else{cloudOk=true;console.log('[Auth] supabase insert OK');}
   }catch(e){console.error('[Auth] insert exception:',e);}
-      }
-    }else{
-      cloudOk=true;
-      console.log('[Auth] supabase client insert OK');
-    }
-  }catch(e){
-    console.error('[Auth] insert exception:',e);
-  }
 
   // 注册完成
   var msg=cloudOk?'✅ 注册成功！（已同步云端）':'✅ 注册成功';
