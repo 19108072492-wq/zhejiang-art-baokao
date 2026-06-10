@@ -65,12 +65,25 @@ function updateUsesDisplay(n){
   var bar=document.getElementById('usesBar');
   if(!bar)return;
   if(__isLoggedIn){
-    bar.innerHTML='<span style="color:var(--gr);font-weight:600">✅ 已登录 · 无限使用</span>';
+    bar.innerHTML='<span style="display:flex;align-items:center;gap:12px"><span style="color:var(--gr);font-weight:600">✅ 已登录 · 无限使用</span><button class="btn btn-gh btn-sm" id="btnLogout" style="font-size:.75rem;padding:2px 8px">退出登录</button></span>';
+    setTimeout(function(){
+      var bl=document.getElementById('btnLogout');
+      if(bl)bl.addEventListener('click',doLogout);
+    },100);
   }else if(n<0){
     bar.innerHTML='<span style="color:var(--o);font-weight:600">🎁 试用模式 · 免费 1 次</span>';
   }else{
     bar.innerHTML='剩余免费次数：<span style="font-weight:700;color:'+(n<=0?'var(--r)':'var(--g)')+'">'+n+'</span> 次';
   }
+}
+
+function doLogout(){
+  __isLoggedIn=false;
+  localStorage.removeItem('zjyk_logged_in');
+  localStorage.removeItem('zjyk_phone');
+  document.getElementById('inputCard').classList.add('hidden');
+  document.getElementById('gateCard').classList.remove('hidden');
+  toastAuth('已退出登录');
 }
 
 async function handlePhoneSubmit(){
