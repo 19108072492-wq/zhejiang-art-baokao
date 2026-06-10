@@ -557,7 +557,7 @@ async function renderUsers(){
 
   // 2. 尝试从 Supabase 拉取
   try{
-    var resp=await fetch('https://nhewhebhbknydhcbvjnv.supabase.co/rest/v1/profiles?select=id,phone&order=id.desc&limit=500',{
+    var resp=await fetch('https://nhewhebhbknydhcbvjnv.supabase.co/rest/v1/phone_registrations?select=id,phone,created_at&order=created_at.desc&limit=500',{
       headers:{
         'apikey':'sb_publishable_9XfINH7l5nqjYbdEy4MqTQ__5O4BhnZ',
         'Authorization':'Bearer sb_publishable_9XfINH7l5nqjYbdEy4MqTQ__5O4BhnZ'
@@ -566,10 +566,9 @@ async function renderUsers(){
     if(resp.ok){
       var remoteList=await resp.json();
       remoteList.forEach(function(u){
-        // 去重：检查是否已存在
         var exists=allUsers.some(function(x){return x.phone===u.phone;});
         if(!exists){
-          allUsers.push({phone:u.phone,time:u.id||'',source:'云端'});
+          allUsers.push({phone:u.phone,time:u.created_at||u.id||'',source:'云端'});
         }
       });
     }

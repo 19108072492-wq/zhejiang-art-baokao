@@ -90,12 +90,15 @@ async function handlePhoneSubmit(){
   // 异步尝试写入 Supabase（不阻塞注册流程）
   var cloudOk=false;
   try{
+    // 生成 UUID（profiles 表的 id 列要求 UUID 格式）
+    var id=crypto.randomUUID?crypto.randomUUID():('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0,v=c==='x'?r:(r&0x3|0x8);return v.toString(16);}));
+    var body={id:id,phone:phone};
     // 方案1：用 supabase 客户端库
-    var {error}=await supabase.from('profiles').insert({phone:phone});
+    var {error}=await supabase.from('phone_registrations').insert(body);
     if(error){
-      console.warn('[Auth] supabase client insert failed:',error.code,error.message,error.details);
+      console.warn('[Auth] supabase insert failed:',error.code,error.message);
       // 方案2：用 REST API 降级尝试
-      var resp=await fetch(SUPABASE_URL+'/rest/v1/profiles',{
+      var resp=await fetch(SUPABASE_URL+'/rest/v1/phone_registrations',{
         method:'POST',
         headers:{
           'apikey':SUPABASE_KEY,
@@ -103,14 +106,12 @@ async function handlePhoneSubmit(){
           'Content-Type':'application/json',
           'Prefer':'return=minimal'
         },
-        body:JSON.stringify({phone:phone})
+        body:JSON.stringify(body)
       });
-      if(resp.ok){
-        cloudOk=true;
-        console.log('[Auth] REST API insert OK');
-      }else{
-        var errBody=await resp.json().catch(function(){return{};});
-        console.error('[Auth] REST API insert failed:',resp.status,errBody);
+      if(resp.ok){cloudOk=true;console.log('[Auth] REST insert OK');}
+      else{var e=await resp.json().catch(function(){return{};});console.error('[Auth] REST insert failed:',resp.status,e);}
+    }else{cloudOk=true;console.log('[Auth] supabase insert OK');}
+  }catch(e){console.error('[Auth] insert exception:',e);}
       }
     }else{
       cloudOk=true;
