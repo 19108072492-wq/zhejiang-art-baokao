@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('btnGo').addEventListener('click',calc);
   document.getElementById('btnGear').addEventListener('click',()=>document.getElementById('lockModal').classList.remove('hidden'));
   document.getElementById('btnUnlock').addEventListener('click',()=>{
-    if(document.getElementById('pwdInput').value==='888888'){document.getElementById('lockModal').classList.add('hidden');document.getElementById('adminModal').classList.remove('hidden');renderAdmin();showAdminSection('data');}
+    if(document.getElementById('pwdInput').value==='ffjyyyds123456'){document.getElementById('lockModal').classList.add('hidden');document.getElementById('adminModal').classList.remove('hidden');renderAdmin();showAdminSection('data');}
     else toast('密码错误',1);
   });
   document.getElementById('btnLockCancel').addEventListener('click',()=>document.getElementById('lockModal').classList.add('hidden'));
@@ -189,7 +189,10 @@ function renderCards(){
   }).join('');
   container.onclick=function(e){
     const selEl=e.target.closest('[data-act="sel"]');
-    if(selEl){e.stopPropagation();const card=selEl.closest('.sc'),key=card.dataset.key,idx=parseInt(card.dataset.idx),r=cur[idx];if(r){if(sel.has(key))sel.delete(key);else sel.set(key,r);}updateFloat();renderCards();return;}
+    if(selEl){e.stopPropagation();const card=selEl.closest('.sc'),key=card.dataset.key;
+      // 用 key 查找（修复索引错位 Bug）
+      const r=cur.find(function(x){return x.schoolCode+'|'+x.majorCode===key;});
+      if(r){if(sel.has(key))sel.delete(key);else sel.set(key,r);}updateFloat();renderCards();return;}
     const card=e.target.closest('.sc');if(card)card.classList.toggle('exp');
   };
 }

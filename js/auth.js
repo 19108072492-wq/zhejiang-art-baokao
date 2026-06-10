@@ -43,14 +43,14 @@ var __isLoggedIn=false;
 })();
 
 function doTrial(){
+  // 始终先关闭认证弹窗、显示输入卡
+  document.getElementById('authModal').classList.add('hidden');
   var trialed=localStorage.getItem('zjyk_trialed');
-  if(trialed){
-    document.getElementById('authModal').classList.remove('hidden');
-    return;
+  if(!trialed){
+    localStorage.setItem('zjyk_trialed','1');
+    localStorage.setItem('zjyk_free_uses','1');
   }
-  localStorage.setItem('zjyk_trialed','1');
   showInputCard();
-  localStorage.setItem('zjyk_free_uses','1');
 }
 
 function showInputCard(){
