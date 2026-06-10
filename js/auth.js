@@ -31,12 +31,12 @@ var __isLoggedIn=false;
     if(e.target===this)this.classList.add('hidden');
   });
 
-  // 隐藏邮箱/密码/切换按钮
-  var ep=document.getElementById('authEmail');if(ep)ep.style.display='';
-  var pp=document.getElementById('authPassword');if(pp)pp.style.display='';
+  // 隐藏邮箱/密码/切换按钮，只显示手机号
+  var ep=document.getElementById('authEmail');if(ep)ep.style.display='none';
+  var pp=document.getElementById('authPassword');if(pp)pp.style.display='none';
   var ps=document.getElementById('authPhone');if(ps){ps.style.display='';ps.placeholder='请输入手机号';}
-  var sb=document.getElementById('btnAuthSwitch');if(sb)sb.style.display='';
-  var hh=document.getElementById('authHint');if(hh)hh.style.display='';
+  var sb=document.getElementById('btnAuthSwitch');if(sb)sb.style.display='none';
+  var hh=document.getElementById('authHint');if(hh)hh.style.display='none';
   var tt=document.getElementById('authTitle');if(tt)tt.textContent='📱 输入手机号即可使用';
   var mg=document.getElementById('authMsg');if(mg)mg.textContent='简单注册即可继续使用完整功能';
   var bts=document.getElementById('btnAuthSubmit');if(bts)bts.textContent='🚀 开始使用';
@@ -79,34 +79,50 @@ async function handlePhoneSubmit(){
   var btn=document.getElementById('btnAuthSubmit');
   btn.disabled=true;btn.textContent='⏳ 提交中...';
 
-  // 直接用 REST API 写入 profiles 表（不依赖登录）
-  var id='phone_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
-  var resp=await fetch('https://nhewhebhbknydhcbvjnv.supabase.co/rest/v1/profiles',{
-    method:'POST',
-    headers:{
-      'apikey':'sb_publishable_9XfINH7l5nqjYbdEy4MqTQ__5O4BhnZ',
-      'Authorization':'Bearer sb_publishable_9XfINH7l5nqjYbdEy4MqTQ__5O4BhnZ',
-      'Content-Type':'application/json',
-      'Prefer':'return=minimal'
-    },
-    body:JSON.stringify({id:id,phone:phone})
-  });
-
-  if(!resp.ok){
-    var err=await resp.json();
-    btn.disabled=false;btn.textContent='🚀 开始使用';
-    // 可能是 RLS 问题
-    if(err.code==='42501'){
-      return toastAuth('服务配置中，请稍后再试',1);
-    }
-    return toastAuth('提交失败: '+(err.message||'请重试'),1);
-  }
-
-  // 成功！标记本地登录
+  // 始终先在本地标记登录（注册入口不能因为云端失败而卡住）
   __isLoggedIn=true;
   localStorage.setItem('zjyk_logged_in','1');
   localStorage.setItem('zjyk_phone',phone);
-  toastAuth('✅ 登录成功！手机号已保存');
+  var phoneList=JSON.parse(localStorage.getItem('zjyk_phone_list')||'[]');
+  phoneList.push({phone:phone,time:new Date().toISOString()});
+  localStorage.setItem('zjyk_phone_list',JSON.stringify(phoneList));
+
+  // 异步尝试写入 Supabase（不阻塞注册流程）
+  var cloudOk=false;
+  try{
+    // 方案1：用 supabase 客户端库
+    var {error}=await supabase.from('profiles').insert({phone:phone});
+    if(error){
+      console.warn('[Auth] supabase client insert failed:',error.code,error.message,error.details);
+      // 方案2：用 REST API 降级尝试
+      var resp=await fetch(SUPABASE_URL+'/rest/v1/profiles',{
+        method:'POST',
+        headers:{
+          'apikey':SUPABASE_KEY,
+          'Authorization':'Bearer '+SUPABASE_KEY,
+          'Content-Type':'application/json',
+          'Prefer':'return=minimal'
+        },
+        body:JSON.stringify({phone:phone})
+      });
+      if(resp.ok){
+        cloudOk=true;
+        console.log('[Auth] REST API insert OK');
+      }else{
+        var errBody=await resp.json().catch(function(){return{};});
+        console.error('[Auth] REST API insert failed:',resp.status,errBody);
+      }
+    }else{
+      cloudOk=true;
+      console.log('[Auth] supabase client insert OK');
+    }
+  }catch(e){
+    console.error('[Auth] insert exception:',e);
+  }
+
+  // 注册完成
+  var msg=cloudOk?'✅ 注册成功！（已同步云端）':'✅ 注册成功';
+  toastAuth(msg);
   document.getElementById('authModal').classList.add('hidden');
   showInputCard();
   btn.disabled=false;btn.textContent='🚀 开始使用';

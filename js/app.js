@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('btnGo').addEventListener('click',calc);
   document.getElementById('btnGear').addEventListener('click',()=>document.getElementById('lockModal').classList.remove('hidden'));
   document.getElementById('btnUnlock').addEventListener('click',()=>{
-    if(document.getElementById('pwdInput').value==='888888'){document.getElementById('lockModal').classList.add('hidden');document.getElementById('adminModal').classList.remove('hidden');renderAdmin();}
+    if(document.getElementById('pwdInput').value==='888888'){document.getElementById('lockModal').classList.add('hidden');document.getElementById('adminModal').classList.remove('hidden');renderAdmin();showAdminSection('data');}
     else toast('密码错误',1);
   });
   document.getElementById('btnLockCancel').addEventListener('click',()=>document.getElementById('lockModal').classList.add('hidden'));
@@ -520,3 +520,94 @@ function esc(s){if(!s)return'';const d=document.createElement('div');d.textConte
 function escAttr(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;');}
 function isArtAcademy(r){const n=(r.schoolName||'');return /美术学?院|艺术学?院|音乐学?院|舞蹈学?院|戏曲学?院|电影学?院|戏剧学?院|传媒学?院|中央美术|中国美术|天津美术|西安美术|四川美术|鲁迅美术|湖北美术|广州美术|南京艺术|广西艺术|云南艺术|山东艺术|吉林艺术|新疆艺术|北京电影|中央戏剧|中国戏曲|上海戏剧|北京舞蹈|浙江传媒/i.test(n);}
 function toast(msg,err){const t=document.createElement('div');t.className='toast'+(err?' err':'');t.textContent=msg;document.body.appendChild(t);requestAnimationFrame(()=>t.classList.add('show'));setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),300);},3000);}
+
+// ===== 用户管理（管理员查看注册手机号） =====
+let __adminSection='data';
+
+function showAdminSection(section){
+  __adminSection=section;
+  var dataSec=document.getElementById('adminDataSection');
+  var userSec=document.getElementById('adminUsers');
+  if(dataSec)dataSec.style.display=section==='data'?'':'none';
+  if(userSec)userSec.style.display=section==='users'?'':'none';
+  // 更新 tab 按钮样式
+  var btnData=document.getElementById('btnTabData');
+  var btnUsers=document.getElementById('btnTabUsers');
+  if(btnData){btnData.className='btn btn-sm '+(section==='data'?'btn-g':'btn-gh');}
+  if(btnUsers){btnUsers.className='btn btn-sm '+(section==='users'?'btn-g':'btn-gh');}
+  if(section==='data')renderAdmin();
+  if(section==='users')renderUsers();
+}
+
+async function renderUsers(){
+  var body=document.getElementById('adminUsersBody');
+  body.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--t3);padding:20px">⏳ 加载中...</td></tr>';
+  var allUsers=[];
+
+  // 1. 读取本地存储的手机号
+  try{
+    var localList=JSON.parse(localStorage.getItem('zjyk_phone_list')||'[]');
+    localList.forEach(function(u){
+      allUsers.push({phone:u.phone,time:u.time,source:'本地'});
+    });
+  }catch(e){}
+
+  // 2. 尝试从 Supabase 拉取
+  try{
+    var resp=await fetch('https://nhewhebhbknydhcbvjnv.supabase.co/rest/v1/profiles?select=id,phone&order=id.desc&limit=500',{
+      headers:{
+        'apikey':'sb_publishable_9XfINH7l5nqjYbdEy4MqTQ__5O4BhnZ',
+        'Authorization':'Bearer sb_publishable_9XfINH7l5nqjYbdEy4MqTQ__5O4BhnZ'
+      }
+    });
+    if(resp.ok){
+      var remoteList=await resp.json();
+      remoteList.forEach(function(u){
+        // 去重：检查是否已存在
+        var exists=allUsers.some(function(x){return x.phone===u.phone;});
+        if(!exists){
+          allUsers.push({phone:u.phone,time:u.id||'',source:'云端'});
+        }
+      });
+    }
+  }catch(e){console.log('Supabase fetch error:',e);}
+
+  // 按时间倒序
+  allUsers.sort(function(a,b){return (b.time||'').localeCompare(a.time||'');});
+
+  if(!allUsers.length){
+    body.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--t3);padding:20px">暂无注册用户</td></tr>';
+    return;
+  }
+
+  body.innerHTML=allUsers.map(function(u,i){
+    var timeDisplay=u.time;
+    try{timeDisplay=new Date(u.time).toLocaleString('zh-CN');}catch(e){}
+    return '<tr><td class="row-num">'+(i+1)+'</td><td style="font-weight:600">'+esc(u.phone)+'</td><td style="font-size:.78rem;color:var(--t2)">'+timeDisplay+'</td><td style="font-size:.74rem">'+(u.source==='云端'?'<span style="color:var(--gr);font-weight:600">☁️ 云端</span>':'<span style="color:var(--o)">💻 本地</span>')+'</td></tr>';
+  }).join('');
+}
+
+// 绑定用户管理按钮事件
+document.addEventListener('DOMContentLoaded',function(){
+  setTimeout(function(){
+    var bre=document.getElementById('btnRefreshUsers');
+    if(bre)bre.addEventListener('click',renderUsers);
+    var bex=document.getElementById('btnExportUsers');
+    if(bex)bex.addEventListener('click',function(){
+      var phoneList=JSON.parse(localStorage.getItem('zjyk_phone_list')||'[]');
+      if(!phoneList.length)return toast('暂无数据可导出',1);
+      var csv='手机号,注册时间\n';
+      phoneList.forEach(function(u){csv+=u.phone+','+new Date(u.time).toLocaleString('zh-CN')+'\n';});
+      var blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+      var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='注册用户_'+new Date().toISOString().slice(0,10)+'.csv';
+      a.click();toast('✅ 已导出CSV');
+    });
+    var bcl=document.getElementById('btnClearUsers');
+    if(bcl)bcl.addEventListener('click',function(){
+      if(!confirm('确定清空本地手机号列表？（云端数据不受影响）'))return;
+      localStorage.removeItem('zjyk_phone_list');
+      renderUsers();
+      toast('已清空本地列表');
+    });
+  },200);
+});
