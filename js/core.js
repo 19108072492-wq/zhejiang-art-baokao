@@ -20,6 +20,138 @@ function saveData(k,d){localStorage.setItem('zjyk_'+k,JSON.stringify(d));}
 function clearData(k){localStorage.removeItem('zjyk_'+k);}
 function totalCount(){let s=0;CATS.forEach(c=>s+=loadData(c.k).length);return s;}
 
+// ===== 合并数据源 =====
+// 返回所有记录（内置 + localStorage），用于院校浏览、专业浏览、数据分析
+function getAllRecords(){
+  var cacheKey='zjyk_all_records_v2';
+  var cached=sessionStorage.getItem(cacheKey);
+  if(cached){try{return JSON.parse(cached);}catch(e){}}
+  var all=[];
+  for(var i=0;i<CATS.length;i++){
+    var cat=CATS[i];
+    var records=loadData(cat.k);
+    for(var j=0;j<records.length;j++){
+      var r=records[j];
+      // 确保每条记录有 rawCategory 和 catKey
+      r.catKey=r.catKey||cat.k;
+      r.rawCategory=r.rawCategory||cat.l;
+      // 解析布尔标志
+      if(r.schoolType&&!(r.isPublic!==undefined)){
+        var st=r.schoolType||'';
+        r.is985=/985/.test(st);r.is211=/211/.test(st);r.isDoubleFirst=/双一流/.test(st);
+        r.isPublic=/公办/.test(st)&&!/民办/.test(st);r.isPrivate=/民办/.test(st)||/独立学院/.test(st);
+      }
+      all.push(r);
+    }
+  }
+  try{sessionStorage.setItem(cacheKey,JSON.stringify(all));}catch(e){}
+  return all;
+}
+// 清除缓存（数据更新后调用）
+function clearAllRecordsCache(){sessionStorage.removeItem('zjyk_all_records_v2');}
+
+// ===== 院校聚合 =====
+// 将所有记录按 schoolCode 聚合
+function aggregateBySchool(records){
+  var map={};
+  for(var i=0;i<records.length;i++){
+    var r=records[i];
+    var key=r.schoolCode||r.schoolName;
+    if(!map[key]){
+      map[key]={
+        schoolCode:r.schoolCode,schoolName:r.schoolName,city:r.city||'',
+        schoolType:r.schoolType||'',is985:r.is985,is211:r.is211,
+        isDoubleFirst:r.isDoubleFirst,isPublic:r.isPublic,isPrivate:r.isPrivate,
+        rankLevel:r.rankLevel||'',records:[],majorNames:{},categories:{}
+      };
+    }
+    var school=map[key];
+    school.records.push(r);
+    school.majorNames[r.majorName||'']=true;
+    if(r.catKey)school.categories[r.catKey]=true;
+    // 用最新的/优先级最高的 city
+    if(!school.city||school.city==='')school.city=r.city||'';
+  }
+  // 计算聚合统计
+  var schools=[];
+  var keys=Object.keys(map);
+  for(var i=0;i<keys.length;i++){
+    var s=map[keys[i]];
+    var scores=[];
+    for(var j=0;j<s.records.length;j++){
+      var sc=s.records[j].compositeScore;
+      if(typeof sc=='number'&&sc>0)scores.push(sc);
+    }
+    scores.sort(function(a,b){return a-b;});
+    s.compositeMin=scores[0]||0;
+    s.compositeMax=scores[scores.length-1]||0;
+    s.compositeAvg=scores.length?Math.round(scores.reduce(function(a,b){return a+b;},0)/scores.length*100)/100:0;
+    s.majorCount=Object.keys(s.majorNames).length;
+    s.tuitionMin=999999;s.tuitionMax=0;
+    for(var j=0;j<s.records.length;j++){
+      var t=s.records[j].tuition;
+      if(typeof t=='number'&&t>0){if(t<s.tuitionMin)s.tuitionMin=t;if(t>s.tuitionMax)s.tuitionMax=t;}
+    }
+    if(s.tuitionMin===999999){s.tuitionMin=0;s.tuitionMax=0;}
+    schools.push(s);
+  }
+  return schools;
+}
+
+// ===== 专业聚合 =====
+// 将所有记录按 majorName 聚合（可选指定门类）
+function aggregateByMajor(records){
+  var map={};
+  for(var i=0;i<records.length;i++){
+    var r=records[i];
+    var key=(r.majorName||'').trim();
+    if(!key)continue;
+    if(!map[key]){
+      map[key]={
+        majorName:key,
+        majorCode:r.majorCode||'',
+        recordCount:0,
+        schoolCount:0,
+        schools:{},
+        categories:{},
+        scores:[],
+        tuitions:[],
+        records:[]
+      };
+    }
+    var major=map[key];
+    major.recordCount++;
+    if(!major.schools[r.schoolName]){
+      major.schools[r.schoolName]=true;
+      major.schoolCount++;
+    }
+    if(r.catKey)major.categories[r.catKey]=true;
+    if(typeof r.compositeScore=='number'&&r.compositeScore>0){
+      major.scores.push(r.compositeScore);
+    }
+    if(typeof r.tuition=='number'&&r.tuition>0){
+      major.tuitions.push(r.tuition);
+    }
+    major.records.push(r);
+  }
+  var majors=[];
+  var keys=Object.keys(map);
+  for(var i=0;i<keys.length;i++){
+    var m=map[keys[i]];
+    m.scores.sort(function(a,b){return a-b;});
+    m.scoreMin=m.scores[0]||0;
+    m.scoreMax=m.scores[m.scores.length-1]||0;
+    m.scoreAvg=m.scores.length?Math.round((m.scores.reduce(function(a,b){return a+b;},0)/m.scores.length)*100)/100:0;
+    m.tuitionAvg=m.tuitions.length?Math.round((m.tuitions.reduce(function(a,b){return a+b;},0)/m.tuitions.length)):0;
+    // 按综合分降序排列 records
+    m.records.sort(function(a,b){return (b.compositeScore||0)-(a.compositeScore||0);});
+    majors.push(m);
+  }
+  // 按开设院校数降序
+  majors.sort(function(a,b){return b.schoolCount-a.schoolCount;});
+  return majors;
+}
+
 // ===== 匹配引擎 v5 =====
 const CULTURE_MIN={finearts:369,broadcast:369,calligraphy:369,dance:320,music:320,acting:320};
 const TIER=[{t:'reach',l:'🔴 冲',min:-Infinity,max:0},{t:'match',l:'🟡 稳',min:0,max:15},{t:'safety',l:'🟢 保',min:15,max:35}];

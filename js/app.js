@@ -613,3 +613,561 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   },200);
 });
+
+
+// ===================== 新功能模块 =====================
+
+// ===== 导航与 Tab 切换 =====
+var __currentTab='dashboard';
+function switchTab(tabName){
+  __currentTab=tabName;
+  // 隐藏所有顶层卡片
+  var cards=['dashboard','inputCard','resultBox','schoolBrowser','majorBrowser','analysisView'];
+  for(var i=0;i<cards.length;i++){
+    var el=document.getElementById(cards[i]);
+    if(el)el.classList.add('hidden');
+  }
+  // 隐藏 hero, dataSourceCard, scoreBox, algoCard, tierExplain, gateCard
+  var hides=['gateCard','hero','scoreBox','algoCard','tierExplain','dataSourceCard','floatBar','searchBar','usesBar'];
+  for(var i=0;i<hides.length;i++){
+    var el=document.getElementById(hides[i]);
+    if(el && el.classList)el.classList.add('hidden');
+  }
+  // 根据 tab 显示对应内容
+  var target=document.getElementById(tabName);
+  if(target)target.classList.remove('hidden');
+  
+  // 更新 URL hash
+  if(window.location.hash!=='#'+tabName){
+    try{history.replaceState(null,'','#'+tabName);}catch(e){}
+  }
+  // 更新导航 active 状态
+  var navLinks=document.querySelectorAll('#topNav a');
+  for(var i=0;i<navLinks.length;i++){
+    var href=navLinks[i].getAttribute('href')||'';
+    if(href==='#'+tabName)navLinks[i].classList.add('active');
+    else navLinks[i].classList.remove('active');
+  }
+  // 显示 hero（除仪表盘外都显示）
+  var heroEl=document.getElementById('hero');
+  if(heroEl && tabName!=='dashboard' && tabName!=='analysisView'){
+    heroEl.classList.remove('hidden');
+  }
+  // 显示浮动栏（仅填报相关 tab）
+  if(tabName==='inputCard' || tabName==='resultBox'){
+    updateFloat();
+  }else{
+    document.getElementById('floatBar').classList.remove('on');
+  }
+  // 渲染内容
+  if(tabName==='dashboard')renderDashboard();
+  else if(tabName==='schoolBrowser')renderSchoolBrowser();
+  else if(tabName==='majorBrowser')renderMajorBrowser();
+  else if(tabName==='analysisView')renderDataAnalysis();
+  else if(tabName==='inputCard'){
+    document.getElementById('inputCard').classList.remove('hidden');
+    document.getElementById('usesBar')&&document.getElementById('usesBar').classList.remove('hidden');
+  }
+  // 滚动到顶部
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// 初始化导航点击事件
+document.addEventListener('DOMContentLoaded',function(){
+  var navLinks=document.querySelectorAll('#topNav a');
+  for(var i=0;i<navLinks.length;i++){
+    navLinks[i].addEventListener('click',function(e){
+      e.preventDefault();
+      var href=this.getAttribute('href')||'';
+      var tabName=href.replace('#','');
+      switchTab(tabName);
+    });
+  }
+  // 监听 hash 变化
+  window.addEventListener('hashchange',function(){
+    var hash=window.location.hash.replace('#','');
+    if(hash && document.getElementById(hash)){
+      switchTab(hash);
+    }
+  });
+});
+
+// showDashboard（auth.js 调用）
+function showDashboard(){
+  document.getElementById('gateCard').classList.add('hidden');
+  document.getElementById('topNav').classList.remove('hidden');
+  switchTab('dashboard');
+}
+
+// ===== 仪表盘 =====
+function renderDashboard(){
+  var all=getAllRecords();
+  var schools=aggregateBySchool(all);
+  var majors=aggregateByMajor(all);
+  var cities={};
+  for(var i=0;i<all.length;i++){if(all[i].city)cities[all[i].city]=true;}
+  var cityCount=Object.keys(cities).length;
+  var majorNames={};
+  for(var i=0;i<all.length;i++){if(all[i].majorName)majorNames[all[i].majorName]=true;}
+  var uniqueMajorCount=Object.keys(majorNames).length;
+  
+  // 欢迎区
+  var phone=localStorage.getItem('zjyk_phone')||'';
+  var phoneTail=phone?phone.slice(-4):'用户';
+  var hour=new Date().getHours();
+  var greet=hour<12?'上午好':hour<18?'下午好':'晚上好';
+  document.getElementById('dashWelcome').innerHTML='<div class="dash-welcome">👋 '+greet+'，<span class="dw-phone">****'+esc(phoneTail)+'</span></div><div style="font-size:.78rem;color:var(--color-text-tertiary)">欢迎使用非凡教育 · 浙江艺考志愿助手</div>';
+  
+  // 统计卡片
+  document.getElementById('dashStats').innerHTML=
+    '<div class="dash-stat"><div class="ds-num">'+schools.length+'</div><div class="ds-lbl">覆盖院校</div></div>'+
+    '<div class="dash-stat"><div class="ds-num">'+uniqueMajorCount+'</div><div class="ds-lbl">专业方向</div></div>'+
+    '<div class="dash-stat"><div class="ds-num">'+cityCount+'</div><div class="ds-lbl">覆盖城市</div></div>'+
+    '<div class="dash-stat"><div class="ds-num">'+all.length+'</div><div class="ds-lbl">录取数据</div></div>';
+  
+  // 快捷入口
+  var entries=[
+    {icon:'🎯',title:'智能填报',desc:'输入成绩，匹配冲稳保院校',tab:'inputCard'},
+    {icon:'🏫',title:'院校浏览',desc:'浏览全部院校及其开设专业',tab:'schoolBrowser'},
+    {icon:'📚',title:'专业浏览',desc:'按专业筛选，查看院校排名',tab:'majorBrowser'},
+    {icon:'📊',title:'数据分析',desc:'录取数据全方位可视化分析',tab:'analysisView'},
+    {icon:'📥',title:'导入数据',desc:'上传 Excel 补充院校数据',tab:'importData'},
+    {icon:'📋',title:'我的志愿单',desc:'查看已保存的志愿选择',tab:'myForm'},
+  ];
+  var entriesHtml='';
+  for(var i=0;i<entries.length;i++){
+    var e=entries[i];
+    entriesHtml+='<div class="dash-entry" data-tab="'+e.tab+'" onclick="dashEntryClick(''+e.tab+'')"><span class="de-icon">'+e.icon+'</span><div class="de-title">'+e.title+'</div><div class="de-desc">'+e.desc+'</div></div>';
+  }
+  document.getElementById('dashEntries').innerHTML=entriesHtml;
+  
+  // 门类概览
+  var catOverview='<h4>📁 各门类数据概览</h4>';
+  var maxCount=0;
+  for(var i=0;i<CATS.length;i++){var c=loadData(CATS[i].k).length;if(c>maxCount)maxCount=c;}
+  for(var i=0;i<CATS.length;i++){
+    var cat=CATS[i];
+    var cnt=loadData(cat.k).length;
+    var pct=maxCount?Math.round(cnt/maxCount*100):0;
+    catOverview+='<div class="dash-cat-row" onclick="switchTab('schoolBrowser');setTimeout(function(){filterSchoolCat(''+cat.k+'')},100)"><span class="dc-icon">'+cat.i+'</span><span class="dc-name">'+cat.l+'</span><div class="dc-bar-wrap"><div class="dc-bar" style="width:'+pct+'%"></div></div><span class="dc-count">'+cnt+' 条</span></div>';
+  }
+  document.getElementById('dashOverview').innerHTML=catOverview;
+}
+
+function dashEntryClick(tab){
+  if(tab==='importData'){
+    // 触发文件上传
+    var inp=document.querySelector('#adminGrid input[type="file"]');
+    if(inp){inp.click();}
+    else{switchTab('schoolBrowser');}
+  }else if(tab==='myForm'){
+    // 显示已勾选的志愿
+    if(sel.size>0){openForm();}
+    else{toast('暂无已选择的学校，请先在智能填报中勾选');}
+  }else if(tab==='inputCard'){
+    switchTab('inputCard');
+    document.getElementById('inputCard').classList.remove('hidden');
+    document.getElementById('usesBar')&&document.getElementById('usesBar').classList.remove('hidden');
+    document.getElementById('hero')&&document.getElementById('hero').classList.remove('hidden');
+  }else{
+    switchTab(tab);
+  }
+}
+
+// ===== 院校浏览 =====
+var __schoolCat='all',__schoolSearch='',__schoolSort='scoreDesc',__schoolFilters={type:'all'};
+function renderSchoolBrowser(catKey){
+  if(catKey!==undefined)__schoolCat=catKey;
+  var all=getAllRecords();
+  if(__schoolCat!=='all')all=all.filter(function(r){return r.catKey===__schoolCat;});
+  var schools=aggregateBySchool(all);
+  
+  // 门类 tab
+  var tabsHtml='<button class="'+(__schoolCat==='all'?'on':'')+'" data-t="all">全部</button>';
+  for(var i=0;i<CATS.length;i++){
+    var c=CATS[i];
+    tabsHtml+='<button class="'+(__schoolCat===c.k?'on':'')+'" data-t="'+c.k+'">'+c.i+' '+c.l+'</button>';
+  }
+  document.getElementById('schoolCatTabs').innerHTML=tabsHtml;
+  document.getElementById('schoolCatTabs').onclick=function(e){
+    if(e.target.tagName==='BUTTON'){filterSchoolCat(e.target.dataset.t);}
+  };
+  
+  // 筛选按钮
+  document.getElementById('schoolFilters').innerHTML=
+    '<button class="'+(__schoolFilters.type==='all'?'on':'')+'" data-type="all">全部院校</button>'+
+    '<button class="'+(__schoolFilters.type==='985'?'on':'')+'" data-type="985">985</button>'+
+    '<button class="'+(__schoolFilters.type==='211'?'on':'')+'" data-type="211">211</button>'+
+    '<button class="'+(__schoolFilters.type==='doubleFirst'?'on':'')+'" data-type="doubleFirst">双一流</button>'+
+    '<button class="'+(__schoolFilters.type==='public'?'on':'')+'" data-type="public">公办</button>'+
+    '<button class="'+(__schoolFilters.type==='private'?'on':'')+'" data-type="private">民办</button>';
+  document.getElementById('schoolFilters').onclick=function(e){
+    if(e.target.tagName==='BUTTON'){__schoolFilters.type=e.target.dataset.type;renderSchoolBrowser();}
+  };
+  
+  // 搜索
+  document.getElementById('schoolSearch').value=__schoolSearch||'';
+  document.getElementById('schoolSearch').oninput=function(){__schoolSearch=this.value.trim().toLowerCase();renderSchoolBrowser();};
+  document.getElementById('schoolSort').value=__schoolSort||'scoreDesc';
+  document.getElementById('schoolSort').onchange=function(){__schoolSort=this.value;renderSchoolBrowser();};
+  
+  // 筛选
+  var filtered=schools;
+  if(__schoolSearch){
+    filtered=filtered.filter(function(s){return (s.schoolName||'').toLowerCase().includes(__schoolSearch);});
+  }
+  if(__schoolFilters.type==='985')filtered=filtered.filter(function(s){return s.is985;});
+  else if(__schoolFilters.type==='211')filtered=filtered.filter(function(s){return s.is211;});
+  else if(__schoolFilters.type==='doubleFirst')filtered=filtered.filter(function(s){return s.isDoubleFirst;});
+  else if(__schoolFilters.type==='public')filtered=filtered.filter(function(s){return s.isPublic&&!s.is985&&!s.is211;});
+  else if(__schoolFilters.type==='private')filtered=filtered.filter(function(s){return s.isPrivate;});
+  
+  // 排序
+  var sortMap={
+    scoreDesc:function(a,b){return (b.compositeAvg||0)-(a.compositeAvg||0);},
+    scoreAsc:function(a,b){return (a.compositeAvg||0)-(b.compositeAvg||0);},
+    nameAsc:function(a,b){return (a.schoolName||'').localeCompare(b.schoolName||'','zh');},
+    tuitionAsc:function(a,b){return (a.tuitionMin||0)-(b.tuitionMin||0);},
+    tuitionDesc:function(a,b){return (b.tuitionMin||0)-(a.tuitionMin||0);},
+  };
+  if(sortMap[__schoolSort])filtered.sort(sortMap[__schoolSort]);
+  
+  document.getElementById('schoolSub').textContent='共 '+filtered.length+' 所院校'+(__schoolCat!=='all'?'（'+CATS.filter(function(c){return c.k===__schoolCat;}).map(function(c){return c.l;})[0]+'）':'');
+  
+  if(!filtered.length){
+    document.getElementById('schoolList').innerHTML='<p style="text-align:center;color:var(--color-text-tertiary);padding:40px 0">暂无匹配院校</p>';
+    return;
+  }
+  
+  var html='';
+  for(var i=0;i<filtered.length;i++){
+    var s=filtered[i];
+    var tags=[];
+    if(s.is985)tags.push('<span class="tag tag-985">985</span>');
+    if(s.is211)tags.push('<span class="tag tag-211">211</span>');
+    if(s.isDoubleFirst)tags.push('<span class="tag tag-df">双一流</span>');
+    if(s.isPrivate)tags.push('<span class="tag tag-pv">民办</span>');
+    // 专业列表（压缩显示前4个）
+    var majorNames=Object.keys(s.majorNames).sort(function(a,b){
+      // 按 recordCount 降序
+      var ac=0,bc=0;
+      for(var j=0;j<s.records.length;j++){if(s.records[j].majorName===a)ac++;if(s.records[j].majorName===b)bc++;}
+      return bc-ac;
+    });
+    var showMajors=majorNames.slice(0,4);
+    var moreCount=majorNames.length-showMajors.length;
+    var majorsHtml='';
+    for(var j=0;j<showMajors.length;j++){majorsHtml+='<span>'+esc(showMajors[j])+'</span>';}
+    if(moreCount>0)majorsHtml+='<span class="more">+ 还有 '+moreCount+' 个专业</span>';
+    html+='<div class="school-card" onclick="toggleSchoolCard(this)">'+
+      '<div class="sch-name">'+esc(s.schoolName)+' <span style="font-weight:400;font-size:.75rem">'+tags.join(' ')+'</span></div>'+
+      '<div class="sch-meta">📍 '+esc(s.city||'--')+' | 💰 '+(s.tuitionMin?s.tuitionMin.toLocaleString():'--')+(s.tuitionMin!==s.tuitionMax?' ~ '+s.tuitionMax.toLocaleString():'')+'/年 | 📚 '+s.majorCount+'个专业</div>'+
+      '<div class="sch-majors">'+majorsHtml+'</div>'+
+      '<div class="sch-scores"><span>综合分区间 <strong>'+s.compositeMin+' ~ '+s.compositeMax+'</strong></span>'+'<span>均值 <strong>'+s.compositeAvg+'</strong></span></div>'+
+      '<div class="sch-all-majors hidden" style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--color-border)">'+majorNames.map(function(m){return '<span style="display:block;font-size:.74rem;padding:2px 0">'+esc(m)+'</span>';}).join('')+'</div>'+
+    '</div>';
+  }
+  document.getElementById('schoolList').innerHTML=html;
+}
+
+function filterSchoolCat(catKey){__schoolCat=catKey;renderSchoolBrowser();}
+function toggleSchoolCard(card){card.classList.toggle('exp');var allMajors=card.querySelector('.sch-all-majors');if(allMajors)allMajors.classList.toggle('hidden');}
+
+// ===== 专业浏览 =====
+var __majorCat='all',__selectedMajor=null;
+function renderMajorBrowser(catKey){
+  if(catKey!==undefined){__majorCat=catKey;__selectedMajor=null;}
+  var all=getAllRecords();
+  if(__majorCat!=='all')all=all.filter(function(r){return r.catKey===__majorCat;});
+  var majors=aggregateByMajor(all);
+  
+  // 门类 tab
+  var tabsHtml='<button class="'+(__majorCat==='all'?'on':'')+'" data-t="all">全部</button>';
+  for(var i=0;i<CATS.length;i++){
+    var c=CATS[i];
+    tabsHtml+='<button class="'+(__majorCat===c.k?'on':'')+'" data-t="'+c.k+'">'+c.i+' '+c.l+'</button>';
+  }
+  document.getElementById('majorCatTabs').innerHTML=tabsHtml;
+  document.getElementById('majorCatTabs').onclick=function(e){
+    if(e.target.tagName==='BUTTON'){renderMajorBrowser(e.target.dataset.t);}
+  };
+  
+  // 左侧专业列表
+  var leftHtml='';
+  if(!majors.length){
+    leftHtml='<p style="text-align:center;color:var(--color-text-tertiary);padding:20px">暂无数据</p>';
+  }
+  for(var i=0;i<majors.length;i++){
+    var m=majors[i];
+    var selClass=__selectedMajor&&__selectedMajor.majorName===m.majorName?' sel':'';
+    leftHtml+='<div class="ml-item'+selClass+'" onclick="selectMajor(''+escAttr(m.majorName)+'')"><span>'+esc(m.majorName)+'</span><span class="ml-count">'+m.schoolCount+'校</span></div>';
+  }
+  document.getElementById('majorLeft').innerHTML=leftHtml;
+  
+  // 右侧详情
+  if(__selectedMajor && __selectedMajor.records.length>0){
+    var m=__selectedMajor;
+    var rightHtml='<div class="mr-header"><h4>📚 '+esc(m.majorName)+'</h4><div class="mr-stats">开设院校：<strong>'+m.schoolCount+'</strong> 所 | 综合分区间：<strong>'+m.scoreMin+' ~ '+m.scoreMax+'</strong> | 均值：<strong>'+m.scoreAvg+'</strong> | 平均学费：<strong>'+(m.tuitionAvg||'--').toLocaleString()+'</strong>/年</div></div><div class="mr-schools">';
+    var ranked=m.records;
+    // 去重学校（同一学校可能有多条记录，取第一条）
+    var seen={},dedup=[];
+    for(var i=0;i<ranked.length;i++){
+      if(!seen[ranked[i].schoolName]){seen[ranked[i].schoolName]=true;dedup.push(ranked[i]);}
+    }
+    if(dedup.length>50)dedup=dedup.slice(0,50);
+    for(var i=0;i<dedup.length;i++){
+      var r=dedup[i];
+      var tags=[];
+      if(r.is985)tags.push('<span class="tag tag-985">985</span>');
+      if(r.is211)tags.push('<span class="tag tag-211">211</span>');
+      if(r.isDoubleFirst)tags.push('<span class="tag tag-df">双一流</span>');
+      if(r.isPrivate)tags.push('<span class="tag tag-pv">民办</span>');
+      rightHtml+='<div class="mr-school"><span class="mr-rank">'+(i+1)+'</span><div class="mr-info"><div class="mr-sname">'+esc(r.schoolName)+' '+tags.join(' ')+'</div><div class="mr-smeta">📍 '+esc(r.city||'--')+' | 💰 '+(typeof r.tuition=='number'?r.tuition.toLocaleString():r.tuition||'--')+'/年'+(r.plan25?' | 📋 '+r.plan25+'人':'')+(r.rankPosition?' | 🏅 位次 '+r.rankPosition:'')+'</div></div><span class="mr-score">'+r.compositeScore+'</span></div>';
+    }
+    if(m.records.length>50)rightHtml+='<p style="text-align:center;color:var(--color-text-tertiary);padding:10px;font-size:.78rem">仅显示前 50 所（共 '+m.records.length+' 条记录）</p>';
+    rightHtml+='</div>';
+    document.getElementById('majorRight').innerHTML=rightHtml;
+  }else{
+    document.getElementById('majorRight').innerHTML='<p style="text-align:center;color:var(--color-text-tertiary);padding:60px 20px">👈 请从左侧选择一个专业</p>';
+  }
+}
+
+function selectMajor(majorName){
+  var all=getAllRecords();
+  if(__majorCat!=='all')all=all.filter(function(r){return r.catKey===__majorCat;});
+  var majors=aggregateByMajor(all);
+  for(var i=0;i<majors.length;i++){
+    if(majors[i].majorName===majorName){__selectedMajor=majors[i];break;}
+  }
+  renderMajorBrowser();
+}
+
+// ===== 数据分析 =====
+function renderDataAnalysis(){
+  var all=getAllRecords();
+  var schools=aggregateBySchool(all);
+  var cities={};
+  for(var i=0;i<all.length;i++){if(all[i].city)cities[all[i].city]=true;}
+  var cityCount=Object.keys(cities).length;
+  var majorNames={};
+  for(var i=0;i<all.length;i++){if(all[i].majorName)majorNames[all[i].majorName]=true;}
+  var uniqueMajorCount=Object.keys(majorNames).length;
+  
+  document.getElementById('anaTotalRecords').textContent=all.length;
+  
+  // 1. 总览数字
+  var html='<div class="ana-bignums">'+
+    '<div class="ana-bn"><div class="an-num">'+all.length+'</div><div class="an-lbl">总记录数</div></div>'+
+    '<div class="ana-bn"><div class="an-num">'+schools.length+'</div><div class="an-lbl">覆盖院校</div></div>'+
+    '<div class="ana-bn"><div class="an-num">'+uniqueMajorCount+'</div><div class="an-lbl">专业方向</div></div>'+
+    '<div class="ana-bn"><div class="an-num">'+cityCount+'</div><div class="an-lbl">覆盖城市</div></div>'+
+    '</div>';
+  
+  // 2. 门类分布（条形图）
+  html+='<div class="ana-section"><h4>📁 各门类数据分布</h4>';
+  var maxCat=0;
+  for(var i=0;i<CATS.length;i++){var cnt=loadData(CATS[i].k).length;if(cnt>maxCat)maxCat=cnt;}
+  for(var i=0;i<CATS.length;i++){
+    var c=CATS[i];var cnt=loadData(c.k).length;
+    var pct=Math.round(cnt/maxCat*100);
+    html+='<div class="ana-bar"><span class="ab-lbl">'+c.i+' '+c.l+'</span><div class="ab-track"><div class="ab-fill" style="width:'+pct+'%"><span>'+cnt+' 条</span></div></div><span class="ab-val">'+Math.round(cnt/all.length*100)+'%</span></div>';
+  }
+  html+='</div>';
+  
+  // 3. 院校层次构成  
+  var typeCounts={985:0,211:0,doubleFirst:0,public:0,private:0};
+  for(var i=0;i<schools.length;i++){
+    var s=schools[i];
+    if(s.is985)typeCounts['985']++;
+    else if(s.is211)typeCounts['211']++;
+    else if(s.isDoubleFirst)typeCounts.doubleFirst++;
+    else if(s.isPublic)typeCounts.public++;
+    else if(s.isPrivate)typeCounts.private++;
+  }
+  var allType=typeCounts['985']+typeCounts['211']+typeCounts.doubleFirst+typeCounts.public+typeCounts.private||1;
+  
+  html+='<div class="ana-section"><h4>🏛️ 院校层次构成</h4><div class="ana-grid-2"><div>';
+  var typeData=[
+    {k:'985',l:'985院校',c:typeCounts['985'],color:'#dc2626'},
+    {k:'211',l:'211院校',c:typeCounts['211'],color:'#f97316'},
+    {k:'doubleFirst',l:'双一流',c:typeCounts.doubleFirst,color:'#8b5cf6'},
+    {k:'public',l:'公办普通',c:typeCounts.public,color:'#3b82f6'},
+    {k:'private',l:'民办/独立学院',c:typeCounts.private,color:'#6b7280'},
+  ];
+  for(var i=0;i<typeData.length;i++){
+    var td=typeData[i];var pct=Math.round(td.c/allType*100);
+    html+='<div class="ana-bar"><span class="ab-lbl">'+td.l+'</span><div class="ab-track"><div class="ab-fill" style="width:'+pct+'%;background:'+td.color+'"><span>'+td.c+'</span></div></div><span class="ab-val">'+pct+'%</span></div>';
+  }
+  html+='</div><div style="text-align:center">';
+  html+='<div style="width:140px;height:140px;border-radius:50%;background:conic-gradient(#dc2626 0deg '+(typeCounts['985']/allType*360)+'deg, #f97316 '+(typeCounts['985']/allType*360)+'deg '+((typeCounts['985']+typeCounts['211'])/allType*360)+'deg, #8b5cf6 '+((typeCounts['985']+typeCounts['211'])/allType*360)+'deg '+((typeCounts['985']+typeCounts['211']+typeCounts.doubleFirst)/allType*360)+'deg, #3b82f6 '+((typeCounts['985']+typeCounts['211']+typeCounts.doubleFirst)/allType*360)+'deg '+((typeCounts['985']+typeCounts['211']+typeCounts.doubleFirst+typeCounts.public)/allType*360)+'deg, #6b7280 '+((typeCounts['985']+typeCounts['211']+typeCounts.doubleFirst+typeCounts.public)/allType*360)+'deg 360deg);margin:0 auto"></div><div class="ana-legend" style="margin-top:12px">';
+  for(var i=0;i<typeData.length;i++){
+    html+='<span><span class="al-dot" style="background:'+typeData[i].color+'"></span> '+typeData[i].l+'</span>';
+  }
+  html+='</div></div></div></div>';
+  
+  // 4. 分数分布
+  html+='<div class="ana-section"><h4>📊 综合分分布</h4>';
+  var scoreBuckets=[],bStart=450;
+  while(bStart<660){scoreBuckets.push({min:bStart,max:bStart+20,cnt:0});bStart+=20;}
+  for(var i=0;i<all.length;i++){
+    var sc=all[i].compositeScore;
+    if(typeof sc!=='number'||sc<=0)continue;
+    for(var j=0;j<scoreBuckets.length;j++){
+      if(sc>=scoreBuckets[j].min&&sc<scoreBuckets[j].max){scoreBuckets[j].cnt++;break;}
+    }
+  }
+  var maxB=0;for(var i=0;i<scoreBuckets.length;i++){if(scoreBuckets[i].cnt>maxB)maxB=scoreBuckets[i].cnt;}
+  for(var i=0;i<scoreBuckets.length;i++){
+    var b=scoreBuckets[i];var pct=maxB?Math.round(b.cnt/maxB*100):0;
+    html+='<div class="ana-bar"><span class="ab-lbl">'+b.min+'-'+b.max+'</span><div class="ab-track"><div class="ab-fill" style="width:'+pct+'%;background:var(--color-accent)"><span>'+b.cnt+'</span></div></div></div>';
+  }
+  html+='</div>';
+  
+  // 5. 学费分布
+  html+='<div class="ana-section"><h4>💰 学费分布</h4>';
+  var tBuckets=[
+    {l:'< 5千',min:0,max:5000,cnt:0,color:'#10b981'},
+    {l:'5千~1万',min:5000,max:10000,cnt:0,color:'#3b82f6'},
+    {l:'1万~2万',min:10000,max:20000,cnt:0,color:'#f59e0b'},
+    {l:'2万~4万',min:20000,max:40000,cnt:0,color:'#f97316'},
+    {l:'> 4万',min:40000,max:9999999,cnt:0,color:'#ef4444'},
+  ];
+  for(var i=0;i<all.length;i++){
+    var t=all[i].tuition;
+    if(typeof t!=='number'||t<=0)continue;
+    for(var j=0;j<tBuckets.length;j++){
+      if(t>=tBuckets[j].min&&t<tBuckets[j].max){tBuckets[j].cnt++;break;}
+    }
+  }
+  var maxT=0;for(var i=0;i<tBuckets.length;i++){if(tBuckets[i].cnt>maxT)maxT=tBuckets[i].cnt;}
+  for(var i=0;i<tBuckets.length;i++){
+    var tb=tBuckets[i];var pct=maxT?Math.round(tb.cnt/maxT*100):0;
+    html+='<div class="ana-bar"><span class="ab-lbl">'+tb.l+'</span><div class="ab-track"><div class="ab-fill" style="width:'+pct+'%;background:'+tb.color+'"><span>'+tb.cnt+'</span></div></div><span class="ab-val">'+Math.round(tb.cnt/all.length*100)+'%</span></div>';
+  }
+  html+='</div>';
+  
+  // 6. 城市 TOP 15
+  html+='<div class="ana-section"><h4>📍 城市分布 TOP 15</h4>';
+  var cityMap={};
+  for(var i=0;i<all.length;i++){
+    var ct=all[i].city||'未知';
+    // 提取城市简称：去掉省份前缀
+    var simple=ct.replace(/^四川省|^浙江省|^江苏省|^江西省|^湖北省|^湖南省|^山东省|^吉林省|^安徽省|^福建省|^广东省|^河南省|^河北省|^辽宁省|^陕西省/g,'').replace(/市$/,'').trim();
+    if(!cityMap[simple])cityMap[simple]=0;
+    cityMap[simple]++;
+  }
+  var cityArr=[];for(var k in cityMap)cityArr.push({name:k,cnt:cityMap[k]});cityArr.sort(function(a,b){return b.cnt-a.cnt;});
+  var topCities=cityArr.slice(0,15);
+  var maxCity=topCities[0]?topCities[0].cnt:0;
+  for(var i=0;i<topCities.length;i++){
+    var tc=topCities[i];var pct=Math.round(tc.cnt/maxCity*100);
+    html+='<div class="ana-bar"><span class="ab-lbl">'+esc(tc.name)+'</span><div class="ab-track"><div class="ab-fill" style="width:'+pct+'%"><span>'+tc.cnt+'</span></div></div></div>';
+  }
+  html+='</div>';
+  
+  // 7. 数据质量
+  html+='<div class="ana-section"><h4>✅ 数据质量</h4>';
+  var estCount=all.filter(function(r){return r.scoreSource==='estimated';}).length;
+  var actualCount=all.length-estCount;
+  var withRank=all.filter(function(r){return r.rankPosition&&r.rankPosition>0;}).length;
+  var withCourse=all.filter(function(r){return r.courseGuide&&r.courseGuide.length>30;}).length;
+  html+='<div class="ana-grid-2"><div>';
+  var qualityItems=[
+    {l:'实际录取分',c:actualCount,total:all.length,color:'#10b981'},
+    {l:'预估分',c:estCount,total:all.length,color:'#f59e0b'},
+    {l:'有位次信息',c:withRank,total:all.length,color:'#3b82f6'},
+  ];
+  for(var i=0;i<qualityItems.length;i++){
+    var qi=qualityItems[i];var pct=Math.round(qi.c/qi.total*100);
+    html+='<div class="ana-bar"><span class="ab-lbl">'+qi.l+'</span><div class="ab-track"><div class="ab-fill" style="width:'+pct+'%;background:'+qi.color+'"><span>'+qi.c+'</span></div></div><span class="ab-val">'+pct+'%</span></div>';
+  }
+  html+='</div><div>';
+  var withNote=all.filter(function(r){return r.note&&r.note.length>0;}).length;
+  var withDorm=all.filter(function(r){return r.dorm&&r.dorm.length>10;}).length;
+  var withPlan=all.filter(function(r){return r.plan25&&r.plan25>0;}).length;
+  var qitems2=[
+    {l:'有专业备注',c:withNote,total:all.length,color:'#8b5cf6'},
+    {l:'有宿舍信息',c:withDorm,total:all.length,color:'#06b6d4'},
+    {l:'有招生计划',c:withPlan,total:all.length,color:'#f97316'},
+  ];
+  for(var i=0;i<qitems2.length;i++){
+    var qi=qitems2[i];var pct=Math.round(qi.c/qi.total*100);
+    html+='<div class="ana-bar"><span class="ab-lbl">'+qi.l+'</span><div class="ab-track"><div class="ab-fill" style="width:'+pct+'%;background:'+qi.color+'"><span>'+qi.c+'</span></div></div><span class="ab-val">'+pct+'%</span></div>';
+  }
+  html+='</div></div></div>';
+  
+  // 8. 招生计划
+  html+='<div class="ana-section"><h4>📋 招生计划分布</h4>';
+  var planBuckets=[
+    {l:'1-5人',min:1,max:6,cnt:0},
+    {l:'6-10人',min:6,max:11,cnt:0},
+    {l:'11-20人',min:11,max:21,cnt:0},
+    {l:'21-50人',min:21,max:51,cnt:0},
+    {l:'51人以上',min:51,max:9999,cnt:0},
+  ];
+  for(var i=0;i<all.length;i++){
+    var p=all[i].plan25||all[i].plan24||0;
+    for(var j=0;j<planBuckets.length;j++){
+      if(p>=planBuckets[j].min&&p<planBuckets[j].max){planBuckets[j].cnt++;break;}
+    }
+  }
+  var maxP=0;for(var i=0;i<planBuckets.length;i++){if(planBuckets[i].cnt>maxP)maxP=planBuckets[i].cnt;}
+  for(var i=0;i<planBuckets.length;i++){
+    var pb=planBuckets[i];var pct=maxP?Math.round(pb.cnt/maxP*100):0;
+    html+='<div class="ana-bar"><span class="ab-lbl">'+pb.l+'</span><div class="ab-track"><div class="ab-fill" style="width:'+pct+'%;background:var(--color-accent)"><span>'+pb.cnt+'</span></div></div></div>';
+  }
+  html+='</div>';
+  
+  // 9. 软科排名
+  html+='<div class="ana-section"><h4>🏅 软科排名分布</h4>';
+  var rankMap={'A+':0,'A':0,'A-':0,'B+':0,'B':0,'B-':0,'C+':0,'C':0};
+  var noRank=0;
+  for(var i=0;i<schools.length;i++){
+    var rl=schools[i].rankLevel||'';
+    var found=false;
+    for(var k in rankMap){
+      if(rl.includes(k)){rankMap[k]++;found=true;break;}
+    }
+    if(!found)noRank++;
+  }
+  var maxRank=0;for(var k in rankMap){if(rankMap[k]>maxRank)maxRank=rankMap[k];}
+  if(noRank>maxRank)maxRank=noRank;
+  var rankOrder=['A+','A','A-','B+','B','B-','C+','C'];
+  for(var i=0;i<rankOrder.length;i++){
+    var rk=rankOrder[i],rv=rankMap[rk];var pct=maxRank?Math.round(rv/maxRank*100):0;
+    html+='<div class="ana-bar"><span class="ab-lbl">'+rk+'</span><div class="ab-track"><div class="ab-fill" style="width:'+pct+'%"><span>'+rv+'</span></div></div></div>';
+  }
+  html+='<div class="ana-bar"><span class="ab-lbl">无排名</span><div class="ab-track"><div class="ab-fill" style="width:'+(noRank/maxRank*100)+'%"><span>'+noRank+'</span></div></div></div>';
+  html+='</div>';
+  
+  // 10. 各门类详情
+  html+='<div class="ana-section"><h4>📂 各门类详情</h4>';
+  for(var i=0;i<CATS.length;i++){
+    var c=CATS[i];var catRecords=loadData(c.k);
+    var catSchools={};for(var j=0;j<catRecords.length;j++){catSchools[catRecords[j].schoolName]=true;}
+    var catSchoolCount=Object.keys(catSchools).length;
+    var privCount=catRecords.filter(function(r){return r.isPrivate;}).length;
+    var estCnt=catRecords.filter(function(r){return r.scoreSource==='estimated';}).length;
+    html+='<details class="ana-detail"><summary>'+c.i+' '+c.l+' - '+catRecords.length+' 条记录，'+catSchoolCount+' 所院校</summary><div class="ad-grid">'+
+      '<div class="ana-bar"><span class="ab-lbl">记录数</span><div class="ab-track"><div class="ab-fill" style="width:100%"><span>'+catRecords.length+'</span></div></div></div>'+
+      '<div class="ana-bar"><span class="ab-lbl">民办占比</span><div class="ab-track"><div class="ab-fill" style="width:'+Math.round(privCount/catRecords.length*100)+'%"><span>'+privCount+'</span></div></div></div>'+
+      '<div class="ana-bar"><span class="ab-lbl">预估分占比</span><div class="ab-track"><div class="ab-fill" style="width:'+Math.round(estCnt/catRecords.length*100)+'%;background:#f59e0b"><span>'+estCnt+'</span></div></div></div>';
+    // 计算该门类下的平均分数
+    var catScores=catRecords.map(function(r){return r.compositeScore;}).filter(function(s){return typeof s=='number'&&s>0;});
+    if(catScores.length){
+      catScores.sort(function(a,b){return a-b;});
+      html+='<div class="ana-bar"><span class="ab-lbl">分数区间</span><span style="font-size:.74rem;color:var(--color-text-secondary)">'+catScores[0]+' ~ '+catScores[catScores.length-1]+' &nbsp;均值 '+Math.round(catScores.reduce(function(a,b){return a+b;},0)/catScores.length)+'</span></div>';
+    }
+    html+='</div></details>';
+  }
+  html+='</div>';
+  
+  document.getElementById('anaContent').innerHTML=html;
+}
+
+// ===== 响应式兼容 =====
+// 给 hero 加上 ID
+(function fixHero(){
+  var hero=document.querySelector('.hero');
+  if(hero && !hero.id){hero.id='hero';}
+})();

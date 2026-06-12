@@ -10,7 +10,7 @@ var __isLoggedIn=false;
   var saved=localStorage.getItem('zjyk_logged_in');
   if(saved){
     __isLoggedIn=true;
-    showInputCard();
+    showDashboard();
   }else{
     document.getElementById('gateCard').classList.remove('hidden');
     document.getElementById('inputCard').classList.add('hidden');
@@ -52,7 +52,7 @@ function doTrial(){
     localStorage.setItem('zjyk_trialed','1');
     localStorage.setItem('zjyk_free_uses','1');
   }
-  showInputCard();
+  showDashboard();
 }
 
 function showInputCard(){
@@ -83,6 +83,7 @@ function doLogout(){
   localStorage.removeItem('zjyk_phone');
   document.getElementById('inputCard').classList.add('hidden');
   document.getElementById('gateCard').classList.remove('hidden');
+  document.getElementById('topNav').classList.add('hidden');
   toastAuth('已退出登录');
 }
 
@@ -135,7 +136,7 @@ async function handlePhoneSubmit(){
   var msg=cloudOk?'✅ 注册成功！（已同步云端）':'✅ 注册成功';
   toastAuth(msg);
   document.getElementById('authModal').classList.add('hidden');
-  showInputCard();
+  showDashboard();
   btn.disabled=false;btn.textContent='🚀 注册';
 }
 

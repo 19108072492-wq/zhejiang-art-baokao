@@ -1,2 +1,4 @@
 .claude/skills/create-ex
 node_modules
+*.bak
+*.bak2
