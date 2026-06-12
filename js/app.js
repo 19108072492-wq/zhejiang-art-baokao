@@ -656,8 +656,8 @@ function switchTab(tabName){
   if(heroEl && tabName!=='dashboard' && tabName!=='analysisView'){
     heroEl.classList.remove('hidden');
   }
-  // 显示浮动栏（仅填报相关 tab）
-  if(tabName==='inputCard' || tabName==='resultBox'){
+  // 显示浮动栏（填报/院校浏览/专业浏览 tab）
+  if(tabName==='inputCard' || tabName==='resultBox' || tabName==='schoolBrowser' || tabName==='majorBrowser'){
     updateFloat();
   }else{
     document.getElementById('floatBar').classList.remove('on');
@@ -759,6 +759,7 @@ function dashEntryClick(tab){
 
 // ===== 院校浏览 =====
 var __schoolCat='all',__schoolSearch='',__schoolSort='scoreDesc',__schoolFilters={type:'all'};
+var __schoolSel=new Set(); // 记录已勾选的学校名
 function renderSchoolBrowser(catKey){
   if(catKey!==undefined)__schoolCat=catKey;
   var all=getAllRecords();
@@ -842,19 +843,75 @@ function renderSchoolBrowser(catKey){
     var majorsHtml='';
     for(var j=0;j<showMajors.length;j++){majorsHtml+='<span>'+esc(showMajors[j])+'</span>';}
     if(moreCount>0)majorsHtml+='<span class="more">+ 还有 '+moreCount+' 个专业</span>';
-    html+='<div class="school-card" onclick="toggleSchoolCard(this)">'+
+    var schoolChecked=__schoolSel.has(s.schoolName);
+    var info=window.getSchoolInfo?window.getSchoolInfo(s.schoolName):null;
+    var infoHtml='';
+    if(info){
+      infoHtml='<div class="sch-info-section hidden">'+
+        '<div class="sch-info-intro">'+esc(info.intro)+'</div>'+
+        '<a class="sch-info-link" href="'+escAttr(info.web)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">🌐 访问官网 →</a>'+
+      '</div>';
+    }
+    html+='<div class="school-card" onclick="toggleSchoolCard(this)" data-school="'+escAttr(s.schoolName)+'">'+
+      '<div class="sch-cb" data-act="schSel" data-school="'+escAttr(s.schoolName)+'" onclick="event.stopPropagation()"><div class="cb-box'+(schoolChecked?' on':'')+'">'+(schoolChecked?'✓':'')+'</div></div>'+
       '<div class="sch-name">'+esc(s.schoolName)+' <span style="font-weight:400;font-size:.75rem">'+tags.join(' ')+'</span></div>'+
       '<div class="sch-meta">📍 '+esc(s.city||'--')+' | 💰 '+(s.tuitionMin?s.tuitionMin.toLocaleString():'--')+(s.tuitionMin!==s.tuitionMax?' ~ '+s.tuitionMax.toLocaleString():'')+'/年 | 📚 '+s.majorCount+'个专业</div>'+
       '<div class="sch-majors">'+majorsHtml+'</div>'+
       '<div class="sch-scores"><span>综合分区间 <strong>'+s.compositeMin+' ~ '+s.compositeMax+'</strong></span>'+'<span>均值 <strong>'+s.compositeAvg+'</strong></span></div>'+
+      infoHtml+
       '<div class="sch-all-majors hidden" style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--color-border)">'+majorNames.map(function(m){return '<span style="display:block;font-size:.74rem;padding:2px 0">'+esc(m)+'</span>';}).join('')+'</div>'+
     '</div>';
   }
   document.getElementById('schoolList').innerHTML=html;
+  // 复选框事件
+  document.getElementById('schoolList').onclick=function(e){
+    var cb=e.target.closest('[data-act="schSel"]');
+    if(!cb)return;
+    var schoolName=cb.dataset.school;
+    // 找到该学校的聚合数据
+    var schoolData=null;
+    for(var i=0;i<filtered.length;i++){if(filtered[i].schoolName===schoolName){schoolData=filtered[i];break;}}
+    if(!schoolData)return;
+    if(__schoolSel.has(schoolName)){
+      // 取消勾选：移除该学校所有记录
+      __schoolSel.delete(schoolName);
+      for(var j=0;j<schoolData.records.length;j++){
+        var r=schoolData.records[j];
+        var key=(r.schoolCode||'')+'|'+(r.majorCode||'');
+        sel.delete(key);
+      }
+    }else{
+      // 勾选：添加该学校所有记录
+      __schoolSel.add(schoolName);
+      for(var j=0;j<schoolData.records.length;j++){
+        var r=schoolData.records[j];
+        var key=(r.schoolCode||'')+'|'+(r.majorCode||'');
+        // 添加 tier 字段（浏览器来源默认稳妥档）
+        r.tier=r.tier||'match';
+        sel.set(key,r);
+      }
+    }
+    updateFloat();
+    // 重新渲染选中状态
+    var allCbs=document.querySelectorAll('#schoolList [data-act="schSel"]');
+    for(var k=0;k<allCbs.length;k++){
+      var box=allCbs[k].querySelector('.cb-box');
+      if(box){
+        if(__schoolSel.has(allCbs[k].dataset.school)){box.classList.add('on');box.textContent='✓';}
+        else{box.classList.remove('on');box.textContent='';}
+      }
+    }
+  };
 }
 
 function filterSchoolCat(catKey){__schoolCat=catKey;renderSchoolBrowser();}
-function toggleSchoolCard(card){card.classList.toggle('exp');var allMajors=card.querySelector('.sch-all-majors');if(allMajors)allMajors.classList.toggle('hidden');}
+function toggleSchoolCard(card){
+  card.classList.toggle('exp');
+  var allMajors=card.querySelector('.sch-all-majors');
+  if(allMajors)allMajors.classList.toggle('hidden');
+  var infoSec=card.querySelector('.sch-info-section');
+  if(infoSec)infoSec.classList.toggle('hidden');
+}
 
 // ===== 专业浏览 =====
 var __majorCat='all',__selectedMajor=null;
@@ -905,8 +962,43 @@ function renderMajorBrowser(catKey){
       if(r.is211)tags.push('<span class="tag tag-211">211</span>');
       if(r.isDoubleFirst)tags.push('<span class="tag tag-df">双一流</span>');
       if(r.isPrivate)tags.push('<span class="tag tag-pv">民办</span>');
-      rightHtml+='<div class="mr-school"><span class="mr-rank">'+(i+1)+'</span><div class="mr-info"><div class="mr-sname">'+esc(r.schoolName)+' '+tags.join(' ')+'</div><div class="mr-smeta">📍 '+esc(r.city||'--')+' | 💰 '+(typeof r.tuition=='number'?r.tuition.toLocaleString():r.tuition||'--')+'/年'+(r.plan25?' | 📋 '+r.plan25+'人':'')+(r.rankPosition?' | 🏅 位次 '+r.rankPosition:'')+'</div></div><span class="mr-score">'+r.compositeScore+'</span></div>';
+      var recKey=(r.schoolCode||'')+'|'+(r.majorCode||'');
+      var recChecked=sel.has(recKey);
+      rightHtml+='<div class="mr-school"><div class="mr-cb" data-act="majSel" data-key="'+escAttr(recKey)+'"><div class="cb-box'+(recChecked?' on':'')+'">'+(recChecked?'✓':'')+'</div></div><span class="mr-rank">'+(i+1)+'</span><div class="mr-info"><div class="mr-sname">'+esc(r.schoolName)+' '+tags.join(' ')+'</div><div class="mr-smeta">📍 '+esc(r.city||'--')+' | 💰 '+(typeof r.tuition=='number'?r.tuition.toLocaleString():r.tuition||'--')+'/年'+(r.plan25?' | 📋 '+r.plan25+'人':'')+(r.rankPosition?' | 🏅 位次 '+r.rankPosition:'')+'</div></div><span class="mr-score">'+r.compositeScore+'</span></div>';
     }
+    if(m.records.length>50)rightHtml+='<p style="text-align:center;color:var(--color-text-tertiary);padding:10px;font-size:.78rem">仅显示前 50 所（共 '+m.records.length+' 条记录）</p>';
+    rightHtml+='</div>';
+    document.getElementById('majorRight').innerHTML=rightHtml;
+    // 复选框事件
+    document.getElementById('majorRight').onclick=function(e){
+      var cb=e.target.closest('[data-act="majSel"]');
+      if(!cb)return;
+      var key=cb.dataset.key;
+      if(sel.has(key)){
+        sel.delete(key);
+      }else{
+        // 找到该记录
+        var found=null;
+        for(var i=0;i<dedup.length;i++){
+          var dk=(dedup[i].schoolCode||'')+'|'+(dedup[i].majorCode||'');
+          if(dk===key){found=dedup[i];break;}
+        }
+        if(found){
+          found.tier=found.tier||'match';
+          sel.set(key,found);
+        }
+      }
+      updateFloat();
+      // 重新渲染右侧选中状态
+      var allCbs=document.querySelectorAll('#majorRight [data-act="majSel"]');
+      for(var k=0;k<allCbs.length;k++){
+        var box=allCbs[k].querySelector('.cb-box');
+        if(box){
+          if(sel.has(allCbs[k].dataset.key)){box.classList.add('on');box.textContent='✓';}
+          else{box.classList.remove('on');box.textContent='';}
+        }
+      }
+    };
     if(m.records.length>50)rightHtml+='<p style="text-align:center;color:var(--color-text-tertiary);padding:10px;font-size:.78rem">仅显示前 50 所（共 '+m.records.length+' 条记录）</p>';
     rightHtml+='</div>';
     document.getElementById('majorRight').innerHTML=rightHtml;

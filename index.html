@@ -478,6 +478,9 @@ body{
   background:var(--color-accent);border-color:var(--color-accent);
   transform:scale(1.05);
 }
+.sch-cb,.mr-cb{display:flex;align-items:flex-start;flex-shrink:0;cursor:pointer;user-select:none}
+.sch-cb{position:absolute;top:12px;right:12px}
+.mr-cb{margin-right:2px}
 
 /* School info */
 .sinfo{flex:1;min-width:0}
@@ -870,7 +873,7 @@ html[data-theme="dark"] .toast,
 
 /* ===== SCHOOL BROWSER ===== */
 .school-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--_sp-3)}
-.school-card{border:1.5px solid var(--color-border-light);border-radius:var(--_radius-md);padding:var(--_sp-4);background:var(--color-surface);cursor:pointer;transition:all var(--_dur-normal) var(--_ease-out);box-shadow:var(--_shadow-xs)}
+.school-card{border:1.5px solid var(--color-border-light);border-radius:var(--_radius-md);padding:var(--_sp-4);background:var(--color-surface);cursor:pointer;transition:all var(--_dur-normal) var(--_ease-out);box-shadow:var(--_shadow-xs);position:relative}
 .school-card:hover{box-shadow:var(--_shadow-md);transform:translateY(-2px);border-color:var(--color-border)}
 .school-card .sch-name{font-size:.88rem;font-weight:700;color:var(--color-text);margin-bottom:2px}
 .school-card .sch-meta{font-size:.72rem;color:var(--color-text-tertiary);margin-bottom:var(--_sp-2);display:flex;flex-wrap:wrap;gap:var(--_sp-2)}
@@ -880,6 +883,10 @@ html[data-theme="dark"] .toast,
 .school-card .sch-scores{display:flex;gap:var(--_sp-4);margin-top:var(--_sp-2);font-size:.7rem;color:var(--color-text-tertiary)}
 .school-card .sch-scores strong{color:var(--color-accent);font-size:.78rem}
 .school-card.exp .sch-majors span{display:block!important}
+.school-card .sch-info-section{padding-top:var(--_sp-3);margin-top:var(--_sp-2);border-top:1px dashed var(--color-border)}
+.school-card .sch-info-intro{font-size:.75rem;color:var(--color-text-secondary);line-height:1.7;margin-bottom:6px}
+.school-card .sch-info-link{display:inline-block;font-size:.74rem;color:var(--color-accent);text-decoration:none;font-weight:600;padding:4px 10px;border:1px solid var(--color-accent);border-radius:var(--_radius-sm);transition:all var(--_dur-fast)}
+.school-card .sch-info-link:hover{background:var(--color-accent);color:#fff}
 
 /* ===== MAJOR BROWSER ===== */
 .major-layout{display:grid;grid-template-columns:280px 1fr;gap:var(--_sp-4);margin-top:var(--_sp-3)}
@@ -1050,6 +1057,7 @@ html[data-theme="dark"] .toast,
 })();
 </script>
 <script src="js/supabase.js?v=3" defer></script>
+<script src="js/school-info.js?v=1" defer></script>
 <script src="js/auth.js?v=13" defer></script>
 <script src="js/data.js?v=3" defer></script>
 <script src="js/core.js?v=3" defer></script>
