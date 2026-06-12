@@ -58,47 +58,12 @@ function setupAuthUI(){
   var bts=document.getElementById('btnAuthSubmit');if(bts)bts.textContent='🚀 注册';
 }
 
-// 带超时的 fetch 封装（防止请求挂起）
-function fetchWithTimeout(url,options,timeoutMs){
-  timeoutMs=timeoutMs||5000;
-  return Promise.race([
-    fetch(url,options),
-    new Promise(function(res,rej){setTimeout(function(){rej(new Error('timeout'));},timeoutMs);})
-  ]);
-}
-
-// 后台同步到云端（不阻塞用户）
+// 后台同步到云端（不阻塞用户，内置超时+重试）
 function syncToCloud(body){
-  if(!supabase){
-    // 重试：等 supabase 初始化完成后再试
-    if(typeof __supabaseCheck!=='undefined'&&__supabaseCheck<50){
-      setTimeout(function(){syncToCloud(body);},500);
-      return;
-    }
-    console.warn('[Auth] 云端不可用，仅保存本地');
-    return;
-  }
-  // 方案1：supabase 客户端
-  supabase.from('phone_registrations').insert(body).then(function(res){
-    if(res.error){console.warn('[Auth] supabase insert failed:',res.error);syncRest(body);}
-    else{console.log('[Auth] supabase insert OK');}
-  }).catch(function(){syncRest(body);});
-}
-
-function syncRest(body){
-  fetchWithTimeout(SUPABASE_URL+'/rest/v1/phone_registrations',{
-    method:'POST',
-    headers:{
-      'apikey':SUPABASE_KEY,
-      'Authorization':'Bearer '+SUPABASE_KEY,
-      'Content-Type':'application/json',
-      'Prefer':'return=minimal'
-    },
-    body:JSON.stringify(body)
-  },6000).then(function(resp){
-    if(resp.ok)console.log('[Auth] REST insert OK');
-    else resp.json().then(function(e){console.warn('[Auth] REST insert failed:',e);}).catch(function(){});
-  }).catch(function(e){console.warn('[Auth] REST insert error:',e.message||e);});
+  supaInsert(body).then(function(res){
+    if(res.ok)console.log('[Auth] 云端同步成功');
+    else console.warn('[Auth] 云端同步失败:',res.error);
+  });
 }
 
 function doTrial(){

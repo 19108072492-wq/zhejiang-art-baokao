@@ -555,16 +555,10 @@ async function renderUsers(){
     });
   }catch(e){}
 
-  // 2. 尝试从 Supabase 拉取
+  // 2. 尝试从 Supabase 拉取（内置 10s 超时 + 3 次重试）
   try{
-    var resp=await fetch('https://nhewhebhbknydhcbvjnv.supabase.co/rest/v1/phone_registrations?select=id,phone,grade,direction,created_at&order=created_at.desc&limit=500',{
-      headers:{
-        'apikey':'sb_publishable_9XfINH7l5nqjYbdEy4MqTQ__5O4BhnZ',
-        'Authorization':'Bearer sb_publishable_9XfINH7l5nqjYbdEy4MqTQ__5O4BhnZ'
-      }
-    });
-    if(resp.ok){
-      var remoteList=await resp.json();
+    var remoteList=await supaSelect(500);
+    if(remoteList && remoteList.length){
       remoteList.forEach(function(u){
         var exists=allUsers.some(function(x){return x.phone===u.phone;});
         if(!exists){
@@ -572,7 +566,7 @@ async function renderUsers(){
         }
       });
     }
-  }catch(e){console.log('Supabase fetch error:',e);}
+  }catch(e){console.log('[Admin] 云端拉取失败:',e.message||e);}
 
   // 按时间倒序
   allUsers.sort(function(a,b){return (b.time||'').localeCompare(a.time||'');});
