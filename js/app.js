@@ -666,8 +666,8 @@ function switchTab(tabName){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
-// 初始化导航点击事件
-document.addEventListener('DOMContentLoaded',function(){
+// 初始化导航点击事件（立即注册，defer 脚本已保证 DOM 可用）
+(function initNav(){
   var navLinks=document.querySelectorAll('#topNav a');
   for(var i=0;i<navLinks.length;i++){
     navLinks[i].addEventListener('click',function(e){
@@ -677,19 +677,18 @@ document.addEventListener('DOMContentLoaded',function(){
       switchTab(tabName);
     });
   }
-  // 监听 hash 变化
   window.addEventListener('hashchange',function(){
     var hash=window.location.hash.replace('#','');
     if(hash && document.getElementById(hash)){
       switchTab(hash);
     }
   });
-});
+})();
 
 // showDashboard（auth.js 调用）
 function showDashboard(){
-  document.getElementById('gateCard').classList.add('hidden');
-  document.getElementById('topNav').classList.remove('hidden');
+  var gc=document.getElementById('gateCard');if(gc)gc.classList.add('hidden');
+  var tn=document.getElementById('topNav');if(tn)tn.classList.remove('hidden');
   switchTab('dashboard');
 }
 
