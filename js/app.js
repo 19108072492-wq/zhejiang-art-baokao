@@ -846,15 +846,17 @@ function renderSchoolBrowser(catKey){
     var schoolChecked=__schoolSel.has(s.schoolName);
     var info=window.getSchoolInfo?window.getSchoolInfo(s.schoolName):null;
     var infoHtml='';
+    var infoBadge='';
     if(info){
       infoHtml='<div class="sch-info-section hidden">'+
         '<div class="sch-info-intro">'+esc(info.intro)+'</div>'+
         '<a class="sch-info-link" href="'+escAttr(info.web)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">🌐 访问官网 →</a>'+
       '</div>';
+      infoBadge=' <span class="sch-info-badge" title="点击展开查看院校介绍和官网链接">ℹ️</span>';
     }
     html+='<div class="school-card" onclick="toggleSchoolCard(this)" data-school="'+escAttr(s.schoolName)+'">'+
       '<div class="sch-cb" data-act="schSel" data-school="'+escAttr(s.schoolName)+'" onclick="event.stopPropagation()"><div class="cb-box'+(schoolChecked?' on':'')+'">'+(schoolChecked?'✓':'')+'</div></div>'+
-      '<div class="sch-name">'+esc(s.schoolName)+' <span style="font-weight:400;font-size:.75rem">'+tags.join(' ')+'</span></div>'+
+      '<div class="sch-name">'+esc(s.schoolName)+infoBadge+' <span style="font-weight:400;font-size:.75rem">'+tags.join(' ')+'</span></div>'+
       '<div class="sch-meta">📍 '+esc(s.city||'--')+' | 💰 '+(s.tuitionMin?s.tuitionMin.toLocaleString():'--')+(s.tuitionMin!==s.tuitionMax?' ~ '+s.tuitionMax.toLocaleString():'')+'/年 | 📚 '+s.majorCount+'个专业</div>'+
       '<div class="sch-majors">'+majorsHtml+'</div>'+
       '<div class="sch-scores"><span>综合分区间 <strong>'+s.compositeMin+' ~ '+s.compositeMax+'</strong></span>'+'<span>均值 <strong>'+s.compositeAvg+'</strong></span></div>'+
@@ -910,7 +912,13 @@ function toggleSchoolCard(card){
   var allMajors=card.querySelector('.sch-all-majors');
   if(allMajors)allMajors.classList.toggle('hidden');
   var infoSec=card.querySelector('.sch-info-section');
-  if(infoSec)infoSec.classList.toggle('hidden');
+  if(infoSec){
+    infoSec.classList.toggle('hidden');
+    if(!infoSec.classList.contains('hidden')){
+      // 展开后平滑滚动到介绍区域
+      setTimeout(function(){infoSec.scrollIntoView({behavior:'smooth',block:'nearest'});},100);
+    }
+  }
 }
 
 // ===== 专业浏览 =====
