@@ -731,7 +731,7 @@ function renderDashboard(){
   var entriesHtml='';
   for(var i=0;i<entries.length;i++){
     var e=entries[i];
-    entriesHtml+='<div class="dash-entry" data-tab="'+e.tab+'" onclick="dashEntryClick(''+e.tab+'')"><span class="de-icon">'+e.icon+'</span><div class="de-title">'+e.title+'</div><div class="de-desc">'+e.desc+'</div></div>';
+    entriesHtml+='<div class="dash-entry" data-tab="'+e.tab+'" onclick="dashEntryClick(\''+e.tab+'\')"><span class="de-icon">'+e.icon+'</span><div class="de-title">'+e.title+'</div><div class="de-desc">'+e.desc+'</div></div>';
   }
   document.getElementById('dashEntries').innerHTML=entriesHtml;
   
@@ -743,7 +743,7 @@ function renderDashboard(){
     var cat=CATS[i];
     var cnt=loadData(cat.k).length;
     var pct=maxCount?Math.round(cnt/maxCount*100):0;
-    catOverview+='<div class="dash-cat-row" onclick="switchTab('schoolBrowser');setTimeout(function(){filterSchoolCat(''+cat.k+'')},100)"><span class="dc-icon">'+cat.i+'</span><span class="dc-name">'+cat.l+'</span><div class="dc-bar-wrap"><div class="dc-bar" style="width:'+pct+'%"></div></div><span class="dc-count">'+cnt+' 条</span></div>';
+    catOverview+='<div class="dash-cat-row" onclick="switchTab(\'schoolBrowser\');setTimeout(function(){filterSchoolCat(\''+cat.k+'\')},100)"><span class="dc-icon">'+cat.i+'</span><span class="dc-name">'+cat.l+'</span><div class="dc-bar-wrap"><div class="dc-bar" style="width:'+pct+'%"></div></div><span class="dc-count">'+cnt+' 条</span></div>';
   }
   document.getElementById('dashOverview').innerHTML=catOverview;
 }
@@ -894,7 +894,7 @@ function renderMajorBrowser(catKey){
   for(var i=0;i<majors.length;i++){
     var m=majors[i];
     var selClass=__selectedMajor&&__selectedMajor.majorName===m.majorName?' sel':'';
-    leftHtml+='<div class="ml-item'+selClass+'" onclick="selectMajor(''+escAttr(m.majorName)+'')"><span>'+esc(m.majorName)+'</span><span class="ml-count">'+m.schoolCount+'校</span></div>';
+    leftHtml+='<div class="ml-item'+selClass+'" onclick="selectMajor(\''+escAttr(m.majorName)+'\')"><span>'+esc(m.majorName)+'</span><span class="ml-count">'+m.schoolCount+'校</span></div>';
   }
   document.getElementById('majorLeft').innerHTML=leftHtml;
   
