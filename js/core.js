@@ -15,7 +15,7 @@ function calcScore(c,a,k){const f=FORMULA[k];if(!f)throw new Error('未知门类
 
 // ===== 数据管理 =====
 const CATS=[{k:'finearts',l:'美术与设计类',i:'🎨'},{k:'music',l:'音乐类',i:'🎵'},{k:'dance',l:'舞蹈类',i:'💃'},{k:'broadcast',l:'播音与主持类',i:'🎙️'},{k:'acting',l:'表（导）演类',i:'🎭'},{k:'calligraphy',l:'书法类',i:'✒️'}];
-function loadData(k){if(window.__D__&&window.__D__[k])return window.__D__[k];return[];}
+function loadData(k){if(window.__D__&&window.__D__[k])return window.__D__[k];console.warn('[Core] 数据尚未加载: '+k+'，返回空数组');return[];}
 function saveData(k,d){localStorage.setItem('zjyk_'+k,JSON.stringify(d));}
 function clearData(k){localStorage.removeItem('zjyk_'+k);}
 function totalCount(){let s=0;CATS.forEach(c=>s+=loadData(c.k).length);return s;}

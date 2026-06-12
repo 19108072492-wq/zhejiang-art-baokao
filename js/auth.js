@@ -6,28 +6,45 @@
 var __isLoggedIn=false;
 
 (async function initAuth(){
+  // ★ 先设置事件监听，确保即使后续报错也能点击
+  setupAuthUI();
+
   // 检查 localStorage 中是否有登录标记
   var saved=localStorage.getItem('zjyk_logged_in');
   if(saved){
     __isLoggedIn=true;
-    showDashboard();
+    // showDashboard 定义在 app.js，可能尚未加载，做防御
+    if(typeof showDashboard==='function'){
+      showDashboard();
+    }else{
+      // 等待 DOMContentLoaded 后再试（此时 app.js 已执行）
+      document.addEventListener('DOMContentLoaded',function(){
+        if(typeof showDashboard==='function')showDashboard();
+        else{/* 降级：显示 gateCard */document.getElementById('gateCard').classList.remove('hidden');}
+      },{once:true});
+    }
   }else{
     document.getElementById('gateCard').classList.remove('hidden');
     document.getElementById('inputCard').classList.add('hidden');
   }
+})();
 
-  // 引导卡片按钮
-  document.getElementById('btnGateLogin').addEventListener('click',function(){
-    document.getElementById('authModal').classList.remove('hidden');
+function setupAuthUI(){
+  var bl=document.getElementById('btnGateLogin');
+  if(bl)bl.addEventListener('click',function(){
+    var am=document.getElementById('authModal');if(am)am.classList.remove('hidden');
   });
-  document.getElementById('btnGateTrial').addEventListener('click',doTrial);
+  var bt=document.getElementById('btnGateTrial');
+  if(bt)bt.addEventListener('click',doTrial);
 
-  // 弹窗按钮
-  document.getElementById('btnAuthSubmit').addEventListener('click',handlePhoneSubmit);
-  document.getElementById('btnAuthCancel').addEventListener('click',function(){
-    document.getElementById('authModal').classList.add('hidden');
+  var bs=document.getElementById('btnAuthSubmit');
+  if(bs)bs.addEventListener('click',handlePhoneSubmit);
+  var bc=document.getElementById('btnAuthCancel');
+  if(bc)bc.addEventListener('click',function(){
+    var am=document.getElementById('authModal');if(am)am.classList.add('hidden');
   });
-  document.getElementById('authModal').addEventListener('click',function(e){
+  var am=document.getElementById('authModal');
+  if(am)am.addEventListener('click',function(e){
     if(e.target===this)this.classList.add('hidden');
   });
 
@@ -42,7 +59,7 @@ var __isLoggedIn=false;
   var tt=document.getElementById('authTitle');if(tt)tt.textContent='📱 注册';
   var mg=document.getElementById('authMsg');if(mg)mg.textContent='注册后即可使用完整功能';
   var bts=document.getElementById('btnAuthSubmit');if(bts)bts.textContent='🚀 注册';
-})();
+}
 
 function doTrial(){
   // 始终先关闭认证弹窗、显示输入卡
