@@ -2195,14 +2195,14 @@ function renderAdminAuth(){
       content.innerHTML='<p style="color:var(--t3);font-size:.82rem;text-align:center;padding:20px">暂无授权用户，点击"+ 添加授权"按钮添加</p>';
       return;
     }
-    var html='<div class="ctw"><table><thead><tr><th>#</th><th>手机号</th><th>状态</th><th>过期时间</th><th>备注</th><th>操作</th></tr></thead><tbody>';
+    var html='<div class="ctw"><table><thead><tr><th>#</th><th>手机号</th><th>姓名</th><th>专业方向</th><th>状态</th><th>过期时间</th><th>备注</th><th>操作</th></tr></thead><tbody>';
     for(var i=0;i<users.length;i++){
       var u=users[i];
       var isActive=u.is_active;
       var isExpired=u.expires_at&&new Date(u.expires_at)<new Date();
       var statusText=isActive&&!isExpired?'<span style="color:var(--_green-500)">✅ 有效</span>':'<span style="color:var(--_red-500)">❌ '+(isExpired?'已过期':'已停用')+'</span>';
       var expiresText=u.expires_at?new Date(u.expires_at).toLocaleDateString('zh-CN'):'永久';
-      html+='<tr><td>'+(i+1)+'</td><td>'+esc(u.phone||'')+'</td><td>'+statusText+'</td><td>'+expiresText+'</td><td style="font-size:.78rem">'+esc(u.notes||'')+'</td><td><button class="btn btn-gh btn-sm" onclick="toggleAuthUser(\''+u.id+'\','+isActive+')">'+(isActive?'停用':'启用')+'</button> <button class="btn btn-gh btn-sm" onclick="deleteAuthUser(\''+u.id+'\',\''+escAttr(u.phone||'')+'\')">🗑</button></td></tr>';
+      html+='<tr><td>'+(i+1)+'</td><td>'+esc(u.phone||'')+'</td><td>'+esc(u.name||'')+'</td><td>'+esc(u.major_direction||'')+'</td><td>'+statusText+'</td><td>'+expiresText+'</td><td style="font-size:.78rem">'+esc(u.notes||'')+'</td><td><button class="btn btn-gh btn-sm" onclick="toggleAuthUser(\''+u.id+'\','+isActive+')">'+(isActive?'停用':'启用')+'</button> <button class="btn btn-gh btn-sm" onclick="deleteAuthUser(\''+u.id+'\',\''+escAttr(u.phone||'')+'\')">🗑</button></td></tr>';
     }
     html+='</tbody></table></div>';
     html+='<div style="margin-top:12px;font-size:.78rem;color:var(--t3)">共 '+users.length+' 个授权用户</div>';
@@ -2226,9 +2226,13 @@ function hideAuthForm(){
   if(form)form.style.display='none';
   // 清空表单
   var phoneInput=document.getElementById('authPhoneInput');
+  var nameInput=document.getElementById('authNameInput');
+  var majorInput=document.getElementById('authMajorInput');
   var daysInput=document.getElementById('authDaysInput');
   var notesInput=document.getElementById('authNotesInput');
   if(phoneInput)phoneInput.value='';
+  if(nameInput)nameInput.value='';
+  if(majorInput)majorInput.value='';
   if(daysInput)daysInput.value='365';
   if(notesInput)notesInput.value='';
 }
@@ -2236,10 +2240,14 @@ function hideAuthForm(){
 // 确认添加授权
 function confirmAuth(){
   var phone=document.getElementById('authPhoneInput');
+  var name=document.getElementById('authNameInput');
+  var major=document.getElementById('authMajorInput');
   var days=document.getElementById('authDaysInput');
   var notes=document.getElementById('authNotesInput');
   if(!phone||!/^1[3-9]\d{9}$/.test(phone.value)){toast('请输入有效的11位手机号',1);if(phone)phone.focus();return;}
   var phoneVal=phone.value.trim();
+  var nameVal=name?name.value.trim():'';
+  var majorVal=major?major.value.trim():'';
   var daysVal=parseInt(days.value)||0;
   var notesVal=notes?notes.value.trim():'';
   var expiresAt=null;
@@ -2250,7 +2258,7 @@ function confirmAuth(){
   // 禁用按钮防止重复提交
   var btnConfirm=document.getElementById('btnConfirmAuth');
   if(btnConfirm){btnConfirm.disabled=true;btnConfirm.textContent='⏳ 提交中...';}
-  addAuthorizedUser({phone:phoneVal,is_active:true,expires_at:expiresAt,notes:notesVal}).then(function(res){
+  addAuthorizedUser({phone:phoneVal,name:nameVal,major_direction:majorVal,is_active:true,expires_at:expiresAt,notes:notesVal}).then(function(res){
     if(btnConfirm){btnConfirm.disabled=false;btnConfirm.textContent='✅ 确认授权';}
     if(res&&res.ok){toast('✅ 已授权 '+phoneVal);hideAuthForm();renderAdminAuth();}
     else{toast('授权失败：'+(res&&res.error||'未知错误'),1);}
