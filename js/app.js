@@ -6,6 +6,8 @@ let cur=[],curTier='all',sel=new Map(),MAX_CMP=4,curSearch='',curSort='diff';
 document.addEventListener('DOMContentLoaded',()=>{
   // 按钮绑定
   document.getElementById('btnGo').addEventListener('click',calc);
+  // 子门类联动
+  document.getElementById('cat').addEventListener('change',updateSubCatUI);
   document.getElementById('btnGear').addEventListener('click',()=>document.getElementById('lockModal').classList.remove('hidden'));
   document.getElementById('btnUnlock').addEventListener('click',()=>{
     if(document.getElementById('pwdInput').value==='ffjyyyds123456'){window.__adminAccess=true;document.getElementById('lockModal').classList.add('hidden');document.getElementById('adminModal').classList.remove('hidden');renderAdmin();showAdminSection('data');}
@@ -33,10 +35,28 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('btnCmpClose').addEventListener('click',()=>document.getElementById('cmpModal').classList.add('hidden'));
   document.getElementById('btnPrint').addEventListener('click',()=>{
     const w=window.open('','_blank');
-    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>非凡教育·志愿单</title><style>body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;padding:20px;color:#333}table{width:100%;border-collapse:collapse;margin-bottom:16px}td,th{border:1px solid #e8e8e8;padding:6px 8px;font-size:.8rem}th{background:#f7f8fa}h2{font-size:1.1rem;color:#b08543}.reach h3{color:#c0392b}.match h3{color:#c07830}.safety h3{color:#3a7d5a}@media print{button{display:none}}</style></head><body><h2>🎓 非凡教育 · 浙江艺考志愿填报参考单</h2><p style="color:#8c8c8c">${new Date().toLocaleString('zh-CN')}</p>${document.getElementById('formBody').innerHTML}</body><script>setTimeout(window.print,200)<\/script></html>`);
+    const formHtml=document.getElementById('formBody').innerHTML;
+    const printCss=`
+      *{box-sizing:border-box}
+      body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;padding:12mm 10mm;color:#1a1a1a;max-width:210mm;margin:0 auto;font-size:10pt;line-height:1.6}
+      h1{font-size:15pt;color:#b08543;text-align:center;margin:0 0 4px 0;font-weight:800;letter-spacing:.04em}
+      .sub{text-align:center;color:#888;font-size:9pt;margin-bottom:14px}
+      .vsec{margin-bottom:14px;page-break-inside:avoid}
+      .vsec h3{font-size:11pt;margin:6px 0 4px 0;padding:3px 10px;border-radius:6px;display:inline-block;color:#fff}
+      .vsec table{width:100%;border-collapse:collapse;font-size:9pt;margin-top:4px}
+      .vsec th{padding:5px 6px;background:#f5f0eb!important;color:#444;font-weight:700;border:1px solid #d8cfc2;text-align:center}
+      .vsec td{padding:4px 6px;border:1px solid #e8e8e8;text-align:center}
+      .vsec tr:nth-child(even) td{background:#fafafa}
+      .reach h3{background:#c0392b}
+      .match h3{background:#c07830}
+      .safety h3{background:#2d7a4a}
+      @page{margin:0;size:A4}
+      @media print{button{display:none!important}}
+    `;
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>艺考志愿单</title><style>${printCss}</style></head><body><h1>🎓 非凡教育 · 浙江艺考志愿填报参考单</h1><p class="sub">${new Date().toLocaleString('zh-CN')} | 科学匹配 · 精准冲稳保</p>${formHtml}</body><script>setTimeout(function(){window.print();setTimeout(window.close,500);},300)<\/script></html>`);
     w.document.close();
   });
-  ['lockModal','adminModal','formModal','cmpModal'].forEach(id=>document.getElementById(id).addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden');}));
+  ['lockModal','adminModal','formModal','cmpModal','majorDetailModal'].forEach(id=>document.getElementById(id).addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden');}));
   document.querySelectorAll('#filters button').forEach(b=>b.addEventListener('click',()=>{
     document.querySelectorAll('#filters button').forEach(x=>x.classList.remove('on'));
     b.classList.add('on');curTier=b.dataset.t;renderCards();
@@ -58,6 +78,118 @@ document.addEventListener('DOMContentLoaded',()=>{
   renderAdmin();
 });
 
+// ===== 结果区省份/城市筛选 =====
+var __resultProvince='all',__resultCity='all';
+var __resultFilterInited=false; // 防止重复绑定事件
+
+function initResultProvinceSelect(){
+  var sel=document.getElementById('resultProvince');
+  if(!sel)return;
+  var html='<option value="all">不限省份</option>';
+  for(var i=0;i<PROVINCES.length;i++){
+    var p=PROVINCES[i];
+    html+='<option value="'+p.k+'">'+p.i+' '+p.l+'</option>';
+  }
+  sel.innerHTML=html;
+  // 只绑定一次事件
+  if(!__resultFilterInited){
+    __resultFilterInited=true;
+    sel.addEventListener('change',function(){
+      __resultProvince=this.value;
+      __resultCity='all';
+      updateResultCitySelect();
+      renderCards();
+      updateRecBtnText();
+    });
+    document.getElementById('resultCity').addEventListener('change',function(){
+      __resultCity=this.value;
+      renderCards();
+      updateRecBtnText();
+    });
+  }
+  // 重置选中值
+  sel.value='all';
+  document.getElementById('resultCity').style.display='none';
+  document.getElementById('resultCity').innerHTML='<option value="all">不限城市</option>';
+}
+
+function updateResultCitySelect(){
+  var citySel=document.getElementById('resultCity');
+  if(!citySel)return;
+  if(__resultProvince==='all'){
+    citySel.style.display='none';
+    citySel.innerHTML='<option value="all">不限城市</option>';
+    return;
+  }
+  // 从当前门类的完整数据池中提取该省份的城市（而非仅匹配结果）
+  var catKey=document.getElementById('cat').value;
+  var pool=catKey?loadData(catKey):[];
+  var cities=getCitiesByProvince(pool,__resultProvince);
+  if(!cities.length){
+    citySel.style.display='none';
+    return;
+  }
+  citySel.style.display='';
+  var html='<option value="all">不限城市（'+cities.length+'个）</option>';
+  for(var i=0;i<cities.length;i++){
+    html+='<option value="'+escAttr(cities[i].name)+'">'+cities[i].name.replace(/^(浙江|江苏|上海|安徽|福建|江西|山东|河南|湖北|湖南|广东|广西|海南|重庆|四川|贵州|云南|北京|天津|河北|山西|陕西|辽宁|吉林|黑龙江|内蒙古|新疆|宁夏|甘肃|青海|西藏)/,'')+' ('+cities[i].cnt+')</option>';
+  }
+  citySel.innerHTML=html;
+}
+
+function updateRecBtnText(){
+  var recBtn=document.getElementById('btnRec');
+  if(!recBtn)return;
+  if(__resultProvince&&__resultProvince!=='all'){
+    var pLabel='';
+    for(var i=0;i<PROVINCES.length;i++){if(PROVINCES[i].k===__resultProvince){pLabel=PROVINCES[i].l;break;}}
+    recBtn.textContent='🤖 一键推荐（📍'+pLabel+'范围内）';
+  }else{
+    recBtn.textContent='🤖 一键推荐20校';
+  }
+}
+
+// ===== 子门类联动 =====
+function updateSubCatUI(){
+  var catKey=document.getElementById('cat').value;
+  var subCatCol=document.getElementById('subCatCol');
+  var subCatSel=document.getElementById('subCat');
+  var subcats=getSubcats(catKey);
+  if(subcats.length){
+    subCatCol.classList.remove('hidden');
+    var html='<option value="all">全部</option>';
+    for(var i=0;i<subcats.length;i++){
+      var sc=subcats[i];
+      html+='<option value="'+sc.k+'">'+sc.i+' '+sc.l+'</option>';
+      if(sc.children){
+        for(var j=0;j<sc.children.length;j++){
+          var ch=sc.children[j];
+          html+='<option value="'+ch.k+'">&nbsp;&nbsp;└ '+ch.i+' '+ch.l+'</option>';
+        }
+      }
+    }
+    subCatSel.innerHTML=html;
+  }else{
+    subCatCol.classList.add('hidden');
+    subCatSel.innerHTML='<option value="all">全部</option>';
+  }
+}
+
+// 获取子门类标签
+function getSubcatLabel(catKey,subcatKey){
+  if(!subcatKey||subcatKey==='all')return '';
+  var subcats=getSubcats(catKey);
+  for(var i=0;i<subcats.length;i++){
+    if(subcats[i].k===subcatKey)return subcats[i].l;
+    if(subcats[i].children){
+      for(var j=0;j<subcats[i].children.length;j++){
+        if(subcats[i].children[j].k===subcatKey)return subcats[i].l+' - '+subcats[i].children[j].l;
+      }
+    }
+  }
+  return '';
+}
+
 async function calc(){
   // 认证检查
   if(!(await checkAuthAndSpend()))return;
@@ -73,17 +205,39 @@ async function calc(){
   if(!pool.length)errs.push('暂无数据，请刷新页面');
   if(errs.length){toast(errs.join('\n'),1);return;}
 
+  // 子门类筛选
+  const subCatKey=document.getElementById('subCat').value;
+  var filteredPool=filterBySubcat(pool,subCatKey);
+
   const res=calcScore(c,a,k==='calligraphy'?'finearts':k);
   const sb=document.getElementById('scoreBox');
   sb.classList.remove('hidden');
   const minC=CULTURE_MIN[k]||369,canB=c>=minC;
-  sb.innerHTML=`<div class="sbox"><span class="lbl">你的综合分</span><span class="val">${res.score.toFixed(2)}</span><span class="frm">${res.text}</span></div><div class="snote ${canB?'ok':'warn'}">${canB?`✅ 文化分 ${c} ≥ ${minC}，已展示本科及专科结果`:`⚠️ 文化分 ${c} < ${minC}，仅展示专科及低分段结果`}</div>`;
+  // 子门类提示
+  var subLabel='';
+  if(subCatKey&&subCatKey!=='all'){
+    var allSubs=getSubcats(k);
+    var foundSub=null;
+    for(var si=0;si<allSubs.length;si++){
+      if(allSubs[si].k===subCatKey){foundSub=allSubs[si];break;}
+      if(allSubs[si].children){
+        for(var sj=0;sj<allSubs[si].children.length;sj++){
+          if(allSubs[si].children[sj].k===subCatKey){foundSub=allSubs[si].children[sj];break;}
+        }
+        if(foundSub)break;
+      }
+    }
+    if(foundSub)subLabel=' <span style="font-size:.78rem;color:var(--color-accent)">（'+foundSub.i+' '+foundSub.l+'）</span>';
+  }
+  var filterInfo='';
+  if(subLabel)filterInfo='<div style="font-size:.75rem;color:var(--color-text-secondary);margin-top:4px">筛选条件：'+subLabel+' | 共 '+filteredPool.length+' 条数据</div>';
+  sb.innerHTML=`<div class="sbox"><span class="lbl">你的综合分${subLabel}</span><span class="val">${res.score.toFixed(2)}</span><span class="frm">${res.text}</span></div>${filterInfo}<div class="snote ${canB?'ok':'warn'}">${canB?`✅ 文化分 ${c} ≥ ${minC}，已展示本科及专科结果`:`⚠️ 文化分 ${c} < ${minC}，仅展示专科及低分段结果`}</div>`;
 
   // 算法说明面板
   document.getElementById('algoCard').classList.remove('hidden');
   document.getElementById('algoBody').innerHTML=[
-    {icon:'🎯',name:'分差接近度',wt:25,desc:'综合分越接近往年录取分越推荐（平方衰减）'},
-    {icon:'🏛️',name:'院校层次',wt:20,desc:'985/211/双一流/艺术院校/公办/民办 9档'},
+    {icon:'🎯',name:'分差接近度',wt:24,desc:'综合分越接近往年录取分越推荐（平方衰减）'},
+    {icon:'🏛️',name:'院校层次',wt:19,desc:'985/211/双一流/艺术院校/公办/民办 9档'},
     {icon:'📊',name:'软科排名',wt:6,desc:'A+→C- 7级评分，反映学术实力'},
     {icon:'🎨',name:'专业特色',wt:9,desc:'国家级/省级一流/特色专业→有培养方案→普通'},
     {icon:'🔧',name:'培养模式',wt:6,desc:'校企合作/实验班/导师制/实训基地分级加分'},
@@ -94,7 +248,8 @@ async function calc(){
     {icon:'📋',name:'招生计划数',wt:3,desc:'计划多→竞争分散，30+得高分'},
     {icon:'🏅',name:'位次匹配度',wt:6,desc:'位次差距越小越好，连续评分'},
     {icon:'🏙️',name:'城市级别',wt:3,desc:'杭州/宁波→新一线→二线→三线递减'},
-  ].map(d=>`<div class="algo-dim"><span class="dim-lbl">${d.icon} ${d.name}</span><div class="dim-bar"><div class="dim-fill" style="width:${d.wt/0.25*100}%"></div></div><span class="dim-val">${d.wt}%</span><span class="dim-desc">${d.desc}</span></div>`).join('')+`<div class="algo-total">📊 12维度严格评分 · 艺术院校独立加分 · 本专科分流 · 专业特色+培养模式加持</div>`;
+    {icon:'📈',name:'计划趋势',wt:2,desc:'对比24/25届计划数，扩招加分缩招降分'},
+  ].map(d=>`<div class="algo-dim"><span class="dim-lbl">${d.icon} ${d.name}</span><div class="dim-bar"><div class="dim-fill" style="width:${d.wt/0.25*100}%"></div></div><span class="dim-val">${d.wt}%</span><span class="dim-desc">${d.desc}</span></div>`).join('')+`<div class="algo-total">📊 13维度严格评分 · 艺术院校独立加分 · 本专科分流 · 专业特色+培养模式加持</div>`;
 
   // 梯度说明卡片
   const tierExplain=document.getElementById('tierExplain');
@@ -108,7 +263,7 @@ async function calc(){
   // 数据来源卡片
   document.getElementById('dataSourceCard').classList.remove('hidden');
 
-  const m=matchSchools(res.score,k,c,pool);
+  const m=matchSchools(res.score,k,c,filteredPool);
   cur=m.results;window.__rec=m.rec20;
   sel.clear();updateFloat();curTier='all';
   curSearch='';curSort='diff';
@@ -119,6 +274,9 @@ async function calc(){
   document.getElementById('resultBox').classList.remove('hidden');
   document.getElementById('searchBar').classList.remove('hidden');
   document.getElementById('list').innerHTML='';
+  // 重置结果区省份筛选
+  __resultProvince='all';__resultCity='all';
+  initResultProvinceSelect();
   const rc=m.results.filter(x=>x.tier==='reach').length;
   const mt=m.results.filter(x=>x.tier==='match').length;
   const sf=m.results.filter(x=>x.tier==='safety').length;
@@ -126,7 +284,26 @@ async function calc(){
   document.getElementById('summaryActions').innerHTML=`<button class="btn btn-g btn-sm" id="btnRec">🤖 一键推荐20校</button>`;
   renderCards();
   document.getElementById('resultBox').scrollIntoView({behavior:'smooth'});
-  setTimeout(()=>{const br=document.getElementById('btnRec');if(br)br.addEventListener('click',()=>{sel.clear();(window.__rec||[]).forEach(r=>sel.set(`${r.schoolCode}|${r.majorCode}`,r));updateFloat();renderCards();toast('已勾选20所推荐学校');document.getElementById('floatBar').scrollIntoView({behavior:'smooth'});});},150);
+  setTimeout(()=>{const br=document.getElementById('btnRec');if(br)br.addEventListener('click',()=>{
+    sel.clear();
+    // 根据当前省份筛选结果来推荐
+    var recList=window.__rec||[];
+    if(__resultProvince&&__resultProvince!=='all'){
+      recList=recList.filter(r=>{
+        var match=filterByProvince([r],__resultProvince);
+        return match.length>0;
+      });
+      if(__resultCity&&__resultCity!=='all'){
+        recList=recList.filter(r=>{
+          var match=filterByCity([r],__resultCity);
+          return match.length>0;
+        });
+      }
+    }
+    if(!recList.length){toast('当前省份范围内无推荐院校，请扩大筛选范围');return;}
+    recList.forEach(r=>sel.set(`${r.schoolCode}|${r.majorCode}`,r));
+    updateFloat();renderCards();toast('已勾选'+recList.length+'所推荐学校');document.getElementById('floatBar').scrollIntoView({behavior:'smooth'});
+  });},150);
 }
 
 function renderCards(){
@@ -134,6 +311,9 @@ function renderCards(){
   let data=[...cur];
   if(curTier!=='all')data=data.filter(r=>r.tier===curTier);
   if(curSearch)data=data.filter(r=>{const n=(r.schoolName||'').toLowerCase(),m=(r.majorName||'').toLowerCase();return n.includes(curSearch)||m.includes(curSearch);});
+  // 省份/城市筛选
+  if(__resultProvince&&__resultProvince!=='all')data=filterByProvince(data,__resultProvince);
+  if(__resultCity&&__resultCity!=='all')data=filterByCity(data,__resultCity);
   // 排序
   const sortMap={
     diff:(a,b)=>Math.abs(a.diff||0)-Math.abs(b.diff||0),
@@ -146,7 +326,23 @@ function renderCards(){
     cityAsc:(a,b)=>(a.city||'').localeCompare(b.city||'','zh'),
   };
   if(sortMap[curSort])data.sort(sortMap[curSort]);
-  if(!data.length){container.innerHTML='<p style="text-align:center;color:#8c8c8c;padding:40px 0">'+(!cur.length?'暂无匹配结果':curSearch?'没有找到匹配的院校':'该梯度暂无结果')+'</p>';return;}
+  // 更新summary显示省份筛选信息
+  var summaryEl=document.getElementById('summary');
+  if(summaryEl&&cur.length){
+    // 如果有省份筛选，显示筛选后的统计
+    if(__resultProvince&&__resultProvince!=='all'){
+      var fR=data.filter(x=>x.tier==='reach').length;
+      var fM=data.filter(x=>x.tier==='match').length;
+      var fS=data.filter(x=>x.tier==='safety').length;
+      var pName='';
+      for(var pp=0;pp<PROVINCES.length;pp++){if(PROVINCES[pp].k===__resultProvince){pName=PROVINCES[pp].l;break;}}
+      summaryEl.innerHTML='📍'+pName+' 共 <strong>'+data.length+'</strong> 条 · 🔴'+fR+' 🟡'+fM+' 🟢'+fS;
+    }else{
+      var src=cur,srcR=src.filter(x=>x.tier==='reach').length,srcM=src.filter(x=>x.tier==='match').length,srcS=src.filter(x=>x.tier==='safety').length;
+      summaryEl.innerHTML='共 <strong>'+src.length+'</strong> 条 · 🔴'+srcR+' 🟡'+srcM+' 🟢'+srcS;
+    }
+  }
+  if(!data.length){container.innerHTML='<p style="text-align:center;color:#8c8c8c;padding:40px 0">'+(!cur.length?'暂无匹配结果':((__resultProvince&&__resultProvince!=='all')?'该省份暂无匹配结果，请更换筛选条件':'该梯度暂无结果'))+'</p>';return;}
   const tm={reach:{l:'🔴 冲刺',c:'reach'},match:{l:'🟡 稳妥',c:'match'},safety:{l:'🟢 保底',c:'safety'}};
   container.innerHTML=data.map((r,i)=>{
     const m=tm[r.tier]||{l:'?',c:''},key=`${r.schoolCode}|${r.majorCode}`,ck=sel.has(key);
@@ -177,6 +373,7 @@ function renderCards(){
         {k:'plan',icon:'📋',color:'#ef4444'},
         {k:'rankMatch',icon:'🏅',color:'#ec4899'},
         {k:'cityLevel',icon:'🏙️',color:'#6366f1'},
+        {k:'planTrend',icon:'📈',color:'#84cc16'},
       ];
       const dimHtmls=dims.map(d=>{
         const v=sd[d.k];const sc=v.score||0;
@@ -185,7 +382,13 @@ function renderCards(){
       });
       scoreDetailHTML=`<div class="score-breakdown"><div class="sb-title">📊 推荐评分 <span style="font-weight:400;color:var(--g);font-size:.8rem">${r.recScore||0}分</span></div>${dimHtmls.join('')}</div>`;
     }
-    return `<div class="sc ${m.c}${ck?' sel':''}" data-key="${key}" data-idx="${i}"><div class="cb" data-act="sel"><div class="cb-box${ck?' on':''}">${ck?'✓':''}</div></div><div class="sinfo"><div class="sname">${esc(r.schoolName)} <span style="font-weight:400;font-size:.75rem">${tags.join(' ')}</span></div><div class="smaj">${esc(r.majorName)} <span style="font-size:.72rem;color:#8c8c8c">${r.majorCode||''}</span></div><div class="smeta"><span>📍 ${esc(r.city||'')}</span><span>💰 ${typeof r.tuition=='number'?r.tuition.toLocaleString()+'/年':(r.tuition||'--')}</span><span>🏠 ${esc(r.dorm||'')||'--'}</span>${r.plan25?`<span>📋 ${r.plan25}人</span>`:r.plan24?`<span>📋 ${r.plan24}人</span>`:''}${r.rankPosition?`<span>📊 位次${r.rankPosition}</span>`:''}</div>${r.scoreLineReq?`<div style="margin-top:4px;font-size:.74rem;color:#9a6b2a;background:#faf6f0;padding:3px 8px;border-radius:4px;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📋 ${esc(r.scoreLineReq)}</div>`:''}<div class="sdet">${r.note?`<p>📝 ${esc(r.note)}</p>`:''}${r.courseGuide?`<p>📚 ${esc(r.courseGuide)}</p>`:''}${r.talentGoal?`<p>🎯 ${esc(r.talentGoal)}</p>`:''}${r.scoreSource==='estimated'?'<p style="color:#c0392b">⚠️ 预估分，请谨慎参考</p>':''}${scoreDetailHTML}</div></div><div class="sstat"><span class="sn">${r.compositeScore}</span><span class="ss">往年录取分</span><span class="ss">${dt}</span>${r.scoreSource==='estimated'?'<span class="ss" style="color:#c0392b">预估</span>':''}</div></div>`;
+    // 子门类标签
+    var subCatTag='';
+    if(r.subCategory){
+      var scMap={'音教声乐':'🎤 声乐主项','音教器乐':'🎹 器乐主项','音表声乐':'🎤 声乐','音表器乐':'🎻 器乐'};
+      if(scMap[r.subCategory])subCatTag=' <span style="font-size:.68rem;padding:1px 5px;border-radius:8px;background:var(--color-surface-secondary);color:var(--color-accent)">'+scMap[r.subCategory]+'</span>';
+    }
+    return `<div class="sc ${m.c}${ck?' sel':''}" data-key="${key}" data-idx="${i}"><div class="cb" data-act="sel"><div class="cb-box${ck?' on':''}">${ck?'✓':''}</div></div><div class="sinfo"><div class="sname">${esc(r.schoolName)} <span style="font-weight:400;font-size:.75rem">${tags.join(' ')}</span></div><div class="smaj"><span style="cursor:pointer;text-decoration:underline dotted;color:var(--color-accent);font-size:inherit" onclick="openMajorDetail(('${escAttr(r.majorName)}'))">${esc(r.majorName)}</span>${subCatTag} <span style="font-size:.72rem;color:#8c8c8c">${r.majorCode||''}</span></div><div class="smeta"><span>📍 ${esc(r.city||'')}</span><span>💰 ${typeof r.tuition=='number'?r.tuition.toLocaleString()+'/年':(r.tuition||'--')}</span><span>🏠 ${esc(r.dorm||'')||'--'}</span>${r.plan25?`<span>📋 ${r.plan25}人</span>`:r.plan24?`<span>📋 ${r.plan24}人</span>`:''}${r.rankPosition?`<span>📊 位次${r.rankPosition}</span>`:''}</div>${r.scoreLineReq?`<div style="margin-top:4px;font-size:.74rem;color:#9a6b2a;background:#faf6f0;padding:3px 8px;border-radius:4px;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📋 ${esc(r.scoreLineReq)}</div>`:''}<div class="sdet">${r.note?`<p>📝 ${esc(r.note)}</p>`:''}${r.courseGuide?`<p>📚 ${esc(r.courseGuide)}</p>`:''}${r.talentGoal?`<p>🎯 ${esc(r.talentGoal)}</p>`:''}${r.scoreSource==='estimated'?'<p style="color:#c0392b">⚠️ 预估分，请谨慎参考</p>':''}${scoreDetailHTML}</div></div><div class="sstat"><span class="sn">${r.compositeScore}</span><span class="ss">往年录取分</span><span class="ss">${dt}</span>${r.scoreSource==='estimated'?'<span class="ss" style="color:#c0392b">预估</span>':''}</div></div>`;
   }).join('');
   container.onclick=function(e){
     const selEl=e.target.closest('[data-act="sel"]');
@@ -254,28 +457,321 @@ function updateFloat(){
 
 function openForm(){
   if(!sel.size)return toast('请先勾选学校',1);
+  // 用 __formOrder 维护自定义排序（持久化在 sel 的插入顺序）
+  if(!window.__formOrder)window.__formOrder=[];
+  // 同步：根据 sel 重建 __formOrder
+  var selKeys=[...sel.keys()];
+  var oldOrder=window.__formOrder||[];
+  var newOrder=[];
+  // 保留旧顺序中仍在 sel 里的 key
+  for(var i=0;i<oldOrder.length;i++){if(sel.has(oldOrder[i]))newOrder.push(oldOrder[i]);}
+  // 添加新勾选的 key（追加到末尾）
+  for(var i=0;i<selKeys.length;i++){if(newOrder.indexOf(selKeys[i])<0)newOrder.push(selKeys[i]);}
+  window.__formOrder=newOrder;
+
   const groups={reach:[],match:[],safety:[]};
-  for(const r of sel.values())groups[r.tier].push(r);
+  for(const r of sel.values()){
+    var t=r.tier||'match';
+    if(t==='out')t='safety'; // 专科/线外归入保底
+    groups[t]=groups[t]||[];
+    groups[t].push(r);
+  }
   for(const k of Object.keys(groups))groups[k].sort((a,b)=>Math.abs(a.diff)-Math.abs(b.diff));
-  const slots={reach:8,match:7,safety:5},labels={reach:'🔴 冲刺志愿',match:'🟡 稳妥志愿',safety:'🟢 保底志愿'};
-  let html='';
+  const slots={reach:8,match:7,safety:5};
+  const labels={reach:'冲刺',match:'稳妥',safety:'保底'};
+  const labelColors={reach:'#c0392b',match:'#c07830',safety:'#2d7a4a'};
+  let html='<div style="font-size:.72rem;color:var(--t3);margin-bottom:8px">💡 点击 <span style="font-size:.82rem">🔼</span> 可调整志愿顺序（同一梯度内拖动排序），顺序将影响最终填报优先级</div>';
   for(const tier of['reach','match','safety']){
-    const list=groups[tier].slice(0,slots[tier]);
-    html+=`<div class="vsec ${tier}"><h3>${labels[tier]} <small>(${list.length}/${slots[tier]})</small></h3><table class="vtab"><thead><tr><th>#</th><th>院校</th><th>专业</th><th>综合分</th><th>评分</th><th>位次</th><th>学费</th><th>城市</th></tr></thead><tbody>`;
-    for(let i=0;i<slots[tier];i++){
-      if(i<list.length){const r=list[i];html+=`<tr><td>${i+1}</td><td>${esc(r.schoolName)}${r.scoreSource==='estimated'?' ⚠️':''}</td><td>${esc(r.majorName)}</td><td>${r.compositeScore}</td><td style="font-weight:700;color:var(--g)">${r.recScore||'--'}分</td><td>${r.rankPosition||'--'}</td><td>${typeof r.tuition=='number'?r.tuition.toLocaleString():r.tuition||'--'}</td><td>${esc(r.city)}</td></tr>`;}
-      else html+=`<tr class="empty"><td>${i+1}</td><td colspan="7">（未选择）</td></tr>`;
+    const list=groups[tier];
+    if(!list.length)continue;
+    html+=`<div class="vsec ${tier}"><h3><span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:.78rem;font-weight:700;color:#fff;background:${labelColors[tier]}">${labels[tier]}</span> <small style="color:var(--t3)">（${list.length} 所）</small></h3><div class="vtbl-wrap"><table class="vtab"><thead><tr><th class="col-drag"></th><th class="col-seq">#</th><th>院校</th><th>专业</th><th>综合分</th><th>评分</th><th>位次</th><th>学费</th><th>城市</th><th class="col-act">操作</th></tr></thead><tbody>`;
+    for(let i=0;i<list.length;i++){
+      const r=list[i];
+      const key=(r.schoolCode||'')+'|'+(r.majorCode||'');
+      html+=`<tr data-key="${escAttr(key)}" data-tier="${tier}" class="${tier} draggable-row" draggable="true">
+        <td class="col-drag"><span class="drag-handle" title="拖拽排序">⋮</span></td>
+        <td class="col-seq">${i+1}</td>
+        <td>${esc(r.schoolName)}${r.scoreSource==='estimated'?' <span style="color:#c0392b;font-size:.68rem">⚠️预估</span>':''}</td>
+        <td>${esc(r.majorName)}</td>
+        <td><strong>${r.compositeScore}</strong></td>
+        <td style="font-weight:700;color:var(--g)">${r.recScore||'--'}</td>
+        <td>${r.rankPosition||'--'}</td>
+        <td>${typeof r.tuition=='number'?r.tuition.toLocaleString():r.tuition||'--'}</td>
+        <td>${esc(r.city)}</td>
+        <td class="col-act">
+          ${i>0?`<button class="btn btn-gh btn-xs" onclick="moveFormItem('${escAttr(key)}','up')" title="上移">🔼</button>`:'<span class="col-drag"></span>'}
+          ${i<list.length-1?`<button class="btn btn-gh btn-xs" onclick="moveFormItem('${escAttr(key)}','down')" title="下移">🔽</button>`:'<span class="col-drag"></span>'}
+          <button class="btn btn-gh btn-xs" onclick="removeFormItem('${escAttr(key)}')" title="移除">✕</button>
+        </td>
+      </tr>`;
     }
     html+='</tbody></table></div>';
   }
   document.getElementById('formBody').innerHTML=html;
   document.getElementById('formModal').classList.remove('hidden');
+  // 绑定拖拽排序
+  initFormDrag();
 }
+
+// ===== 志愿单拖拽排序 =====
+var __dragRow=null; // 当前拖拽行
+function initFormDrag(){
+  var tbody=document.querySelectorAll('#formBody .vtab tbody');
+  for(var t=0;t<tbody.length;t++){
+    var rows=tbody[t].querySelectorAll('tr.draggable-row');
+    for(var i=0;i<rows.length;i++){
+      rows[i].addEventListener('dragstart',onDragStart);
+      rows[i].addEventListener('dragend',onDragEnd);
+      rows[i].addEventListener('dragover',onDragOver);
+      rows[i].addEventListener('dragleave',onDragLeave);
+      rows[i].addEventListener('drop',onDrop);
+      // 触摸事件支持（移动端）
+      rows[i].addEventListener('touchstart',onTouchStart,{passive:false});
+      rows[i].addEventListener('touchmove',onTouchMove,{passive:false});
+      rows[i].addEventListener('touchend',onTouchEnd);
+    }
+  }
+}
+
+function onDragStart(e){
+  __dragRow=this;
+  this.classList.add('dragging');
+  e.dataTransfer.effectAllowed='move';
+  e.dataTransfer.setData('text/plain',this.dataset.key);
+  // 半透明效果
+  setTimeout(function(){__dragRow.style.opacity='0.4';},0);
+}
+
+function onDragEnd(e){
+  this.classList.remove('dragging');
+  this.style.opacity='';
+  // 清除所有占位样式
+  var allRows=document.querySelectorAll('#formBody .draggable-row');
+  for(var i=0;i<allRows.length;i++){
+    allRows[i].classList.remove('drag-over','drag-before','drag-after');
+  }
+  __dragRow=null;
+}
+
+function onDragOver(e){
+  e.preventDefault();
+  e.dataTransfer.dropEffect='move';
+  if(!__dragRow||this===__dragRow)return;
+  // 只允许同梯度内拖拽
+  if(this.dataset.tier!==__dragRow.dataset.tier)return;
+  // 显示插入位置指示
+  this.classList.remove('drag-before','drag-after');
+  var rect=this.getBoundingClientRect();
+  var midY=rect.top+rect.height/2;
+  if(e.clientY<midY){
+    this.classList.add('drag-before');
+  }else{
+    this.classList.add('drag-after');
+  }
+}
+
+function onDragLeave(e){
+  this.classList.remove('drag-before','drag-after');
+}
+
+function onDrop(e){
+  e.preventDefault();
+  if(!__dragRow||this===__dragRow)return;
+  // 只允许同梯度内拖拽
+  if(this.dataset.tier!==__dragRow.dataset.tier)return;
+  var dragKey=__dragRow.dataset.key;
+  var dropKey=this.dataset.key;
+  // 确定插入位置：之前还是之后
+  var rect=this.getBoundingClientRect();
+  var midY=rect.top+rect.height/2;
+  var insertBefore=e.clientY<midY;
+  // 在 __formOrder 中移动
+  var order=window.__formOrder||[];
+  var fromIdx=order.indexOf(dragKey);
+  var toIdx=order.indexOf(dropKey);
+  if(fromIdx<0||toIdx<0)return;
+  // 从原位置移除
+  order.splice(fromIdx,1);
+  // 重新查找目标位置（因为 splice 改变了索引）
+  toIdx=order.indexOf(dropKey);
+  if(!insertBefore)toIdx++;
+  order.splice(toIdx,0,dragKey);
+  window.__formOrder=order;
+  openForm(); // 重新渲染
+}
+
+// ===== 触摸拖拽支持（移动端）=====
+var __touchRow=null,__touchClone=null,__touchStartY=0;
+function onTouchStart(e){
+  var handle=e.target.closest('.drag-handle');
+  if(!handle)return;
+  __touchRow=this;
+  __touchStartY=e.touches[0].clientY;
+  this.classList.add('dragging');
+  e.preventDefault(); // 阻止滚动
+}
+
+function onTouchMove(e){
+  if(!__touchRow)return;
+  e.preventDefault();
+  var touch=e.touches[0];
+  // 找到触摸位置下的行
+  var allRows=document.querySelectorAll('#formBody .draggable-row[data-tier="'+__touchRow.dataset.tier+'"]');
+  for(var i=0;i<allRows.length;i++){
+    allRows[i].classList.remove('drag-over','drag-before','drag-after');
+    var rect=allRows[i].getBoundingClientRect();
+    if(touch.clientY>=rect.top&&touch.clientY<=rect.bottom){
+      var midY=rect.top+rect.height/2;
+      if(touch.clientY<midY)allRows[i].classList.add('drag-before');
+      else allRows[i].classList.add('drag-after');
+    }
+  }
+}
+
+function onTouchEnd(e){
+  if(!__touchRow)return;
+  // 找到最终放置位置
+  var target=document.querySelector('#formBody .drag-before, #formBody .drag-after');
+  if(target&&target!==__touchRow&&target.dataset.tier===__touchRow.dataset.tier){
+    var dragKey=__touchRow.dataset.key;
+    var dropKey=target.dataset.key;
+    var isBefore=target.classList.contains('drag-before');
+    var order=window.__formOrder||[];
+    var fromIdx=order.indexOf(dragKey);
+    var toIdx=order.indexOf(dropKey);
+    if(fromIdx>=0&&toIdx>=0){
+      order.splice(fromIdx,1);
+      toIdx=order.indexOf(dropKey);
+      if(!isBefore)toIdx++;
+      order.splice(toIdx,0,dragKey);
+      window.__formOrder=order;
+    }
+  }
+  // 清理
+  var allRows=document.querySelectorAll('#formBody .draggable-row');
+  for(var i=0;i<allRows.length;i++){
+    allRows[i].classList.remove('dragging','drag-over','drag-before','drag-after');
+  }
+  __touchRow=null;
+  if(window.__formOrder&&window.__formOrder.length)openForm();
+}
+
+// 志愿单内上移/下移
+function moveFormItem(key,dir){
+  var order=window.__formOrder||[];
+  var idx=order.indexOf(key);
+  if(idx<0)return;
+  // 找到该 key 所属梯度
+  var r=sel.get(key);
+  if(!r)return;
+  var tier=r.tier||'match';
+  if(tier==='out')tier='safety';
+  // 只在同一梯度内移动：找到该梯度的所有 key
+  var tierKeys=order.filter(function(k){var v=sel.get(k);return v&&v.tier===tier;});
+  var pos=tierKeys.indexOf(key);
+  if(dir==='up'&&pos>0){
+    // 交换 order 中 key 和上一个同梯度 key 的位置
+    var prevKey=tierKeys[pos-1];
+    var iA=order.indexOf(key),iB=order.indexOf(prevKey);
+    order[iA]=prevKey;order[iB]=key;
+  }else if(dir==='down'&&pos<tierKeys.length-1){
+    var nextKey=tierKeys[pos+1];
+    var iA=order.indexOf(key),iB=order.indexOf(nextKey);
+    order[iA]=nextKey;order[iB]=key;
+  }
+  window.__formOrder=order;
+  openForm();
+}
+
+// 志愿单内移除
+function removeFormItem(key){
+  sel.delete(key);
+  var order=window.__formOrder||[];
+  var idx=order.indexOf(key);
+  if(idx>=0)order.splice(idx,1);
+  window.__formOrder=order;
+  updateFloat();
+  openForm();
+}
+
+// ===== 专业详情弹窗 =====
+function openMajorDetail(majorName){
+  var all=getAllRecords();
+  var majors=aggregateByMajor(all);
+  var target=null;
+  for(var i=0;i<majors.length;i++){if(majors[i].majorName===majorName){target=majors[i];break;}}
+  if(!target)return toast('未找到专业数据',1);
+  // 去重学校，按综合分降序
+  var seen={},dedup=[];
+  for(var i=0;i<target.records.length;i++){
+    if(!seen[target.records[i].schoolName]){seen[target.records[i].schoolName]=true;dedup.push(target.records[i]);}
+  }
+  dedup.sort(function(a,b){return (b.compositeScore||0)-(a.compositeScore||0);});
+  // 分数分布
+  var bSize=20,bStart=400,buckets=[];
+  while(bStart<650){buckets.push({min:bStart,max:bStart+bSize,cnt:0});bStart+=bSize;}
+  for(var i=0;i<dedup.length;i++){var sc=dedup[i].compositeScore;if(typeof sc!=='number'||sc<=0)continue;for(var j=0;j<buckets.length;j++){if(sc>=buckets[j].min&&sc<buckets[j].max){buckets[j].cnt++;break;}}}
+  var maxB=0;for(var i=0;i<buckets.length;i++){if(buckets[i].cnt>maxB)maxB=buckets[i].cnt;}
+  // 城市分布
+  var cityMap={};
+  for(var i=0;i<dedup.length;i++){var ct=dedup[i].city||'未知';var s=ct.replace(/^浙江省|^浙江省|^江苏省|^江西省|^湖北省|^湖南省|^山东省|^吉林省|^安徽省|^福建省|^广东省|^河南省|^河北省|^辽宁省|^陕西省/g,'').replace(/市$/,'>').trim();if(!cityMap[s])cityMap[s]=0;cityMap[s]++;}
+  var cityArr=[];for(var k in cityMap)cityArr.push({name:k,cnt:cityMap[k]});cityArr.sort(function(a,b){return b.cnt-a.cnt;});
+  // 渲染
+  var html='<div class="md-header"><h3>📚 '+esc(majorName)+'</h3><div class="md-meta">开设院校：<strong>'+dedup.length+'</strong> 所 | 综合分区间：<strong>'+target.scoreMin+' ~ '+target.scoreMax+'</strong> | 均值：<strong>'+target.scoreAvg+'</strong> | 平均学费：<strong>'+(target.tuitionAvg||'--')+'</strong>/年</div></div>';
+  // 分数分布图
+  html+='<div class="md-chart"><div style="font-weight:600;font-size:.78rem;margin-bottom:6px;color:var(--color-text)">📊 综合分分布</div>';
+  for(var i=0;i<buckets.length;i++){var b=buckets[i];var pct=maxB?Math.round(b.cnt/maxB*100):0;html+='<div class="md-bar"><span class="md-bar-lbl">'+b.min+'-'+(b.min+20)+'</span><div class="md-bar-track"><div class="md-bar-fill" style="width:'+pct+'%;background:var(--color-accent)"><span>'+b.cnt+'</span></div></div><span class="md-bar-val">'+b.cnt+'</span></div>';}
+  html+='</div>';
+  // 城市分布
+  html+='<div class="md-chart"><div style="font-weight:600;font-size:.78rem;margin-bottom:6px;color:var(--color-text)">📍 城市分布 TOP 10</div>';
+  var topCities=cityArr.slice(0,10),maxCity=topCities[0]?topCities[0].cnt:0;
+  for(var i=0;i<topCities.length;i++){var tc=topCities[i];var pct=Math.round(tc.cnt/maxCity*100);html+='<div class="md-bar"><span class="md-bar-lbl">'+esc(tc.name)+'</span><div class="md-bar-track"><div class="md-bar-fill" style="width:'+pct+'%;background:#f59e0b"><span>'+tc.cnt+'</span></div></div><span class="md-bar-val">'+tc.cnt+'</span></div>';}
+  html+='</div>';
+  // 开设院校列表
+  html+='<div style="font-weight:600;font-size:.78rem;margin:10px 0 6px 0;color:var(--color-text)">🏫 开设院校（按综合分排序）</div><div class="md-schools">';
+  var maxSc=dedup[0]?dedup[0].compositeScore:0;
+  for(var i=0;i<dedup.length;i++){
+    var r=dedup[i];
+    var tags=[];
+    if(r.is985)tags.push('<span class="tag tag-985">985</span>');
+    if(r.is211)tags.push('<span class="tag tag-211">211</span>');
+    if(r.isDoubleFirst)tags.push('<span class="tag tag-df">双一流</span>');
+    if(r.isPrivate)tags.push('<span class="tag tag-pv">民办</span>');
+    html+='<div class="md-school"><span class="mds-rank">'+(i+1)+'</span><div class="mds-name"><span>'+esc(r.schoolName)+' '+tags.join(' ')+'</span></div><span class="mds-score">'+r.compositeScore+' <span style="font-size:.62rem;color:var(--color-text-tertiary);margin-left:3px">'+(maxSc?Math.round(r.compositeScore/maxSc*100):0)+'%</span></span></div>';
+  }
+  html+='</div>';
+  document.getElementById('mdTitle').textContent='📚 专业详情 — '+majorName;
+  document.getElementById('mdBody').innerHTML=html;
+  document.getElementById('majorDetailModal').classList.remove('hidden');
+}
+
+// 关闭专业详情
+document.addEventListener('DOMContentLoaded',function(){
+  var btn=document.getElementById('btnMdClose');
+  if(btn)btn.addEventListener('click',function(){document.getElementById('majorDetailModal').classList.add('hidden');});
+});
 
 function openCmp(){
   const selected=[...sel.values()].slice(0,MAX_CMP);
   if(selected.length<2)return toast('至少选2所',1);
-  const fields=[{l:'🏫 院校名称',f:'schoolName'},{l:'📚 专业名称',f:'majorName'},{l:'📊 综合分',f:'compositeScore',n:1},{l:'🏅 位次',f:'rankPosition',n:1},{l:'💰 学费',r:r=>typeof r.tuition=='number'?r.tuition.toLocaleString()+'/年':(r.tuition||'--')},{l:'🏠 宿舍',f:'dorm'},{l:'📍 城市',f:'city'},{l:'📋 计划数',f:'plan25'},{l:'🏷️ 层次',r:r=>{const t=[];if(r.is985)t.push('985');if(r.is211)t.push('211');if(r.isDoubleFirst)t.push('双一流');return t.join('·')||r.schoolType||'--'}}];
+  // 扩展对比维度
+  const fields=[
+    {l:'🏫 院校',f:'schoolName'},
+    {l:'📚 专业',f:'majorName'},
+    {l:'📊 综合分',f:'compositeScore',n:1},
+    {l:'🏅 位次',f:'rankPosition',n:1},
+    {l:'💰 学费/年',r:r=>typeof r.tuition=='number'?r.tuition.toLocaleString():r.tuition||'--'},
+    {l:'🏠 宿舍',f:'dorm'},
+    {l:'📍 城市',f:'city'},
+    {l:'📋 25计划',f:'plan25',n:1},
+    {l:'🏷️ 层次',r:r=>{const t=[];if(r.is985)t.push('985');if(r.is211)t.push('211');if(r.isDoubleFirst)t.push('双一流');return t.join('·')||r.schoolType||'--';}},
+    {l:'📈 软科',f:'rankLevel'},
+    {l:'📝 备注',f:'note'},
+    {l:'📚 课程',f:'courseGuide'},
+    {l:'🎯 培养',f:'talentGoal'},
+    {l:'🏫 校区',f:'campus'},
+    {l:'📋 来源',r:r=>r.scoreSource==='estimated'?'预估':'实际'},
+  ];
   const diffRows=new Set();
   for(const fd of fields){const vals=selected.map(r=>fd.r?fd.r(r):(fd.n?r[fd.f]:r[fd.f]));if(!vals.every(v=>String(v)===String(vals[0])))diffRows.add(fd.l);}
   let html='<div class="ctw"><table class="ct"><thead><tr><th></th>';
@@ -827,13 +1323,24 @@ function dashEntryClick(tab){
 
 // ===== 院校浏览 =====
 var __schoolCat='all',__schoolSearch='',__schoolSort='scoreDesc',__schoolFilters={type:'all'};
+var __schoolSubCat='all'; // 子门类选择
+var __schoolProvince='all',__schoolCity='all'; // 省份/城市筛选
 var __schoolSel=new Set(); // 记录已勾选的学校名
 function renderSchoolBrowser(catKey){
   if(catKey!==undefined)__schoolCat=catKey;
+  // 切换门类时重置子门类
+  if(catKey!==undefined)__schoolSubCat='all';
   var all=getAllRecords();
   if(__schoolCat!=='all')all=all.filter(function(r){return r.catKey===__schoolCat;});
+  // 子门类筛选
+  if(__schoolCat!=='all'&&__schoolSubCat!=='all'){
+    all=filterBySubcat(all,__schoolSubCat);
+  }
+  // 省份/城市筛选
+  all=filterByProvince(all,__schoolProvince);
+  all=filterByCity(all,__schoolCity);
   var schools=aggregateBySchool(all);
-  
+
   // 门类 tab
   var tabsHtml='<button class="'+(__schoolCat==='all'?'on':'')+'" data-t="all">全部</button>';
   for(var i=0;i<CATS.length;i++){
@@ -844,6 +1351,31 @@ function renderSchoolBrowser(catKey){
   document.getElementById('schoolCatTabs').onclick=function(e){
     if(e.target.tagName==='BUTTON'){filterSchoolCat(e.target.dataset.t);}
   };
+
+  // 子门类 tab（仅当所选门类有子分类时显示）
+  var subCatContainer=document.getElementById('schoolSubCatTabs');
+  var subcats=getSubcats(__schoolCat);
+  if(subcats.length&&__schoolCat!=='all'){
+    var subHtml='<button class="'+(__schoolSubCat==='all'?'on':'')+'" data-st="all">全部</button>';
+    for(var i=0;i<subcats.length;i++){
+      var sc=subcats[i];
+      subHtml+='<button class="'+(__schoolSubCat===sc.k?'on':'')+'" data-st="'+sc.k+'">'+sc.i+' '+sc.l+'</button>';
+      if(sc.children){
+        for(var j=0;j<sc.children.length;j++){
+          var ch=sc.children[j];
+          subHtml+='<button class="'+(__schoolSubCat===ch.k?'on':'')+'" data-st="'+ch.k+'" style="font-size:.78rem">'+ch.i+' '+ch.l+'</button>';
+        }
+      }
+    }
+    subCatContainer.innerHTML=subHtml;
+    subCatContainer.style.display='flex';
+    subCatContainer.onclick=function(e){
+      if(e.target.tagName==='BUTTON'){__schoolSubCat=e.target.dataset.st;renderSchoolBrowser();}
+    };
+  }else{
+    subCatContainer.innerHTML='';
+    subCatContainer.style.display='none';
+  }
   
   // 筛选按钮
   document.getElementById('schoolFilters').innerHTML=
@@ -862,7 +1394,30 @@ function renderSchoolBrowser(catKey){
   document.getElementById('schoolSearch').oninput=function(){__schoolSearch=this.value.trim().toLowerCase();renderSchoolBrowser();};
   document.getElementById('schoolSort').value=__schoolSort||'scoreDesc';
   document.getElementById('schoolSort').onchange=function(){__schoolSort=this.value;renderSchoolBrowser();};
-  
+
+  // 省份/城市筛选控件初始化
+  var spSel=document.getElementById('schoolProvince');
+  var scSel=document.getElementById('schoolCity');
+  // 初始化省份选项（仅首次）
+  if(!spSel.dataset.init){
+    var spHtml='<option value="all">不限省份</option>';
+    for(var pi=0;pi<PROVINCES.length;pi++){spHtml+='<option value="'+PROVINCES[pi].k+'">'+PROVINCES[pi].i+' '+PROVINCES[pi].l+'</option>';}
+    spSel.innerHTML=spHtml;
+    spSel.dataset.init='1';
+    spSel.onchange=function(){
+      __schoolProvince=this.value;
+      __schoolCity='all';
+      // 更新城市下拉
+      updateBrowserCitySelect('school',all);
+      renderSchoolBrowser();
+    };
+    scSel.onchange=function(){
+      __schoolCity=this.value;
+      renderSchoolBrowser();
+    };
+  }
+  spSel.value=__schoolProvince;
+  updateBrowserCitySelect('school',all);
   // 筛选
   var filtered=schools;
   if(__schoolSearch){
@@ -884,7 +1439,8 @@ function renderSchoolBrowser(catKey){
   };
   if(sortMap[__schoolSort])filtered.sort(sortMap[__schoolSort]);
   
-  document.getElementById('schoolSub').textContent='共 '+filtered.length+' 所院校'+(__schoolCat!=='all'?'（'+CATS.filter(function(c){return c.k===__schoolCat;}).map(function(c){return c.l;})[0]+'）':'');
+  var catLabel=__schoolCat!=='all'?'（'+CATS.filter(function(c){return c.k===__schoolCat;}).map(function(c){return c.l;})[0]+(__schoolSubCat!=='all'?' - '+getSubcatLabel(__schoolCat,__schoolSubCat):'')+'）':'';
+  document.getElementById('schoolSub').textContent='共 '+filtered.length+' 所院校'+catLabel;
   
   if(!filtered.length){
     document.getElementById('schoolList').innerHTML='<p style="text-align:center;color:var(--color-text-tertiary);padding:40px 0">暂无匹配院校</p>';
@@ -975,6 +1531,35 @@ function renderSchoolBrowser(catKey){
 }
 
 function filterSchoolCat(catKey){__schoolCat=catKey;renderSchoolBrowser();}
+
+// 通用：更新院校/专业浏览中的城市下拉框
+function updateBrowserCitySelect(prefix,records){
+  var provinceSel=document.getElementById(prefix+'Province');
+  var citySel=document.getElementById(prefix+'City');
+  var provinceKey=provinceSel.value;
+  if(provinceKey==='all'){
+    citySel.style.display='none';
+    citySel.innerHTML='<option value="all">不限城市</option>';
+    return;
+  }
+  var cities=getCitiesByProvince(records,provinceKey);
+  if(!cities.length){
+    citySel.style.display='none';
+    citySel.innerHTML='<option value="all">不限城市</option>';
+    return;
+  }
+  citySel.style.display='';
+  var html='<option value="all">不限城市（'+cities.length+'个）</option>';
+  for(var i=0;i<cities.length;i++){
+    var shortName=cities[i].name.replace(/^(浙江|江苏|上海|安徽|福建|江西|山东|河南|湖北|湖南|广东|广西|海南|重庆|四川|贵州|云南|北京|天津|河北|山西|陕西|辽宁|吉林|黑龙江|内蒙古|新疆|宁夏|甘肃|青海|西藏)/,'');
+    html+='<option value="'+escAttr(cities[i].name)+'">'+shortName+' ('+cities[i].cnt+')</option>';
+  }
+  citySel.innerHTML=html;
+  // 恢复当前选中值
+  if(prefix==='school')citySel.value=__schoolCity;
+  else if(prefix==='major')citySel.value=__majorCity;
+}
+
 function toggleSchoolCard(card,event){
   // 如果点击的是复选框区域，不展开卡片
   if(event){
@@ -994,13 +1579,21 @@ function toggleSchoolCard(card,event){
 }
 
 // ===== 专业浏览 =====
-var __majorCat='all',__selectedMajor=null;
+var __majorCat='all',__majorSubCat='all',__selectedMajor=null;
+var __majorProvince='all',__majorCity='all'; // 省份/城市筛选
 function renderMajorBrowser(catKey){
-  if(catKey!==undefined){__majorCat=catKey;__selectedMajor=null;}
+  if(catKey!==undefined){__majorCat=catKey;__selectedMajor=null;__majorSubCat='all';}
   var all=getAllRecords();
   if(__majorCat!=='all')all=all.filter(function(r){return r.catKey===__majorCat;});
+  // 子门类筛选
+  if(__majorCat!=='all'&&__majorSubCat!=='all'){
+    all=filterBySubcat(all,__majorSubCat);
+  }
+  // 省份/城市筛选
+  all=filterByProvince(all,__majorProvince);
+  all=filterByCity(all,__majorCity);
   var majors=aggregateByMajor(all);
-  
+
   // 门类 tab
   var tabsHtml='<button class="'+(__majorCat==='all'?'on':'')+'" data-t="all">全部</button>';
   for(var i=0;i<CATS.length;i++){
@@ -1011,7 +1604,54 @@ function renderMajorBrowser(catKey){
   document.getElementById('majorCatTabs').onclick=function(e){
     if(e.target.tagName==='BUTTON'){renderMajorBrowser(e.target.dataset.t);}
   };
-  
+
+  // 子门类 tab
+  var subCatContainer=document.getElementById('majorSubCatTabs');
+  var subcats=getSubcats(__majorCat);
+  if(subcats.length&&__majorCat!=='all'){
+    var subHtml='<button class="'+(__majorSubCat==='all'?'on':'')+'" data-st="all">全部</button>';
+    for(var i=0;i<subcats.length;i++){
+      var sc=subcats[i];
+      subHtml+='<button class="'+(__majorSubCat===sc.k?'on':'')+'" data-st="'+sc.k+'">'+sc.i+' '+sc.l+'</button>';
+      if(sc.children){
+        for(var j=0;j<sc.children.length;j++){
+          var ch=sc.children[j];
+          subHtml+='<button class="'+(__majorSubCat===ch.k?'on':'')+'" data-st="'+ch.k+'" style="font-size:.78rem">'+ch.i+' '+ch.l+'</button>';
+        }
+      }
+    }
+    subCatContainer.innerHTML=subHtml;
+    subCatContainer.style.display='flex';
+    subCatContainer.onclick=function(e){
+      if(e.target.tagName==='BUTTON'){__majorSubCat=e.target.dataset.st;renderMajorBrowser();}
+    };
+  }else{
+    subCatContainer.innerHTML='';
+    subCatContainer.style.display='none';
+  }
+
+  // 省份/城市筛选控件初始化
+  var mpSel=document.getElementById('majorProvince');
+  var mcSel=document.getElementById('majorCity');
+  if(!mpSel.dataset.init){
+    var mpHtml='<option value="all">不限省份</option>';
+    for(var pi=0;pi<PROVINCES.length;pi++){mpHtml+='<option value="'+PROVINCES[pi].k+'">'+PROVINCES[pi].i+' '+PROVINCES[pi].l+'</option>';}
+    mpSel.innerHTML=mpHtml;
+    mpSel.dataset.init='1';
+    mpSel.onchange=function(){
+      __majorProvince=this.value;
+      __majorCity='all';
+      updateBrowserCitySelect('major',all);
+      renderMajorBrowser();
+    };
+    mcSel.onchange=function(){
+      __majorCity=this.value;
+      renderMajorBrowser();
+    };
+  }
+  mpSel.value=__majorProvince;
+  updateBrowserCitySelect('major',all);
+
   // 左侧专业列表
   var leftHtml='';
   if(!majors.length){
@@ -1027,7 +1667,7 @@ function renderMajorBrowser(catKey){
   // 右侧详情
   if(__selectedMajor && __selectedMajor.records.length>0){
     var m=__selectedMajor;
-    var rightHtml='<div class="mr-header"><h4>📚 '+esc(m.majorName)+'</h4><div class="mr-stats">开设院校：<strong>'+m.schoolCount+'</strong> 所 | 综合分区间：<strong>'+m.scoreMin+' ~ '+m.scoreMax+'</strong> | 均值：<strong>'+m.scoreAvg+'</strong> | 平均学费：<strong>'+(m.tuitionAvg||'--').toLocaleString()+'</strong>/年</div></div><div class="mr-schools">';
+    var rightHtml='<div class="mr-header"><h4 style="cursor:pointer" onclick="openMajorDetail(\''+escAttr(m.majorName)+'\')">📚 '+esc(m.majorName)+' <span style="font-size:.68rem;color:var(--color-accent)">📈 查看详情</span></h4><div class="mr-stats">开设院校：<strong>'+m.schoolCount+'</strong> 所 | 综合分区间：<strong>'+m.scoreMin+' ~ '+m.scoreMax+'</strong> | 均值：<strong>'+m.scoreAvg+'</strong> | 平均学费：<strong>'+(m.tuitionAvg||'--').toLocaleString()+'</strong>/年</div></div><div class="mr-schools">';
     var ranked=m.records;
     // 去重学校（同一学校可能有多条记录，取第一条）
     var seen={},dedup=[];
@@ -1090,6 +1730,9 @@ function renderMajorBrowser(catKey){
 function selectMajor(majorName){
   var all=getAllRecords();
   if(__majorCat!=='all')all=all.filter(function(r){return r.catKey===__majorCat;});
+  if(__majorCat!=='all'&&__majorSubCat!=='all'){
+    all=filterBySubcat(all,__majorSubCat);
+  }
   var majors=aggregateByMajor(all);
   for(var i=0;i<majors.length;i++){
     if(majors[i].majorName===majorName){__selectedMajor=majors[i];break;}

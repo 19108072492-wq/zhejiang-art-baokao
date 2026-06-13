@@ -15,10 +15,156 @@ function calcScore(c,a,k){const f=FORMULA[k];if(!f)throw new Error('未知门类
 
 // ===== 数据管理 =====
 const CATS=[{k:'finearts',l:'美术与设计类',i:'🎨'},{k:'music',l:'音乐类',i:'🎵'},{k:'dance',l:'舞蹈类',i:'💃'},{k:'broadcast',l:'播音与主持类',i:'🎙️'},{k:'acting',l:'表（导）演类',i:'🎭'},{k:'calligraphy',l:'书法类',i:'✒️'}];
+
+// ===== 子门类定义 =====
+// 音乐类细分：音乐教育（声乐主项/器乐主项）、音乐表演（声乐/器乐）
+// 表导演类细分：戏剧影视表演、戏剧影视导演
+const SUBCATS={
+  music:[
+    {k:'musEdu',l:'音乐教育',i:'📖',children:[
+      {k:'musEduVocal',l:'声乐主项',i:'🎤'},
+      {k:'musEduInstr',l:'器乐主项',i:'🎹'}
+    ]},
+    {k:'musPerf',l:'音乐表演',i:'🎼',children:[
+      {k:'musPerfVocal',l:'声乐',i:'🎤'},
+      {k:'musPerfInstr',l:'器乐',i:'🎻'}
+    ]}
+  ],
+  acting:[
+    {k:'actPerform',l:'戏剧影视表演',i:'🎬'},
+    {k:'actDirect',l:'戏剧影视导演',i:'🎥'}
+  ]
+};
+
+// 获取某门类的子门类列表（含children）
+function getSubcats(catKey){return SUBCATS[catKey]||[];}
+
+// 根据子门类 key 过滤记录
+function filterBySubcat(records,subcatKey){
+  if(!subcatKey||subcatKey==='all')return records;
+  return records.filter(function(r){
+    var sc=r.subCategory||'';
+    var mn=(r.majorName||'').toLowerCase();
+    switch(subcatKey){
+      // 音乐教育
+      case 'musEdu':
+        return sc==='音教声乐'||sc==='音教器乐'||/音乐学.*师范|音乐教育/.test(r.majorName||'');
+      case 'musEduVocal':
+        return sc==='音教声乐'||/音乐学.*声乐.*师范|音乐学.*声乐主项|音乐教育.*声乐/.test(r.majorName||'');
+      case 'musEduInstr':
+        return sc==='音教器乐'||/音乐学.*器乐.*师范|音乐学.*钢琴主项|音乐学.*器乐方向|音乐教育.*器乐/.test(r.majorName||'');
+      // 音乐表演
+      case 'musPerf':
+        return sc==='音表声乐'||sc==='音表器乐'||/音乐表演/.test(r.majorName||'');
+      case 'musPerfVocal':
+        return sc==='音表声乐'||/音乐表演.*声乐|音乐表演.*演唱|音乐表演.*美声|音乐表演.*民声|音乐表演.*合唱/.test(r.majorName||'');
+      case 'musPerfInstr':
+        return sc==='音表器乐'||/音乐表演.*器乐|音乐表演.*钢琴|音乐表演.*弦|音乐表演.*管|音乐表演.*二胡|音乐表演.*古筝|音乐表演.*低音|音乐表演.*小提琴|音乐表演.*大提琴|音乐表演.*中提琴/.test(r.majorName||'');
+      // 表导演 - 戏剧影视表演
+      case 'actPerform':
+        return /戏剧影视表演|表演(?!.*导演)|表演艺术|音乐剧|表演.*影视|表演.*话剧|表演.*舞台|表演.*歌舞|表演.*时尚|表演.*服装|表演.*服饰|表演.*模特|时尚表演/.test(r.majorName||'');
+      // 表导演 - 戏剧影视导演
+      case 'actDirect':
+        return /戏剧影视导演|导演/.test(r.majorName||'');
+      default:return true;
+    }
+  });
+}
+
 function loadData(k){if(window.__D__&&window.__D__[k])return window.__D__[k];console.warn('[Core] 数据尚未加载: '+k+'，返回空数组');return[];}
 function saveData(k,d){localStorage.setItem('zjyk_'+k,JSON.stringify(d));}
 function clearData(k){localStorage.removeItem('zjyk_'+k);}
 function totalCount(){let s=0;CATS.forEach(c=>s+=loadData(c.k).length);return s;}
+
+// ===== 省份/城市筛选 =====
+// 省份列表（含标签和emoji）
+var PROVINCES=[
+  {k:'zhejiang',l:'浙江省',i:'🏛️'},
+  {k:'jiangsu',l:'江苏省',i:'🌸'},
+  {k:'shanghai',l:'上海市',i:'🌃'},
+  {k:'anhui',l:'安徽省',i:'🏔️'},
+  {k:'fujian',l:'福建省',i:'🌴'},
+  {k:'jiangxi',l:'江西省',i:'🍃'},
+  {k:'shandong',l:'山东省',i:'⚓'},
+  {k:'henan',l:'河南省',i:'🎪'},
+  {k:'hubei',l:'湖北省',i:'🏯'},
+  {k:'hunan',l:'湖南省',i:'🌶️'},
+  {k:'guangdong',l:'广东省',i:'🍲'},
+  {k:'guangxi',l:'广西壮族自治区',i:'🌺'},
+  {k:'hainan',l:'海南省',i:'🏖️'},
+  {k:'chongqing',l:'重庆市',i:'🌆'},
+  {k:'sichuan',l:'四川省',i:'🐼'},
+  {k:'guizhou',l:'贵州省',i:'⛰️'},
+  {k:'yunnan',l:'云南省',i:'🌈'},
+  {k:'beijing',l:'北京市',i:'🏤'},
+  {k:'tianjin',l:'天津市',i:'🎡'},
+  {k:'hebei',l:'河北省',i:'🌾'},
+  {k:'shanxi',l:'山西省',i:'🏺'},
+  {k:'shaanxi',l:'陕西省',i:'🏛️'},
+  {k:'liaoning',l:'辽宁省',i:'🏭'},
+  {k:'jilin',l:'吉林省',i:'❄️'},
+  {k:'heilongjiang',l:'黑龙江省',i:'🌲'},
+  {k:'neimenggu',l:'内蒙古自治区',i:'🏇'},
+  {k:'xinjiang',l:'新疆维吾尔自治区',i:'🏜️'},
+  {k:'ningxia',l:'宁夏回族自治区',i:'🕌'},
+  {k:'gansu',l:'甘肃省',i:'🏜️'},
+  {k:'qinghai',l:'青海省',i:'🏔️'},
+  {k:'xizang',l:'西藏自治区',i:'🏔️'}
+];
+
+// 省份关键词 → 省份 key 映射
+var PROVINCE_KEYWORDS={
+  '浙江':'zhejiang','江苏':'jiangsu','上海':'shanghai','安徽':'anhui','福建':'fujian',
+  '江西':'jiangxi','山东':'shandong','河南':'henan','湖北':'hubei','湖南':'hunan',
+  '广东':'guangdong','广西':'guangxi','海南':'hainan','重庆':'chongqing','四川':'sichuan',
+  '贵州':'guizhou','云南':'yunnan','北京':'beijing','天津':'tianjin','河北':'hebei',
+  '山西':'shanxi','陕西':'shaanxi','辽宁':'liaoning','吉林':'jilin','黑龙江':'heilongjiang',
+  '内蒙古':'neimenggu','新疆':'xinjiang','宁夏':'ningxia','甘肃':'gansu','青海':'qinghai',
+  '西藏':'xizang'
+};
+
+// 根据省份key筛选记录
+function filterByProvince(records,provinceKey){
+  if(!provinceKey||provinceKey==='all')return records;
+  // 找到省份关键词
+  var keyword='';
+  for(var kw in PROVINCE_KEYWORDS){
+    if(PROVINCE_KEYWORDS[kw]===provinceKey){keyword=kw;break;}
+  }
+  if(!keyword)return records;
+  return records.filter(function(r){
+    var city=(r.city||'').toString();
+    return city.indexOf(keyword)===0;
+  });
+}
+
+// 根据城市名筛选记录
+function filterByCity(records,cityName){
+  if(!cityName||cityName==='all')return records;
+  return records.filter(function(r){return (r.city||'').toString()===cityName;});
+}
+
+// 获取某省份下的所有城市（从记录中提取）
+function getCitiesByProvince(records,provinceKey){
+  var keyword='';
+  for(var kw in PROVINCE_KEYWORDS){
+    if(PROVINCE_KEYWORDS[kw]===provinceKey){keyword=kw;break;}
+  }
+  if(!keyword)return [];
+  var citySet={};
+  for(var i=0;i<records.length;i++){
+    var city=(records[i].city||'').toString();
+    if(city.indexOf(keyword)===0&&city.length>keyword.length){
+      if(!citySet[city])citySet[city]=0;
+      citySet[city]++;
+    }
+  }
+  // 排序按记录数降序
+  var arr=[];
+  for(var c in citySet)arr.push({name:c,cnt:citySet[c]});
+  arr.sort(function(a,b){return b.cnt-a.cnt;});
+  return arr;
+}
 
 // ===== 合并数据源 =====
 // 返回所有记录（内置 + localStorage），用于院校浏览、专业浏览、数据分析
@@ -297,9 +443,23 @@ function matchSchools(userScore,artKey,cultureScore,pool){
     else if(/浙江/.test(city))cityLevelScore=0.15;
     else cityLevelScore=0.10;
 
-    // 加权: 12维
-    const w=[0.25,0.20,0.06,0.09,0.06,0.04,0.10,0.04,0.04,0.03,0.06,0.03];
-    const scores=[proximity,tierScore,rankScore,majorScore,cultivateScore,degreeScore,confidence,localScore,tuitionScore,planScore,rankMatchScore,cityLevelScore];
+    // 13. 招生计划趋势 (weight: 2): plan25 vs plan24
+    let planTrendScore=0.50;
+    const p25=(r.plan25||0),p24=(r.plan24||0);
+    if(p25>0&&p24>0){
+      const ratio=p25/p24;
+      if(ratio>=1.15)planTrendScore=0.75; // 扩招>15% → 竞争降低
+      else if(ratio>=1.05)planTrendScore=0.60;
+      else if(ratio>=0.95)planTrendScore=0.50; // 基本持平
+      else if(ratio>=0.85)planTrendScore=0.35; // 缩招
+      else planTrendScore=0.20; // 大幅缩招 → 竞争加剧
+    }else if(p25>0&&p24===0){
+      planTrendScore=0.65; // 新增招生计划
+    }
+
+    // 加权: 13维
+    const w=[0.24,0.19,0.06,0.09,0.06,0.04,0.10,0.04,0.04,0.03,0.06,0.03,0.02];
+    const scores=[proximity,tierScore,rankScore,majorScore,cultivateScore,degreeScore,confidence,localScore,tuitionScore,planScore,rankMatchScore,cityLevelScore,planTrendScore];
     let total=0;
     for(let i=0;i<w.length;i++)total+=w[i]*scores[i];
     total=Math.round(total*100);
@@ -307,8 +467,8 @@ function matchSchools(userScore,artKey,cultureScore,pool){
     if(raw)return{
       total,
       details:{
-        proximity:{score:Math.round(proximity*100),weight:25,label:'分差接近度',raw:w[0]*proximity},
-        tier:{score:Math.round(tierScore*100),weight:20,label:'院校层次',extra:tierLabel,raw:w[1]*tierScore},
+        proximity:{score:Math.round(proximity*100),weight:24,label:'分差接近度',raw:w[0]*proximity},
+        tier:{score:Math.round(tierScore*100),weight:19,label:'院校层次',extra:tierLabel,raw:w[1]*tierScore},
         rank:{score:Math.round(rankScore*100),weight:6,label:'软科排名',raw:w[2]*rankScore},
         major:{score:Math.round(majorScore*100),weight:9,label:'专业特色',raw:w[3]*majorScore},
         cultivate:{score:Math.round(cultivateScore*100),weight:6,label:'培养模式',raw:w[4]*cultivateScore},
@@ -319,6 +479,7 @@ function matchSchools(userScore,artKey,cultureScore,pool){
         plan:{score:Math.round(planScore*100),weight:3,label:'招生计划数',raw:w[9]*planScore},
         rankMatch:{score:Math.round(rankMatchScore*100),weight:6,label:'位次匹配度',raw:w[10]*rankMatchScore},
         cityLevel:{score:Math.round(cityLevelScore*100),weight:3,label:'城市级别',raw:w[11]*cityLevelScore},
+        planTrend:{score:Math.round(planTrendScore*100),weight:2,label:'计划趋势',extra:p25>p24?'扩招':p25<p24?'缩招':'持平',raw:w[12]*planTrendScore},
       }
     };
     return total;

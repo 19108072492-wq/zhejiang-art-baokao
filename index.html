@@ -444,6 +444,9 @@ body{
 
 /* ===== FILTER PILLS ===== */
 .fil{display:flex;gap:var(--_sp-2);margin-bottom:var(--_sp-4);flex-wrap:wrap}
+.fil-sub{gap:var(--_sp-1);margin-bottom:var(--_sp-2);margin-top:calc(-1 * var(--_sp-3))}
+.fil-sub button{font-size:.78rem;padding:3px 10px;border-radius:12px;background:var(--color-surface-secondary);color:var(--color-text-secondary);border:1px solid var(--color-border)}
+.fil-sub button.on{background:var(--color-accent);color:#fff;border-color:var(--color-accent)}
 .fil button{
   padding:7px 18px;border-radius:var(--_radius-full);
   font-size:.78rem;font-weight:600;cursor:pointer;
@@ -959,7 +962,55 @@ html[data-theme="dark"] .toast,
 .ana-detail summary::-webkit-details-marker{display:none}
 .ana-detail .ad-grid{padding:var(--_sp-2) 0}
 
-/* ===== FLOATING ACTION BUTTON (SPEED DIAL) ===== */
+/* ===== VOLUNTEER FORM (志愿单) ===== */
+.vsec{margin-bottom:var(--_sp-5)}
+.vsec h3{font-size:.88rem;margin-bottom:var(--_sp-2)}
+.vsec h3 .tier-badge{padding:2px 10px;border-radius:12px;font-size:.78rem;font-weight:700;color:#fff}
+.col-drag{width:28px;text-align:center;color:var(--color-text-tertiary);cursor:grab;user-select:none;font-size:.9rem}
+.col-seq{width:32px;text-align:center;font-weight:700;color:var(--color-accent)}
+.col-act{width:90px;text-align:center;white-space:nowrap}
+.drag-handle{cursor:grab;padding:2px 4px;color:var(--color-text-tertiary);user-select:none;font-size:.95rem}
+.drag-handle:hover{color:var(--color-accent)}
+.draggable-row{transition:background .15s}
+.draggable-row.dragging{opacity:.4;background:var(--color-surface-secondary)}
+.draggable-row.drag-before{border-top:2px solid var(--color-accent)!important}
+.draggable-row.drag-after{border-bottom:2px solid var(--color-accent)!important}
+.draggable-row.drag-over{background:var(--color-surface-secondary)}
+.btn-xs{padding:2px 6px;font-size:.68rem;border-radius:var(--_radius-xs);border:1px solid var(--color-border);background:var(--color-surface);cursor:pointer;color:var(--color-text-secondary)}
+.btn-xs:hover{background:var(--color-surface-alt);color:var(--color-accent)}
+.vtbl-wrap{overflow-x:auto}
+.vsec table th,.vsec table td{padding:5px 7px;font-size:.76rem}
+.vsec table th{font-size:.7rem}
+
+/* ===== MAJOR DETAIL MODAL ===== */
+#mdBody{padding:var(--_sp-3)}
+.md-header{margin-bottom:var(--_sp-4)}
+.md-header h3{font-size:1rem;font-weight:700;color:var(--color-accent)}
+.md-header .md-meta{font-size:.74rem;color:var(--color-text-tertiary);margin-top:4px}
+.md-chart{margin:12px 0;padding:12px;background:var(--color-surface-alt);border-radius:var(--_radius-md)}
+.md-chart .md-bar{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:.72rem}
+.md-chart .md-bar-lbl{width:90px;flex-shrink:0;text-align:right;color:var(--color-text-secondary);font-weight:500}
+.md-chart .md-bar-track{flex:1;height:16px;background:var(--color-border-light);border-radius:4px;overflow:hidden}
+.md-chart .md-bar-fill{height:100%;border-radius:4px;transition:width .6s var(--_ease-out)}
+.md-chart .md-bar-val{width:48px;text-align:right;font-weight:600;color:var(--color-text);font-size:.7rem}
+.md-schools{display:flex;flex-direction:column;gap:4px;margin-top:8px}
+.md-school{display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--color-border-light);border-radius:var(--_radius-sm);font-size:.76rem;background:var(--color-surface)}
+.md-school .mds-rank{width:24px;text-align:center;font-weight:700;color:var(--color-accent);font-size:.78rem}
+.md-school .mds-name{flex:1;min-width:0}
+.md-school .mds-score{font-weight:600;color:var(--color-accent);white-space:nowrap}
+.md-school .mds-tags{display:flex;gap:4px;flex-shrink:0}
+
+/* ===== PRINT (PDF导出) ===== */
+@media print{
+  body *{visibility:hidden}
+  .mod-pn,.mod-pn *{visibility:visible}
+  .mod-pn{position:absolute;left:0;top:0;width:100%;max-width:100%!important;box-shadow:none!important;border:none!important;padding:10px 16px!important}
+  .mhdr,.fab-container,.gear,.hdr,.ft,.flt,.float-bar,.sbar,.sch,.data-source-card{display:none!important}
+  .vsec table{font-size:11pt!important;page-break-inside:avoid}
+  .vsec table th{background:#f0f0f0!important;color:#333!important}
+  .vsec h3{font-size:12pt!important;color:#333!important}
+  @page{margin:8mm;size:A4}
+}
 .fab-container{
   position:fixed;bottom:100px;right:20px;z-index:140;
   display:flex;flex-direction:column;align-items:center;gap:12px;
@@ -1059,13 +1110,14 @@ html[data-theme="dark"] .toast,
     <div class="card-sub">请输入高考文化课成绩与艺术统考成绩</div>
     <div class="frow">
       <div class="fcol"><label>艺术门类</label><select id="cat"><option value="">请选择</option><option value="finearts">🎨 美术与设计类</option><option value="music">🎵 音乐类</option><option value="dance">💃 舞蹈类</option><option value="broadcast">🎙️ 播音与主持类</option><option value="acting">🎭 表（导）演类</option><option value="calligraphy">✒️ 书法类</option></select></div>
+      <div class="fcol hidden" id="subCatCol"><label>子门类</label><select id="subCat"><option value="all">全部</option></select></div>
       <div class="fcol"><label>文化课总分（满分750）</label><input type="number" id="culture" placeholder="例：520" min="0" max="750" step="0.5"></div>
       <div class="fcol"><label>艺术统考成绩</label><input type="number" id="art" placeholder="例：245" min="0" step="0.5"></div>
     </div>
     <button class="btn btn-g btn-blk" id="btnGo">🔍 开始匹配院校</button>
     <div class="auth-bar" id="usesBar"></div>
     <div id="scoreBox" class="hidden"></div>
-    <details class="algo-card hidden" id="algoCard"><summary>📊 推荐算法说明（点击展开）</summary><div id="algoBody"></div><div class="algo-formula">综合评分 = 分差接近度×25% + 院校层次×20% + 专业特色×9% + 培养模式×6% + 12维度加权</div><div style="font-size:.72rem;color:var(--t3);margin-top:4px;text-align:center">数据来源：浙江省教育考试院历年录取数据 · 综合分公式依据浙教考〔2024〕</div></details>
+    <details class="algo-card hidden" id="algoCard"><summary>📊 推荐算法说明（点击展开）</summary><div id="algoBody"></div><div class="algo-formula">综合评分 = 分差接近度×24% + 院校层次×19% + 专业特色×9% + 培养模式×6% + 13维度加权</div><div style="font-size:.72rem;color:var(--t3);margin-top:4px;text-align:center">数据来源：浙江省教育考试院历年录取数据 · 综合分公式依据浙教考〔2024〕</div></details>
     <div class="tier-explain hidden" id="tierExplain"></div>
   </div>
 
@@ -1083,7 +1135,13 @@ html[data-theme="dark"] .toast,
     <div class="card-tt">🏫 院校浏览</div>
     <div class="card-sub" id="schoolSub"></div>
     <div class="fil" id="schoolCatTabs"></div>
-    <div class="sch" id="schoolSearchBar"><input type="text" id="schoolSearch" placeholder="🔍 搜索院校名称..."><select id="schoolSort" class="sel-sort"><option value="scoreDesc">综合分 ↓</option><option value="scoreAsc">综合分 ↑</option><option value="nameAsc">名称 A→Z</option><option value="tuitionAsc">学费 ↓</option><option value="tuitionDesc">学费 ↑</option></select></div>
+    <div class="fil fil-sub" id="schoolSubCatTabs" style="display:none"></div>
+    <div class="sch" id="schoolSearchBar">
+      <input type="text" id="schoolSearch" placeholder="🔍 搜索院校名称...">
+      <select id="schoolProvince" class="sel-sort" style="max-width:120px"><option value="all">不限省份</option></select>
+      <select id="schoolCity" class="sel-sort" style="max-width:120px;display:none"><option value="all">不限城市</option></select>
+      <select id="schoolSort" class="sel-sort"><option value="scoreDesc">综合分 ↓</option><option value="scoreAsc">综合分 ↑</option><option value="nameAsc">名称 A→Z</option><option value="tuitionAsc">学费 ↓</option><option value="tuitionDesc">学费 ↑</option></select>
+    </div>
     <div class="fil" id="schoolFilters"></div>
     <div class="school-grid" id="schoolList"></div>
   </div>
@@ -1093,6 +1151,11 @@ html[data-theme="dark"] .toast,
     <div class="card-tt">📚 专业浏览</div>
     <div class="card-sub">选择专业，查看开设该专业的院校排名</div>
     <div class="fil" id="majorCatTabs"></div>
+    <div class="fil fil-sub" id="majorSubCatTabs" style="display:none"></div>
+    <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
+      <select id="majorProvince" class="sel-sort" style="max-width:120px"><option value="all">不限省份</option></select>
+      <select id="majorCity" class="sel-sort" style="max-width:120px;display:none"><option value="all">不限城市</option></select>
+    </div>
     <div class="major-layout">
       <div class="major-left" id="majorLeft"></div>
       <div class="major-right" id="majorRight"></div>
@@ -1110,7 +1173,7 @@ html[data-theme="dark"] .toast,
   <div class="card hidden" id="resultBox">
     <div class="card-tt">🏫 匹配结果</div>
     <div class="sbar"><span class="stxt" id="summary"></span><span id="summaryActions"></span></div>
-    <div class="sch hidden" id="searchBar"><input type="text" id="searchInput" placeholder="🔍 搜索院校或专业名称..."><button class="btn btn-gh btn-sm" id="btnClearSearch" style="display:none">✕ 清除</button><select id="sortSelect" class="sel-sort"><option value="diff">分差排序</option><option value="nameAsc">院校 A→Z</option><option value="nameDesc">院校 Z→A</option><option value="scoreDesc">综合分 ↓</option><option value="scoreAsc">综合分 ↑</option><option value="tuitionAsc">学费 ↓</option><option value="tuitionDesc">学费 ↑</option><option value="cityAsc">城市 A→Z</option></select></div>
+    <div class="sch hidden" id="searchBar"><input type="text" id="searchInput" placeholder="🔍 搜索院校或专业名称..."><button class="btn btn-gh btn-sm" id="btnClearSearch" style="display:none">✕ 清除</button><select id="resultProvince" class="sel-sort" style="max-width:110px"><option value="all">不限省份</option></select><select id="resultCity" class="sel-sort" style="max-width:110px;display:none"><option value="all">不限城市</option></select><select id="sortSelect" class="sel-sort"><option value="diff">分差排序</option><option value="nameAsc">院校 A→Z</option><option value="nameDesc">院校 Z→A</option><option value="scoreDesc">综合分 ↓</option><option value="scoreAsc">综合分 ↑</option><option value="tuitionAsc">学费 ↓</option><option value="tuitionDesc">学费 ↑</option><option value="cityAsc">城市 A→Z</option></select></div>
     <div class="fil" id="filters"><button class="on" data-t="all">全部</button><button data-t="reach">🔴 冲刺</button><button data-t="match">🟡 稳妥</button><button data-t="safety">🟢 保底</button></div>
     <div class="slist" id="list"></div>
   </div>
@@ -1136,6 +1199,7 @@ html[data-theme="dark"] .toast,
 <div class="mod hidden" id="adminModal"><div class="mod-pn"><div class="mhdr"><h2>📊 数据管理中心</h2><button class="btn btn-gh btn-sm" id="btnAdminClose">✕ 关闭</button></div><div class="mbody"><div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap"><button class="btn btn-g btn-sm" id="btnTabData" onclick="showAdminSection('data')">📊 数据管理</button><button class="btn btn-o btn-sm" id="btnTabUsers" onclick="showAdminSection('users')">📱 用户管理</button><button class="btn btn-o btn-sm" id="btnTabAnalysis" onclick="showAdminSection('analysis')">📈 数据分析</button></div><div id="adminDataSection"><div class="agrid" id="adminGrid"></div><div class="adetail" id="adminDetail" style="display:none"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px"><input type="text" id="adminSearch" placeholder="🔍 搜索记录..." style="padding:5px 10px;border:1.5px solid var(--bd);border-radius:var(--rd);font-size:.8rem;width:200px"><button class="btn btn-g btn-sm" id="btnAddNew">+ 新增记录</button></div><div class="ctw"><table><thead><tr><th class="row-num">#</th><th>院校</th><th>专业</th><th>综合分</th><th>城市</th><th>操作</th></tr></thead><tbody id="adminTableBody"></tbody></table></div><div class="apage" id="adminPager"></div></div><div style="margin-top:16px;display:flex;align-items:center;justify-content:space-between;font-size:.82rem;color:var(--t3)"><span>共 <strong id="totalCount" style="color:var(--g)">0</strong> 条记录</span><button class="btn btn-gh btn-sm" id="btnClearAll">🗑 清空全部</button></div></div><div id="adminUsers" style="display:none"><div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap"><span style="font-weight:600;color:var(--t)">📱 注册用户手机号</span><button class="btn btn-g btn-sm" id="btnRefreshUsers">🔄 刷新</button><button class="btn btn-o btn-sm" id="btnExportUsers">📥 导出</button><button class="btn btn-gh btn-sm" id="btnClearUsers">🗑 清空本地</button></div><div class="ctw"><table class="ct"><thead><tr><th class="row-num">#</th><th>手机号</th><th>年级</th><th>专业方向</th><th>注册时间</th><th>数据来源</th></tr></thead><tbody id="adminUsersBody"><tr><td colspan="6" style="text-align:center;color:var(--t3);padding:20px">点击"🔄 刷新"加载数据</td></tr></tbody></table></div></div><div id="adminAnalysis" style="display:none"><div id="adminAnalysisContent"></div></div><div class="aedit-panel" id="editPanel"><h4 style="margin-bottom:10px" id="editTitle">编辑记录</h4><div class="aedit-form" id="editForm"></div><div class="aedit-acts"><button class="btn btn-g btn-sm" id="btnSaveEdit">💾 保存</button><button class="btn btn-gh btn-sm" id="btnCancelEdit">取消</button></div></div></div></div></div>
 <div class="mod hidden" id="formModal"><div class="mod-pn"><div class="mhdr"><h2>📋 志愿填报参考单</h2><div style="display:flex;gap:8px"><button class="btn btn-g btn-sm" id="btnPrint">🖨 打印</button><button class="btn btn-gh btn-sm" id="btnFormClose">✕</button></div></div><div class="mbody" id="formBody"></div></div></div>
 <div class="mod hidden" id="cmpModal"><div class="mod-pn"><div class="mhdr"><h2>🔍 院校对比</h2><button class="btn btn-gh btn-sm" id="btnCmpClose">✕ 关闭</button></div><div class="mbody" id="cmpBody"></div></div></div>
+<div class="mod hidden" id="majorDetailModal"><div class="mod-pn" style="max-width:720px"><div class="mhdr"><h2 id="mdTitle">📚 专业详情</h2><button class="btn btn-gh btn-sm" id="btnMdClose">✕ 关闭</button></div><div class="mbody" id="mdBody"></div></div></div>
 <script>
 /* Theme toggle */
 (function(){
