@@ -2213,26 +2213,74 @@ function renderAdminAuth(){
 }
 
 // 添加授权用户
-function addAuthUser(){
-  var phone=prompt('请输入要授权的手机号：');
-  if(!phone||!/^1[3-9]\d{9}$/.test(phone)){toast('请输入有效的11位手机号',1);return;}
-  var days=prompt('授权天数（留空或0表示永久）：','0');
+// 显示/隐藏授权表单
+function showAuthForm(){
+  var form=document.getElementById('adminAuthForm');
+  if(form)form.style.display='';
+  var phoneInput=document.getElementById('authPhoneInput');
+  if(phoneInput)phoneInput.focus();
+}
+
+function hideAuthForm(){
+  var form=document.getElementById('adminAuthForm');
+  if(form)form.style.display='none';
+  // 清空表单
+  var phoneInput=document.getElementById('authPhoneInput');
+  var daysInput=document.getElementById('authDaysInput');
+  var notesInput=document.getElementById('authNotesInput');
+  if(phoneInput)phoneInput.value='';
+  if(daysInput)daysInput.value='365';
+  if(notesInput)notesInput.value='';
+}
+
+// 确认添加授权
+function confirmAuth(){
+  var phone=document.getElementById('authPhoneInput');
+  var days=document.getElementById('authDaysInput');
+  var notes=document.getElementById('authNotesInput');
+  if(!phone||!/^1[3-9]\d{9}$/.test(phone.value)){toast('请输入有效的11位手机号',1);if(phone)phone.focus();return;}
+  var phoneVal=phone.value.trim();
+  var daysVal=parseInt(days.value)||0;
+  var notesVal=notes?notes.value.trim():'';
   var expiresAt=null;
-  if(days&&parseInt(days)>0){
-    var d=new Date();d.setDate(d.getDate()+parseInt(days));
+  if(daysVal>0){
+    var d=new Date();d.setDate(d.getDate()+daysVal);
     expiresAt=d.toISOString();
   }
-  var notes=prompt('备注（可选）：','');
-  addAuthorizedUser({phone:phone,is_active:true,expires_at:expiresAt,notes:notes||''}).then(function(res){
-    if(res.ok){toast('✅ 已添加授权');renderAdminAuth();}
-    else{toast('添加失败：'+(res.error||'未知错误'),1);}
-  }).catch(function(e){toast('添加失败：'+esc(e.message||'网络错误'),1);});
+  // 禁用按钮防止重复提交
+  var btnConfirm=document.getElementById('btnConfirmAuth');
+  if(btnConfirm){btnConfirm.disabled=true;btnConfirm.textContent='⏳ 提交中...';}
+  addAuthorizedUser({phone:phoneVal,is_active:true,expires_at:expiresAt,notes:notesVal}).then(function(res){
+    if(btnConfirm){btnConfirm.disabled=false;btnConfirm.textContent='✅ 确认授权';}
+    if(res&&res.ok){toast('✅ 已授权 '+phoneVal);hideAuthForm();renderAdminAuth();}
+    else{toast('授权失败：'+(res&&res.error||'未知错误'),1);}
+  }).catch(function(e){if(btnConfirm){btnConfirm.disabled=false;btnConfirm.textContent='✅ 确认授权';}toast('授权失败：'+esc(e.message||'网络错误'),1);});
 }
+
+// 绑定授权管理按钮事件
+document.addEventListener('DOMContentLoaded',function(){
+  setTimeout(function(){
+    var btnAdd=document.getElementById('btnAddAuth');
+    if(btnAdd)btnAdd.addEventListener('click',showAuthForm);
+    var btnRefresh=document.getElementById('btnRefreshAuth');
+    if(btnRefresh)btnRefresh.addEventListener('click',renderAdminAuth);
+    var btnConfirm=document.getElementById('btnConfirmAuth');
+    if(btnConfirm)btnConfirm.addEventListener('click',confirmAuth);
+    var btnCancel=document.getElementById('btnCancelAuth');
+    if(btnCancel)btnCancel.addEventListener('click',hideAuthForm);
+    // 回车提交
+    var phoneInput=document.getElementById('authPhoneInput');
+    if(phoneInput)phoneInput.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();confirmAuth();}});
+  },500);
+});
+
+// 以下为旧函数，保留兼容（不再使用）
+function addAuthUser(){showAuthForm();}
 
 // 停用/启用授权用户
 function toggleAuthUser(id,isActive){
   updateAuthorizedUser(id,{is_active:!isActive}).then(function(res){
-    if(res.ok){toast(isActive?'已停用':'已启用');renderAdminAuth();}
+    if(res&&res.ok){toast(isActive?'已停用':'已启用');renderAdminAuth();}
     else{toast('操作失败',1);}
   }).catch(function(e){toast('操作失败',1);});
 }
@@ -2241,17 +2289,7 @@ function toggleAuthUser(id,isActive){
 function deleteAuthUser(id,phone){
   if(!confirm('确定删除授权用户 '+phone+'？'))return;
   deleteAuthorizedUser(id).then(function(res){
-    if(res.ok){toast('已删除');renderAdminAuth();}
+    if(res&&res.ok){toast('已删除');renderAdminAuth();}
     else{toast('删除失败',1);}
   }).catch(function(e){toast('删除失败',1);});
 }
-
-// 绑定授权管理按钮事件
-document.addEventListener('DOMContentLoaded',function(){
-  setTimeout(function(){
-    var btnAdd=document.getElementById('btnAddAuth');
-    if(btnAdd)btnAdd.addEventListener('click',addAuthUser);
-    var btnRefresh=document.getElementById('btnRefreshAuth');
-    if(btnRefresh)btnRefresh.addEventListener('click',renderAdminAuth);
-  },500);
-});
