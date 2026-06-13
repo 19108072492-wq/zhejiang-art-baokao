@@ -4,6 +4,8 @@
  * 不依赖任何 Auth Provider，纯 REST API
  */
 var __isLoggedIn=false;
+var __isPaidUser=false; // 是否付费用户
+var __paidExpires=null; // 付费过期时间
 
 (function initAuth(){
   setupAuthUI();
@@ -12,6 +14,16 @@ var __isLoggedIn=false;
   var saved=localStorage.getItem('zjyk_logged_in');
   if(saved){
     __isLoggedIn=true;
+    // 恢复付费状态
+    var paidCache=localStorage.getItem('zjyk_is_paid');
+    if(paidCache==='1'){
+      __isPaidUser=true;
+      var expires=localStorage.getItem('zjyk_paid_expires');
+      if(expires&&new Date(expires)<new Date()){
+        __isPaidUser=false;
+        localStorage.setItem('zjyk_is_paid','0');
+      }
+    }
     // app.js 可能尚未加载，延迟执行 showDashboard
     function tryShow(){
       if(typeof showDashboard==='function'){showDashboard();}
@@ -74,7 +86,9 @@ function doTrial(){
     localStorage.setItem('zjyk_free_uses','1');
   }
   __isLoggedIn=true;
+  __isPaidUser=false;
   localStorage.setItem('zjyk_logged_in','1');
+  localStorage.setItem('zjyk_is_paid','0');
   showDashboardNow();
 }
 
@@ -87,8 +101,8 @@ function showDashboardNow(){
     var tn=document.getElementById('topNav');if(tn)tn.classList.remove('hidden');
     if(typeof switchTab==='function')switchTab('dashboard');
   }
-  var btn=document.getElementById('btnAuthSubmit');
-  if(btn){btn.disabled=false;btn.textContent='🚀 注册';}
+  updatePaidUI();
+  var btn=document.getElementById('btnAuthSubmit');if(btn){btn.disabled=false;btn.textContent='🚀 注册';}
 }
 
 function handlePhoneSubmit(){
@@ -99,13 +113,33 @@ function handlePhoneSubmit(){
   var grade=document.getElementById('authGrade').value;
   var direction=document.getElementById('authDirection').value;
 
-  // ★ 立即本地登录 + 进入仪表盘（不等待云端）
+  // ★ 立即本地登录
   __isLoggedIn=true;
   localStorage.setItem('zjyk_logged_in','1');
   localStorage.setItem('zjyk_phone',phone);
-  var phoneList=JSON.parse(localStorage.getItem('zjyk_phone_list')||'[]');
-  phoneList.push({phone:phone,grade:grade,direction:direction,time:new Date().toISOString()});
-  localStorage.setItem('zjyk_phone_list',JSON.stringify(phoneList));
+  // ★ 检查付费状态（异步，不阻塞用户）
+  checkUserAuthorization(phone).then(function(res){
+    if(res.ok&&res.authorized){
+      __isPaidUser=true;
+      localStorage.setItem('zjyk_is_paid','1');
+      if(res.data&&res.data.expires_at){
+        __paidExpires=res.data.expires_at;
+        localStorage.setItem('zjyk_paid_expires',res.data.expires_at);
+      }else{
+        localStorage.removeItem('zjyk_paid_expires');
+      }
+      updatePaidUI();
+    }else{
+      __isPaidUser=false;
+      localStorage.setItem('zjyk_is_paid','0');
+      updatePaidUI();
+    }
+  }).catch(function(){
+    // 网络错误时，使用本地缓存的付费状态
+    var cached=localStorage.getItem('zjyk_is_paid');
+    __isPaidUser=(cached==='1');
+    updatePaidUI();
+  });
 
   toastAuth('✅ 注册成功！');
   showDashboardNow();
@@ -140,8 +174,11 @@ function updateUsesDisplay(n){
 
 function doLogout(){
   __isLoggedIn=false;
+  __isPaidUser=false;
   localStorage.removeItem('zjyk_logged_in');
   localStorage.removeItem('zjyk_phone');
+  localStorage.removeItem('zjyk_is_paid');
+  localStorage.removeItem('zjyk_paid_expires');
   document.getElementById('inputCard').classList.add('hidden');
   document.getElementById('gateCard').classList.remove('hidden');
   document.getElementById('topNav').classList.add('hidden');
@@ -165,4 +202,60 @@ function toastAuth(msg,err){
   t.textContent=msg;document.body.appendChild(t);
   requestAnimationFrame(function(){t.classList.add('show');});
   setTimeout(function(){t.classList.remove('show');setTimeout(function(){t.remove();},300);},2500);
+}
+
+// ========== 付费状态 UI ==========
+
+function updatePaidUI(){
+  var bar=document.getElementById('usesBar');
+  if(!bar)return;
+  // ★ 控制付费导航链接的显隐
+  var paidNavLinks=document.querySelectorAll('#topNav a[data-paid="1"]');
+  for(var i=0;i<paidNavLinks.length;i++){
+    paidNavLinks[i].style.display=__isPaidUser?'':'none';
+  }
+  if(__isPaidUser){
+    var expText='';
+    if(__paidExpires){
+      var d=new Date(__paidExpires);
+      expText='（至 '+d.toLocaleDateString('zh-CN')+'）';
+    }
+    bar.innerHTML='<span style="display:flex;align-items:center;gap:12px"><span style="color:var(--gr);font-weight:600">✅ 已授权 '+expText+'</span><button class="btn btn-gh btn-sm" id="btnLogout" style="font-size:.75rem;padding:2px 8px">退出登录</button></span>';
+  }else if(__isLoggedIn){
+    bar.innerHTML='<span style="color:var(--o);font-weight:600">🎁 试用模式 · 仅开放算分功能</span> <button class="btn btn-g btn-sm" id="btnUpgrade" style="font-size:.75rem;padding:2px 8px">🔓 开通完整版</button> <button class="btn btn-gh btn-sm" id="btnLogout" style="font-size:.75rem;padding:2px 8px">退出登录</button>';
+    setTimeout(function(){
+      var bu=document.getElementById('btnUpgrade');
+      if(bu)bu.addEventListener('click',showUpgradeModal);
+      var bl=document.getElementById('btnLogout');
+      if(bl)bl.addEventListener('click',doLogout);
+    },100);
+    return;
+  }
+  setTimeout(function(){
+    var bl=document.getElementById('btnLogout');
+    if(bl)bl.addEventListener('click',doLogout);
+  },100);
+}
+
+function showUpgradeModal(){
+  var existing=document.getElementById('upgradeModal');
+  if(existing){existing.classList.remove('hidden');return;}
+  var html='<div class="mod hidden" id="upgradeModal"><div class="mod-sm">'+
+    '<h3>🔓 开通完整版</h3>'+
+    '<p style="font-size:.82rem;color:var(--t2);margin:12px 0">请联系非凡教育管理员，提供您的手机号，我们将为您开通完整功能授权。</p>'+
+    '<div style="background:var(--color-surface-alt);padding:12px;border-radius:var(--rd);margin:12px 0;font-size:.82rem">'+
+    '<div>📱 联系管理员：<strong>请在非凡教育前台咨询</strong></div>'+
+    '<div style="margin-top:6px">🎁 开通后可使用：</div>'+
+    '<ul style="margin:6px 0 0 16px;color:var(--gr)">'+
+    '<li>完整志愿填报算分（无数量限制）</li>'+
+    '<li>院校浏览（全部）</li>'+
+    '<li>专业浏览（全部）</li>'+
+    '<li>志愿单生成与导出</li>'+
+    '</ul></div>'+
+    '<div style="display:flex;gap:8px;margin-top:12px">'+
+    '<button class="btn btn-g" id="btnUpgradeClose">关闭</button>'+
+    '</div></div></div>';
+  document.body.insertAdjacentHTML('beforeend',html);
+  document.getElementById('btnUpgradeClose').addEventListener('click',function(){document.getElementById('upgradeModal').classList.add('hidden');});
+  document.getElementById('upgradeModal').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden');});
 }

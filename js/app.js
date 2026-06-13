@@ -3,6 +3,9 @@
  */
 let cur=[],curTier='all',sel=new Map(),MAX_CMP=4,curSearch='',curSort='diff';
 
+// ===== 付费用户检查 =====
+function isPaidUser(){return typeof __isPaidUser!=='undefined'&&__isPaidUser;}
+
 document.addEventListener('DOMContentLoaded',()=>{
   // 按钮绑定
   document.getElementById('btnGo').addEventListener('click',calc);
@@ -265,6 +268,21 @@ async function calc(){
 
   const m=matchSchools(res.score,k,c,filteredPool);
   cur=m.results;window.__rec=m.rec20;
+
+  // ★ 免费用户限制：仅展示10所学校（冲刺3+稳妥5+保底2）
+  var freeBanner=document.getElementById('freeLimitBanner');
+  if(!isPaidUser()&&cur.length>0){
+    var reachSchools=cur.filter(function(x){return x.tier==='reach';});
+    var matchSchools=cur.filter(function(x){return x.tier==='match';});
+    var safetySchools=cur.filter(function(x){return x.tier==='safety';});
+    var limited=reachSchools.slice(0,3).concat(matchSchools.slice(0,5)).concat(safetySchools.slice(0,2));
+    cur=limited;
+    window.__rec=window.__rec?window.__rec.filter(function(r){return limited.some(function(l){return l.schoolCode===r.schoolCode&&l.majorCode===r.majorCode;});}):[];
+    if(freeBanner)freeBanner.classList.remove('hidden');
+  }else{
+    if(freeBanner)freeBanner.classList.add('hidden');
+  }
+
   sel.clear();updateFloat();curTier='all';
   curSearch='';curSort='diff';
   document.getElementById('searchInput').value='';
@@ -1074,19 +1092,24 @@ function showAdminSection(section){
   var dataSec=document.getElementById('adminDataSection');
   var userSec=document.getElementById('adminUsers');
   var analysisSec=document.getElementById('adminAnalysis');
+  var authSec=document.getElementById('adminAuth');
   if(dataSec)dataSec.style.display=section==='data'?'':'none';
   if(userSec)userSec.style.display=section==='users'?'':'none';
   if(analysisSec)analysisSec.style.display=section==='analysis'?'':'none';
+  if(authSec)authSec.style.display=section==='auth'?'':'none';
   // 更新 tab 按钮样式
   var btnData=document.getElementById('btnTabData');
   var btnUsers=document.getElementById('btnTabUsers');
   var btnAnalysis=document.getElementById('btnTabAnalysis');
+  var btnAuth=document.getElementById('btnTabAuth');
   if(btnData){btnData.className='btn btn-sm '+(section==='data'?'btn-g':'btn-gh');}
   if(btnUsers){btnUsers.className='btn btn-sm '+(section==='users'?'btn-g':'btn-gh');}
   if(btnAnalysis){btnAnalysis.className='btn btn-sm '+(section==='analysis'?'btn-g':'btn-gh');}
+  if(btnAuth){btnAuth.className='btn btn-sm '+(section==='auth'?'btn-g':'btn-gh');}
   if(section==='data')renderAdmin();
   if(section==='users')renderUsers();
   if(section==='analysis')renderAdminAnalysis();
+  if(section==='auth')renderAdminAuth();
 }
 
 async function renderUsers(){
@@ -1164,6 +1187,12 @@ function switchTab(tabName){
   __currentTab=tabName;
   // 数据分析仅管理员可访问
   if(tabName==='analysisView' && !__adminAccess){
+    switchTab('dashboard');return;
+  }
+  // ★ 付费功能检查：院校浏览、专业浏览需付费
+  var paidTabs=['schoolBrowser','majorBrowser'];
+  if(paidTabs.indexOf(tabName)>=0 && !isPaidUser()){
+    showUpgradeModal();
     switchTab('dashboard');return;
   }
   // 隐藏所有顶层卡片
@@ -1291,17 +1320,24 @@ function renderDashboard(){
     '<div class="dash-stat"><div class="ds-num">'+cityCount+'</div><div class="ds-lbl">覆盖城市</div></div>'+
     '<div class="dash-stat"><div class="ds-num">'+all.length+'</div><div class="ds-lbl">录取数据</div></div>';
   
-  // 快捷入口
+  // 快捷入口（免费用户仅显示智能填报+我的志愿单，付费用户显示全部）
   var entries=[
-    {icon:'🎯',title:'智能填报',desc:'输入成绩，匹配冲稳保院校',tab:'inputCard'},
-    {icon:'🏫',title:'院校浏览',desc:'浏览全部院校及其开设专业',tab:'schoolBrowser'},
-    {icon:'📚',title:'专业浏览',desc:'按专业筛选，查看院校排名',tab:'majorBrowser'},
-    {icon:'📋',title:'我的志愿单',desc:'查看已保存的志愿选择',tab:'myForm'},
+    {icon:'🎯',title:'智能填报',desc:'输入成绩，匹配冲稳保院校',tab:'inputCard',paid:false},
+    {icon:'🏫',title:'院校浏览',desc:'浏览全部院校及其开设专业',tab:'schoolBrowser',paid:true},
+    {icon:'📚',title:'专业浏览',desc:'按专业筛选，查看院校排名',tab:'majorBrowser',paid:true},
+    {icon:'📋',title:'我的志愿单',desc:'查看已保存的志愿选择',tab:'myForm',paid:false},
   ];
   var entriesHtml='';
   for(var i=0;i<entries.length;i++){
     var e=entries[i];
-    entriesHtml+='<div class="dash-entry" data-tab="'+e.tab+'" onclick="dashEntryClick(\''+e.tab+'\')"><span class="de-icon">'+e.icon+'</span><div class="de-title">'+e.title+'</div><div class="de-desc">'+e.desc+'</div></div>';
+    // 免费用户隐藏付费功能入口
+    if(e.paid&&!isPaidUser())continue;
+    var lockBadge=e.paid?'<span style="font-size:.65rem;color:var(--_orange-500);margin-left:4px">🔒</span>':'';
+    entriesHtml+='<div class="dash-entry" data-tab="'+e.tab+'" onclick="dashEntryClick(\''+e.tab+'\')"><span class="de-icon">'+e.icon+'</span><div class="de-title">'+e.title+lockBadge+'</div><div class="de-desc">'+e.desc+'</div></div>';
+  }
+  // 免费用户添加升级入口
+  if(!isPaidUser()){
+    entriesHtml+='<div class="dash-entry" onclick="showUpgradeModal()" style="border-color:var(--_orange-500);background:var(--_orange-50)"><span class="de-icon">🔓</span><div class="de-title" style="color:var(--_orange-500)">开通完整版</div><div class="de-desc">解锁院校浏览、专业浏览等全部功能</div></div>';
   }
   document.getElementById('dashEntries').innerHTML=entriesHtml;
 }
@@ -2147,3 +2183,75 @@ function renderDataAnalysis(){
   var hero=document.querySelector('.hero');
   if(hero && !hero.id){hero.id='hero';}
 })();
+
+// ===== 管理员授权管理 =====
+function renderAdminAuth(){
+  var content=document.getElementById('adminAuthContent');
+  if(!content)return;
+  content.innerHTML='<p style="color:var(--t3);font-size:.82rem;text-align:center;padding:20px">⏳ 加载授权列表...</p>';
+
+  getAuthorizedUsers().then(function(users){
+    if(!users||!users.length){
+      content.innerHTML='<p style="color:var(--t3);font-size:.82rem;text-align:center;padding:20px">暂无授权用户，点击"+ 添加授权"按钮添加</p>';
+      return;
+    }
+    var html='<div class="ctw"><table><thead><tr><th>#</th><th>手机号</th><th>状态</th><th>过期时间</th><th>备注</th><th>操作</th></tr></thead><tbody>';
+    for(var i=0;i<users.length;i++){
+      var u=users[i];
+      var isActive=u.is_active;
+      var isExpired=u.expires_at&&new Date(u.expires_at)<new Date();
+      var statusText=isActive&&!isExpired?'<span style="color:var(--_green-500)">✅ 有效</span>':'<span style="color:var(--_red-500)">❌ '+(isExpired?'已过期':'已停用')+'</span>';
+      var expiresText=u.expires_at?new Date(u.expires_at).toLocaleDateString('zh-CN'):'永久';
+      html+='<tr><td>'+(i+1)+'</td><td>'+esc(u.phone||'')+'</td><td>'+statusText+'</td><td>'+expiresText+'</td><td style="font-size:.78rem">'+esc(u.notes||'')+'</td><td><button class="btn btn-gh btn-sm" onclick="toggleAuthUser(\''+u.id+'\','+isActive+')">'+(isActive?'停用':'启用')+'</button> <button class="btn btn-gh btn-sm" onclick="deleteAuthUser(\''+u.id+'\',\''+escAttr(u.phone||'')+'\')">🗑</button></td></tr>';
+    }
+    html+='</tbody></table></div>';
+    html+='<div style="margin-top:12px;font-size:.78rem;color:var(--t3)">共 '+users.length+' 个授权用户</div>';
+    content.innerHTML=html;
+  }).catch(function(e){
+    content.innerHTML='<p style="color:var(--_red-500);font-size:.82rem;text-align:center;padding:20px">加载失败：'+esc(e.message||'网络错误')+'</p>';
+  });
+}
+
+// 添加授权用户
+function addAuthUser(){
+  var phone=prompt('请输入要授权的手机号：');
+  if(!phone||!/^1[3-9]\d{9}$/.test(phone)){toast('请输入有效的11位手机号',1);return;}
+  var days=prompt('授权天数（留空或0表示永久）：','0');
+  var expiresAt=null;
+  if(days&&parseInt(days)>0){
+    var d=new Date();d.setDate(d.getDate()+parseInt(days));
+    expiresAt=d.toISOString();
+  }
+  var notes=prompt('备注（可选）：','');
+  addAuthorizedUser({phone:phone,is_active:true,expires_at:expiresAt,notes:notes||''}).then(function(res){
+    if(res.ok){toast('✅ 已添加授权');renderAdminAuth();}
+    else{toast('添加失败：'+(res.error||'未知错误'),1);}
+  }).catch(function(e){toast('添加失败：'+esc(e.message||'网络错误'),1);});
+}
+
+// 停用/启用授权用户
+function toggleAuthUser(id,isActive){
+  updateAuthorizedUser(id,{is_active:!isActive}).then(function(res){
+    if(res.ok){toast(isActive?'已停用':'已启用');renderAdminAuth();}
+    else{toast('操作失败',1);}
+  }).catch(function(e){toast('操作失败',1);});
+}
+
+// 删除授权用户
+function deleteAuthUser(id,phone){
+  if(!confirm('确定删除授权用户 '+phone+'？'))return;
+  deleteAuthorizedUser(id).then(function(res){
+    if(res.ok){toast('已删除');renderAdminAuth();}
+    else{toast('删除失败',1);}
+  }).catch(function(e){toast('删除失败',1);});
+}
+
+// 绑定授权管理按钮事件
+document.addEventListener('DOMContentLoaded',function(){
+  setTimeout(function(){
+    var btnAdd=document.getElementById('btnAddAuth');
+    if(btnAdd)btnAdd.addEventListener('click',addAuthUser);
+    var btnRefresh=document.getElementById('btnRefreshAuth');
+    if(btnRefresh)btnRefresh.addEventListener('click',renderAdminAuth);
+  },500);
+});

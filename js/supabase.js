@@ -96,6 +96,79 @@ function supaPing(){
   });
 }
 
+// ========== 授权用户验证 API ==========
+
+// 检查手机号是否在授权用户表中
+function checkUserAuthorization(phone) {
+  return __supaFetch(
+    SUPABASE_URL + '/rest/v1/authorized_users?phone=eq.' + encodeURIComponent(phone) + '&is_active=eq.true&select=id,phone,expires_at,notes',
+    { method: 'GET', timeout: 8000 },
+    1
+  ).then(function(resp) {
+    if (!resp.ok) return { ok: false, error: '网络错误' };
+    return resp.json().then(function(data) {
+      if (!data || data.length === 0) return { ok: true, authorized: false };
+      var user = data[0];
+      if (user.expires_at) {
+        var exp = new Date(user.expires_at);
+        if (exp < new Date()) return { ok: true, authorized: false, expired: true };
+      }
+      return { ok: true, authorized: true, data: user };
+    }).catch(function() {
+      return { ok: true, authorized: false };
+    });
+  }).catch(function(e) {
+    return { ok: false, error: e.message || '网络错误' };
+  });
+}
+
+// 管理员函数：添加授权用户
+function addAuthorizedUser(body) {
+  return __supaFetch(
+    SUPABASE_URL + '/rest/v1/authorized_users',
+    { method: 'POST', headers: __supaHeaders(), body: JSON.stringify(body), timeout: 10000 }
+  ).then(function(resp) {
+    if (resp.ok) return { ok: true };
+    return resp.json().then(function(e) { return { ok: false, error: e }; }).catch(function() {
+      return { ok: false, error: 'HTTP ' + resp.status };
+    });
+  }).catch(function(e) { return { ok: false, error: e.message || '网络错误' }; });
+}
+
+// 管理员函数：获取所有授权用户
+function getAuthorizedUsers() {
+  return __supaFetch(
+    SUPABASE_URL + '/rest/v1/authorized_users?order=created_at.desc',
+    { method: 'GET', timeout: 10000 },
+    1
+  ).then(function(resp) {
+    if (resp.ok) return resp.json();
+    throw new Error('HTTP ' + resp.status);
+  });
+}
+
+// 管理员函数：更新授权用户（停用/延长/修改备注）
+function updateAuthorizedUser(id, updates) {
+  return __supaFetch(
+    SUPABASE_URL + '/rest/v1/authorized_users?id=eq.' + encodeURIComponent(id),
+    { method: 'PATCH', headers: __supaHeaders(), body: JSON.stringify(updates), timeout: 10000 }
+  ).then(function(resp) {
+    if (resp.ok) return { ok: true };
+    return { ok: false, error: '更新失败' };
+  }).catch(function(e) { return { ok: false, error: e.message || '网络错误' }; });
+}
+
+// 管理员函数：删除授权用户
+function deleteAuthorizedUser(id) {
+  return __supaFetch(
+    SUPABASE_URL + '/rest/v1/authorized_users?id=eq.' + encodeURIComponent(id),
+    { method: 'DELETE', headers: __supaHeaders(), timeout: 10000 }
+  ).then(function(resp) {
+    if (resp.ok) return { ok: true };
+    return { ok: false, error: '删除失败' };
+  }).catch(function(e) { return { ok: false, error: e.message || '网络错误' }; });
+}
+
 // 兼容旧代码：supabase 变量（供 auth.js syncToCloud 降级使用）
 var supabase=null;
 // 尝试用新 API 快速检查连通性
