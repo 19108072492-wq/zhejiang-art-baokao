@@ -204,7 +204,53 @@ function updateFloat(){
   document.getElementById('btnCmp').disabled=n<2;
   document.getElementById('cmpCnt').textContent=Math.min(n,MAX_CMP);
   document.getElementById('floatBar').classList.toggle('on',n>0);
+  // 悬浮按钮同步
+  var fab=document.getElementById('fabContainer');
+  var badge=document.getElementById('fabBadge');
+  var btnForm=document.getElementById('fabForm');var btnCmp=document.getElementById('fabCmp');
+  var btnExport=document.getElementById('fabExport');var btnClear=document.getElementById('fabClear');
+  badge.textContent=n;
+  badge.classList.toggle('hidden',n===0);
+  if(btnForm){btnForm.disabled=n===0;btnForm.style.opacity=n===0?'.4':'1';}
+  if(btnCmp){btnCmp.disabled=n<2;btnCmp.style.opacity=n<2?'.4':'1';}
+  if(btnExport){btnExport.disabled=n===0;btnExport.style.opacity=n===0?'.4':'1';}
+  if(btnClear){btnClear.disabled=n===0;btnClear.style.opacity=n===0?'.4':'1';}
+  // 配置 fab 菜单项颜色为独立的样式，通过 disabled class 控制
+  if(fab){} // keep fab container state
 }
+
+// ===== 初始化悬浮操作按钮 =====
+(function initFab(){
+  // 等 DOM 就绪
+  function bindFab(){
+    var main=document.getElementById('fabMain');
+    var menu=document.getElementById('fabMenu');
+    var container=document.getElementById('fabContainer');
+    if(!main||!menu||!container)return;
+    var isOpen=false;
+    main.addEventListener('click',function(){
+      isOpen=!isOpen;
+      main.classList.toggle('open',isOpen);
+      menu.classList.toggle('on',isOpen);
+    });
+    // 菜单项点击后关闭
+    var fabForm=document.getElementById('fabForm');
+    var fabCmp=document.getElementById('fabCmp');
+    var fabExport=document.getElementById('fabExport');
+    var fabClear=document.getElementById('fabClear');
+    function closeFab(){isOpen=false;main.classList.remove('open');menu.classList.remove('on');}
+    if(fabForm)fabForm.addEventListener('click',function(){closeFab();if(sel.size>0)openForm();else toast('请先勾选学校',1);});
+    if(fabCmp)fabCmp.addEventListener('click',function(){closeFab();if(sel.size>=2)openCmp();else toast('至少选2所学校',1);});
+    if(fabExport)fabExport.addEventListener('click',function(){closeFab();if(sel.size>0)exportExcel();else toast('请先勾选学校',1);});
+    if(fabClear)fabClear.addEventListener('click',function(){closeFab();sel.clear();updateFloat();__schoolSel.clear();renderSchoolBrowser();renderCards();toast('已清空');});
+    // 点击空白处关闭菜单
+    document.addEventListener('click',function(e){
+      if(isOpen && !container.contains(e.target)){closeFab();}
+    });
+  }
+  if(document.readyState!=='loading')bindFab();
+  else document.addEventListener('DOMContentLoaded',bindFab,{once:true});
+})();
 
 function openForm(){
   if(!sel.size)return toast('请先勾选学校',1);
@@ -639,7 +685,7 @@ function switchTab(tabName){
   // 根据 tab 显示对应内容
   var target=document.getElementById(tabName);
   if(target)target.classList.remove('hidden');
-  
+
   // 更新 URL hash
   if(window.location.hash!=='#'+tabName){
     try{history.replaceState(null,'','#'+tabName);}catch(e){}
@@ -659,8 +705,23 @@ function switchTab(tabName){
   // 显示浮动栏（填报/院校浏览/专业浏览 tab）
   if(tabName==='inputCard' || tabName==='resultBox' || tabName==='schoolBrowser' || tabName==='majorBrowser'){
     updateFloat();
+    // 显示悬浮快捷操作按钮
+    var fabContainer=document.getElementById('fabContainer');
+    if(fabContainer)fabContainer.classList.remove('hidden');
   }else{
     document.getElementById('floatBar').classList.remove('on');
+    // 仪表盘隐藏悬浮按钮
+    var fabContainer=document.getElementById('fabContainer');
+    if(fabContainer)fabContainer.classList.add('hidden');
+  }
+  // 返回按钮：非仪表盘/登录界面时显示
+  var backBtn=document.getElementById('hdrBack');
+  if(backBtn){
+    if(tabName==='dashboard'){
+      backBtn.classList.add('hidden');
+    }else{
+      backBtn.classList.remove('hidden');
+    }
   }
   // 渲染内容
   if(tabName==='dashboard')renderDashboard();
@@ -692,6 +753,13 @@ function switchTab(tabName){
       switchTab(hash);
     }
   });
+  // 返回按钮（手机端）
+  var backBtn=document.getElementById('hdrBack');
+  if(backBtn){
+    backBtn.addEventListener('click',function(){
+      if(__currentTab!=='dashboard')switchTab('dashboard');
+    });
+  }
 })();
 
 // showDashboard（auth.js 调用）
@@ -854,8 +922,8 @@ function renderSchoolBrowser(catKey){
       '</div>';
       infoBadge=' <span class="sch-info-badge" title="点击展开查看院校介绍和官网链接">ℹ️</span>';
     }
-    html+='<div class="school-card" onclick="toggleSchoolCard(this)" data-school="'+escAttr(s.schoolName)+'">'+
-      '<div class="sch-cb" data-act="schSel" data-school="'+escAttr(s.schoolName)+'" onclick="event.stopPropagation()"><div class="cb-box'+(schoolChecked?' on':'')+'">'+(schoolChecked?'✓':'')+'</div></div>'+
+    html+='<div class="school-card" onclick="toggleSchoolCard(this,event)" data-school="'+escAttr(s.schoolName)+'">'+
+      '<div class="sch-cb" data-act="schSel" data-school="'+escAttr(s.schoolName)+'"><div class="cb-box'+(schoolChecked?' on':'')+'">'+(schoolChecked?'✓':'')+'</div></div>'+
       '<div class="sch-name">'+esc(s.schoolName)+infoBadge+' <span style="font-weight:400;font-size:.75rem">'+tags.join(' ')+'</span></div>'+
       '<div class="sch-meta">📍 '+esc(s.city||'--')+' | 💰 '+(s.tuitionMin?s.tuitionMin.toLocaleString():'--')+(s.tuitionMin!==s.tuitionMax?' ~ '+s.tuitionMax.toLocaleString():'')+'/年 | 📚 '+s.majorCount+'个专业</div>'+
       '<div class="sch-majors">'+majorsHtml+'</div>'+
@@ -907,7 +975,12 @@ function renderSchoolBrowser(catKey){
 }
 
 function filterSchoolCat(catKey){__schoolCat=catKey;renderSchoolBrowser();}
-function toggleSchoolCard(card){
+function toggleSchoolCard(card,event){
+  // 如果点击的是复选框区域，不展开卡片
+  if(event){
+    var cbEl=event.target.closest('[data-act="schSel"]');
+    if(cbEl)return;
+  }
   card.classList.toggle('exp');
   var allMajors=card.querySelector('.sch-all-majors');
   if(allMajors)allMajors.classList.toggle('hidden');
@@ -915,7 +988,6 @@ function toggleSchoolCard(card){
   if(infoSec){
     infoSec.classList.toggle('hidden');
     if(!infoSec.classList.contains('hidden')){
-      // 展开后平滑滚动到介绍区域
       setTimeout(function(){infoSec.scrollIntoView({behavior:'smooth',block:'nearest'});},100);
     }
   }
