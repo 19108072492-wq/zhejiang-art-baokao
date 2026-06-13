@@ -1292,6 +1292,8 @@ function showDashboard(){
   var gc=document.getElementById('gateCard');if(gc)gc.classList.add('hidden');
   var tn=document.getElementById('topNav');if(tn)tn.classList.remove('hidden');
   switchTab('dashboard');
+  // 确保用户状态栏（含退出按钮）始终更新
+  if(typeof updatePaidUI==='function')updatePaidUI();
 }
 
 // ===== 仪表盘 =====
