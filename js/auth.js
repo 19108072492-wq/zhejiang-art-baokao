@@ -1,11 +1,11 @@
 /**
- * 非凡教育 · 浙江艺考志愿助手 — 极简认证（零配置）
- * 流程：输入手机号 → 直接存入 Supabase → 标记已登录 → 可用
+ * 非凡教育 · 浙江艺考志愿助手 — 极简认证
+ * 流程：输入授权手机号 → 云端验证 → 付费/试用
  * 不依赖任何 Auth Provider，纯 REST API
  */
 var __isLoggedIn=false;
-var __isPaidUser=false; // 是否付费用户
-var __paidExpires=null; // 付费过期时间
+var __isPaidUser=false;
+var __paidExpires=null;
 
 (function initAuth(){
   setupAuthUI();
@@ -24,12 +24,10 @@ var __paidExpires=null; // 付费过期时间
         localStorage.setItem('zjyk_is_paid','0');
       }
     }
-    // app.js 可能尚未加载，延迟执行 showDashboard
     function tryShow(){
       if(typeof showDashboard==='function'){showDashboard();}
       else{setTimeout(tryShow,80);}
     }
-    // 如果 DOM 已 ready 直接试，否则等 DOMContentLoaded
     if(document.readyState!=='loading'){setTimeout(tryShow,0);}
     else{document.addEventListener('DOMContentLoaded',tryShow,{once:true});}
   }else{
@@ -42,6 +40,9 @@ function setupAuthUI(){
   var bl=document.getElementById('btnGateLogin');
   if(bl)bl.addEventListener('click',function(){
     var am=document.getElementById('authModal');if(am)am.classList.remove('hidden');
+    var phoneInput=document.getElementById('authPhone');
+    if(phoneInput)phoneInput.value='';
+    if(phoneInput)phoneInput.focus();
   });
   var bt=document.getElementById('btnGateTrial');
   if(bt)bt.addEventListener('click',doTrial);
@@ -57,25 +58,9 @@ function setupAuthUI(){
     if(e.target===this)this.classList.add('hidden');
   });
 
-  // 隐藏邮箱/密码/切换按钮，只显示手机号+年级+方向
-  var ep=document.getElementById('authEmail');if(ep)ep.style.display='none';
-  var pp=document.getElementById('authPassword');if(pp)pp.style.display='none';
-  var ps=document.getElementById('authPhone');if(ps){ps.style.display='';ps.placeholder='请输入手机号';}
-  var gr=document.getElementById('authGrade');if(gr)gr.style.display='';
-  var dr=document.getElementById('authDirection');if(dr)dr.style.display='';
-  var sb=document.getElementById('btnAuthSwitch');if(sb)sb.style.display='none';
-  var hh=document.getElementById('authHint');if(hh)hh.style.display='none';
-  var tt=document.getElementById('authTitle');if(tt)tt.textContent='📱 注册';
-  var mg=document.getElementById('authMsg');if(mg)mg.textContent='注册后即可使用完整功能';
-  var bts=document.getElementById('btnAuthSubmit');if(bts)bts.textContent='🚀 注册';
-}
-
-// 后台同步到云端（不阻塞用户，内置超时+重试）
-function syncToCloud(body){
-  supaInsert(body).then(function(res){
-    if(res.ok)console.log('[Auth] 云端同步成功');
-    else console.warn('[Auth] 云端同步失败:',res.error);
-  });
+  // 回车提交
+  var phoneInput=document.getElementById('authPhone');
+  if(phoneInput)phoneInput.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();handlePhoneSubmit();}});
 }
 
 function doTrial(){
@@ -102,7 +87,7 @@ function showDashboardNow(){
     if(typeof switchTab==='function')switchTab('dashboard');
   }
   updatePaidUI();
-  var btn=document.getElementById('btnAuthSubmit');if(btn){btn.disabled=false;btn.textContent='🚀 注册';}
+  var btn=document.getElementById('btnAuthSubmit');if(btn){btn.disabled=false;btn.textContent='🚀 登录';}
 }
 
 function handlePhoneSubmit(){
@@ -110,106 +95,61 @@ function handlePhoneSubmit(){
   if(!phone)return toastAuth('请输入手机号',1);
   if(!/^1[3-9]\d{9}$/.test(phone))return toastAuth('请输入有效的11位手机号',1);
 
-  var grade=document.getElementById('authGrade').value;
-  var direction=document.getElementById('authDirection').value;
+  var btn=document.getElementById('btnAuthSubmit');
+  if(btn){btn.disabled=true;btn.textContent='⏳ 验证中...';}
 
-  // ★ 立即本地登录
-  __isLoggedIn=true;
-  localStorage.setItem('zjyk_logged_in','1');
-  localStorage.setItem('zjyk_phone',phone);
-  // ★ 检查付费状态（异步，不阻塞用户）
+  // 先检查云端授权
   checkUserAuthorization(phone).then(function(res){
-    if(res.ok&&res.authorized){
+    if(btn){btn.disabled=false;btn.textContent='🚀 登录';}
+
+    __isLoggedIn=true;
+    localStorage.setItem('zjyk_logged_in','1');
+    localStorage.setItem('zjyk_phone',phone);
+
+    if(res&&res.ok&&res.authorized&&res.data){
+      // 授权用户 → 完整版
       __isPaidUser=true;
       localStorage.setItem('zjyk_is_paid','1');
-      if(res.data&&res.data.expires_at){
-        __paidExpires=res.data.expires_at;
+      if(res.data.expires_at){
         localStorage.setItem('zjyk_paid_expires',res.data.expires_at);
       }else{
         localStorage.removeItem('zjyk_paid_expires');
       }
-      updatePaidUI();
+      toast('✅ 欢迎回来，已解锁完整版！',0);
     }else{
+      // 未授权 → 试用版
       __isPaidUser=false;
       localStorage.setItem('zjyk_is_paid','0');
-      updatePaidUI();
+      toast('🎁 试用模式已开启，仅开放部分功能',0);
     }
-  }).catch(function(){
-    // 网络错误时，使用本地缓存的付费状态
-    var cached=localStorage.getItem('zjyk_is_paid');
-    __isPaidUser=(cached==='1');
-    updatePaidUI();
+    showDashboardNow();
+  }).catch(function(e){
+    // 网络错误 → 用本地缓存
+    if(btn){btn.disabled=false;btn.textContent='🚀 登录';}
+    __isLoggedIn=true;
+    localStorage.setItem('zjyk_logged_in','1');
+    localStorage.setItem('zjyk_phone',phone);
+    var paidCache=localStorage.getItem('zjyk_is_paid');
+    __isPaidUser=(paidCache==='1');
+    toast('⚠️ 网络异常，使用本地缓存登录',1);
+    showDashboardNow();
   });
-
-  toastAuth('✅ 注册成功！');
-  showDashboardNow();
-
-  // ★ 后台异步同步云端（有超时，失败不影响用户）
-  var id=crypto.randomUUID?crypto.randomUUID():('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0,v=c==='x'?r:(r&0x3|0x8);return v.toString(16);}));
-  syncToCloud({id:id,phone:phone,grade:grade,direction:direction});
 }
 
-// 供 app.js 调用
-function showInputCard(){
-  document.getElementById('gateCard').classList.add('hidden');
-  document.getElementById('inputCard').classList.remove('hidden');
-  updateUsesDisplay(-1);
+function toastAuth(msg,type){
+  var hint=document.getElementById('authHint');
+  if(hint){hint.style.color=type?'var(--_red-500)':'var(--g)';hint.textContent=msg;}
+  setTimeout(function(){
+    var h=document.getElementById('authHint');
+    if(h){h.style.color='var(--t3)';}
+  },3000);
 }
 
-function updateUsesDisplay(n){
-  var bar=document.getElementById('usesBar');
-  if(!bar)return;
-  if(__isLoggedIn){
-    bar.innerHTML='<span style="display:flex;align-items:center;gap:12px"><span style="color:var(--gr);font-weight:600">✅ 已登录 · 无限使用</span><button class="btn btn-gh btn-sm" id="btnLogout" style="font-size:.75rem;padding:2px 8px">退出登录</button></span>';
-    setTimeout(function(){
-      var bl=document.getElementById('btnLogout');
-      if(bl)bl.addEventListener('click',doLogout);
-    },100);
-  }else if(n<0){
-    bar.innerHTML='<span style="color:var(--o);font-weight:600">🎁 试用模式 · 免费 1 次</span>';
-  }else{
-    bar.innerHTML='剩余免费次数：<span style="font-weight:700;color:'+(n<=0?'var(--r)':'var(--g)')+'">'+n+'</span> 次';
-  }
-}
-
-function doLogout(){
-  __isLoggedIn=false;
-  __isPaidUser=false;
-  localStorage.removeItem('zjyk_logged_in');
-  localStorage.removeItem('zjyk_phone');
-  localStorage.removeItem('zjyk_is_paid');
-  localStorage.removeItem('zjyk_paid_expires');
-  document.getElementById('inputCard').classList.add('hidden');
-  document.getElementById('gateCard').classList.remove('hidden');
-  document.getElementById('topNav').classList.add('hidden');
-  toastAuth('已退出登录');
-}
-
-function checkAuthAndSpend(){
-  if(__isLoggedIn)return true;
-  var uses=parseInt(localStorage.getItem('zjyk_free_uses')||'0');
-  if(uses>0){
-    uses--;localStorage.setItem('zjyk_free_uses',uses);
-    updateUsesDisplay(uses);
-    return true;
-  }
-  var am=document.getElementById('authModal');if(am)am.classList.remove('hidden');
-  return false;
-}
-
-function toastAuth(msg,err){
-  var t=document.createElement('div');t.className='toast'+(err?' err':'');
-  t.textContent=msg;document.body.appendChild(t);
-  requestAnimationFrame(function(){t.classList.add('show');});
-  setTimeout(function(){t.classList.remove('show');setTimeout(function(){t.remove();},300);},2500);
-}
-
-// ========== 付费状态 UI ==========
-
+// ===== 付费状态 UI =====
 function updatePaidUI(){
   var bar=document.getElementById('usesBar');
   if(!bar)return;
-  // ★ 控制付费导航链接的显隐
+  // 控制付费导航链接的显隐
   var paidNavLinks=document.querySelectorAll('#topNav a[data-paid="1"]');
   for(var i=0;i<paidNavLinks.length;i++){
     paidNavLinks[i].style.display=__isPaidUser?'':'none';
@@ -238,24 +178,23 @@ function updatePaidUI(){
 }
 
 function showUpgradeModal(){
-  var existing=document.getElementById('upgradeModal');
-  if(existing){existing.classList.remove('hidden');return;}
-  var html='<div class="mod hidden" id="upgradeModal"><div class="mod-sm">'+
-    '<h3>🔓 开通完整版</h3>'+
-    '<p style="font-size:.82rem;color:var(--t2);margin:12px 0">请联系非凡教育管理员，提供您的手机号，我们将为您开通完整功能授权。</p>'+
-    '<div style="background:var(--color-surface-alt);padding:12px;border-radius:var(--rd);margin:12px 0;font-size:.82rem">'+
-    '<div>📱 联系管理员：<strong>请在非凡教育前台咨询</strong></div>'+
-    '<div style="margin-top:6px">🎁 开通后可使用：</div>'+
-    '<ul style="margin:6px 0 0 16px;color:var(--gr)">'+
-    '<li>完整志愿填报算分（无数量限制）</li>'+
-    '<li>院校浏览（全部）</li>'+
-    '<li>专业浏览（全部）</li>'+
-    '<li>志愿单生成与导出</li>'+
-    '</ul></div>'+
-    '<div style="display:flex;gap:8px;margin-top:12px">'+
-    '<button class="btn btn-g" id="btnUpgradeClose">关闭</button>'+
-    '</div></div></div>';
-  document.body.insertAdjacentHTML('beforeend',html);
-  document.getElementById('btnUpgradeClose').addEventListener('click',function(){document.getElementById('upgradeModal').classList.add('hidden');});
-  document.getElementById('upgradeModal').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden');});
+  var phone=localStorage.getItem('zjyk_phone')||'';
+  var msg='📞 开通完整版\n\n请添加客服微信，提供您的注册手机号：'+phone+'\n\n付费后即可解锁全部功能：\n· 志愿填报完整结果（无数量限制）\n· 院校浏览\n· 专业浏览\n· 数据分析\n\n💡 管理员确认收款后，将在后台授权您的手机号';
+  alert(msg);
+}
+
+function doLogout(){
+  __isLoggedIn=false;
+  __isPaidUser=false;
+  __paidExpires=null;
+  localStorage.removeItem('zjyk_logged_in');
+  localStorage.removeItem('zjyk_is_paid');
+  localStorage.removeItem('zjyk_paid_expires');
+  localStorage.removeItem('zjyk_phone');
+  document.getElementById('gateCard').classList.remove('hidden');
+  var ic=document.getElementById('inputCard');if(ic)ic.classList.add('hidden');
+  var db=document.getElementById('dashboard');if(db)db.classList.add('hidden');
+  var tn=document.getElementById('topNav');if(tn)tn.classList.add('hidden');
+  var bar=document.getElementById('usesBar');if(bar)bar.innerHTML='';
+  toast('已退出登录',0);
 }
