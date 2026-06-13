@@ -148,11 +148,28 @@ function toastAuth(msg,type){
 // ===== 付费状态 UI =====
 function updatePaidUI(){
   var bar=document.getElementById('usesBar');
+  var userBar=document.getElementById('userBar');
   if(!bar)return;
   // 控制付费导航链接的显隐
   var paidNavLinks=document.querySelectorAll('#topNav a[data-paid="1"]');
   for(var i=0;i<paidNavLinks.length;i++){
     paidNavLinks[i].style.display=__isPaidUser?'':'none';
+  }
+  // 顶部用户栏
+  if(userBar){
+    if(__isLoggedIn){
+      var phone=localStorage.getItem('zjyk_phone')||'';
+      var statusTag=__isPaidUser
+        ? '<span style="color:var(--gr);font-weight:600;font-size:.78rem">✅ 完整版</span>'
+        : '<span style="color:var(--o);font-weight:600;font-size:.78rem">🎁 试用</span>';
+      userBar.innerHTML='<span style="color:var(--t3);font-size:.78rem">'+esc(phone)+'</span>'+statusTag+'<button class="btn btn-gh btn-sm" id="btnLogout" style="font-size:.72rem;padding:2px 6px">退出</button>';
+      userBar.classList.remove('hidden');
+      var btnL=document.getElementById('btnLogout');
+      if(btnL)btnL.addEventListener('click',doLogout);
+    }else{
+      userBar.innerHTML='';
+      userBar.classList.add('hidden');
+    }
   }
   if(__isPaidUser){
     var expText='';
@@ -160,21 +177,14 @@ function updatePaidUI(){
       var d=new Date(__paidExpires);
       expText='（至 '+d.toLocaleDateString('zh-CN')+'）';
     }
-    bar.innerHTML='<span style="display:flex;align-items:center;gap:12px"><span style="color:var(--gr);font-weight:600">✅ 已授权 '+expText+'</span><button class="btn btn-gh btn-sm" id="btnLogout" style="font-size:.75rem;padding:2px 8px">退出登录</button></span>';
+    bar.innerHTML='<span style="display:flex;align-items:center;gap:12px"><span style="color:var(--gr);font-weight:600">✅ 已授权 '+expText+'</span></span>';
   }else if(__isLoggedIn){
-    bar.innerHTML='<span style="color:var(--o);font-weight:600">🎁 试用模式 · 仅开放算分功能</span> <button class="btn btn-g btn-sm" id="btnUpgrade" style="font-size:.75rem;padding:2px 8px">🔓 开通完整版</button> <button class="btn btn-gh btn-sm" id="btnLogout" style="font-size:.75rem;padding:2px 8px">退出登录</button>';
+    bar.innerHTML='<span style="color:var(--o);font-weight:600">🎁 试用模式 · 仅开放算分功能</span> <button class="btn btn-g btn-sm" id="btnUpgrade" style="font-size:.75rem;padding:2px 8px">🔓 开通完整版</button>';
     setTimeout(function(){
       var bu=document.getElementById('btnUpgrade');
       if(bu)bu.addEventListener('click',showUpgradeModal);
-      var bl=document.getElementById('btnLogout');
-      if(bl)bl.addEventListener('click',doLogout);
     },100);
-    return;
   }
-  setTimeout(function(){
-    var bl=document.getElementById('btnLogout');
-    if(bl)bl.addEventListener('click',doLogout);
-  },100);
 }
 
 function showUpgradeModal(){
@@ -195,6 +205,7 @@ function doLogout(){
   var ic=document.getElementById('inputCard');if(ic)ic.classList.add('hidden');
   var db=document.getElementById('dashboard');if(db)db.classList.add('hidden');
   var tn=document.getElementById('topNav');if(tn)tn.classList.add('hidden');
+  var userBar=document.getElementById('userBar');if(userBar){userBar.innerHTML='';userBar.classList.add('hidden');}
   var bar=document.getElementById('usesBar');if(bar)bar.innerHTML='';
   toast('已退出登录',0);
 }
