@@ -102,7 +102,7 @@ function supaPing(){
 function checkUserAuthorization(phone) {
   return __supaFetch(
     SUPABASE_URL + '/rest/v1/authorized_users?phone=eq.' + encodeURIComponent(phone) + '&is_active=eq.true&select=id,phone,expires_at,notes',
-    { method: 'GET', timeout: 8000 },
+    { method: 'GET', headers: __supaHeaders(), timeout: 8000 },
     1
   ).then(function(resp) {
     if (!resp.ok) return { ok: false, error: '网络错误' };
@@ -139,7 +139,7 @@ function addAuthorizedUser(body) {
 function getAuthorizedUsers() {
   return __supaFetch(
     SUPABASE_URL + '/rest/v1/authorized_users?order=created_at.desc',
-    { method: 'GET', timeout: 10000 },
+    { method: 'GET', headers: __supaHeaders(), timeout: 10000 },
     1
   ).then(function(resp) {
     if (resp.ok) return resp.json();
