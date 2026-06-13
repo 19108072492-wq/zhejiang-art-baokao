@@ -100,13 +100,26 @@ function supaPing(){
 
 // 检查手机号是否在授权用户表中
 function checkUserAuthorization(phone) {
+  var url = SUPABASE_URL + '/rest/v1/authorized_users?phone=eq.' + encodeURIComponent(phone) + '&is_active=eq.true&select=id,phone,expires_at,notes';
+  var headers = __supaHeaders();
+  console.log('[Supa] checkUserAuthorization 请求:', url);
+  console.log('[Supa] headers:', JSON.stringify(headers));
   return __supaFetch(
-    SUPABASE_URL + '/rest/v1/authorized_users?phone=eq.' + encodeURIComponent(phone) + '&is_active=eq.true&select=id,phone,expires_at,notes',
-    { method: 'GET', headers: __supaHeaders(), timeout: 8000 },
+    url,
+    { method: 'GET', headers: headers, timeout: 8000 },
     1
   ).then(function(resp) {
-    if (!resp.ok) return { ok: false, error: '网络错误' };
+    console.log('[Supa] 响应状态:', resp.status, resp.ok);
+    if (!resp.ok) {
+      return resp.text().then(function(txt) {
+        console.error('[Supa] 响应内容:', txt);
+        return { ok: false, error: 'HTTP ' + resp.status + ': ' + txt.substring(0, 200) };
+      }).catch(function() {
+        return { ok: false, error: 'HTTP ' + resp.status };
+      });
+    }
     return resp.json().then(function(data) {
+      console.log('[Supa] 返回数据:', JSON.stringify(data));
       if (!data || data.length === 0) return { ok: true, authorized: false };
       var user = data[0];
       if (user.expires_at) {
@@ -114,10 +127,12 @@ function checkUserAuthorization(phone) {
         if (exp < new Date()) return { ok: true, authorized: false, expired: true };
       }
       return { ok: true, authorized: true, data: user };
-    }).catch(function() {
+    }).catch(function(e) {
+      console.error('[Supa] JSON解析失败:', e);
       return { ok: true, authorized: false };
     });
   }).catch(function(e) {
+    console.error('[Supa] 网络错误:', e);
     return { ok: false, error: e.message || '网络错误' };
   });
 }

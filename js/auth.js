@@ -94,8 +94,10 @@ function handleLogin(){
   if(btn){btn.disabled=true;btn.textContent='⏳ 验证中...';}
 
   // 检查云端授权
+  console.log('[Auth] 开始验证手机号:', phone);
   checkUserAuthorization(phone).then(function(res){
     if(btn){btn.disabled=false;btn.textContent='🚀 登录';}
+    console.log('[Auth] 验证结果:', JSON.stringify(res));
 
     __isLoggedIn=true;
     localStorage.setItem('zjyk_logged_in','1');
@@ -111,6 +113,18 @@ function handleLogin(){
         localStorage.removeItem('zjyk_paid_expires');
       }
       toast('✅ 欢迎回来，已解锁完整版！',0);
+    }else if(res&&!res.ok){
+      // API调用失败
+      __isPaidUser=false;
+      localStorage.setItem('zjyk_is_paid','0');
+      var errMsg=res.error||'未知错误';
+      console.error('[Auth] API调用失败:', errMsg);
+      toast('❌ 验证失败：'+errMsg+'，请检查网络后重试',1);
+    }else if(res&&res.ok&&!res.authorized&&res.expired){
+      // 已过期
+      __isPaidUser=false;
+      localStorage.setItem('zjyk_is_paid','0');
+      toast('⚠️ 授权已过期，请联系客服续费',1);
     }else{
       // 未授权 → 提示去注册或联系客服
       __isPaidUser=false;
@@ -121,6 +135,7 @@ function handleLogin(){
   }).catch(function(e){
     // 网络错误 → 用本地缓存
     if(btn){btn.disabled=false;btn.textContent='🚀 登录';}
+    console.error('[Auth] 网络异常:', e);
     __isLoggedIn=true;
     localStorage.setItem('zjyk_logged_in','1');
     localStorage.setItem('zjyk_phone',phone);
