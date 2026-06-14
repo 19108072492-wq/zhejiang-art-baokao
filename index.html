@@ -926,8 +926,10 @@ html[data-theme="dark"] .toast,
 .school-card .sch-info-link:hover{background:var(--color-accent);color:#fff}
 
 /* ===== MAJOR BROWSER ===== */
-.major-layout{display:grid;grid-template-columns:280px 1fr;gap:var(--_sp-4);margin-top:var(--_sp-3)}
-.major-left{max-height:500px;overflow-y:auto;border:1px solid var(--color-border);border-radius:var(--_radius-md);padding:var(--_sp-2)}
+.major-layout{display:grid;grid-template-columns:280px 1fr;gap:var(--_sp-4);margin-top:var(--_sp-3);transition:grid-template-columns .3s ease}
+.major-layout.expanded{grid-template-columns:0 1fr}
+.major-left{max-height:500px;overflow-y:auto;border:1px solid var(--color-border);border-radius:var(--_radius-md);padding:var(--_sp-2);transition:all .3s ease;min-width:0;overflow-x:hidden}
+.major-layout.expanded .major-left{padding:0;border:none;max-height:0;overflow:hidden;opacity:0}
 .major-left .ml-item{padding:var(--_sp-2) var(--_sp-3);cursor:pointer;border-radius:var(--_radius-sm);font-size:.8rem;display:flex;justify-content:space-between;align-items:center;transition:background var(--_dur-fast)}
 .major-left .ml-item:hover{background:var(--color-surface-alt)}
 .major-left .ml-item.sel{background:var(--color-accent-light);color:var(--color-accent);font-weight:600}
@@ -935,7 +937,10 @@ html[data-theme="dark"] .toast,
 .major-right .mr-header{margin-bottom:var(--_sp-4)}
 .major-right .mr-header h4{font-size:.9rem;font-weight:700;margin-bottom:var(--_sp-1)}
 .major-right .mr-header .mr-stats{font-size:.74rem;color:var(--color-text-tertiary)}
-.major-right .mr-schools{display:flex;flex-direction:column;gap:var(--_sp-2)}
+.major-right .mr-schools{display:flex;flex-direction:column;gap:var(--_sp-2);max-height:65vh;overflow-y:auto;padding-right:4px;scrollbar-width:thin;scrollbar-color:var(--color-border) transparent}
+.major-right .mr-schools::-webkit-scrollbar{width:5px}
+.major-right .mr-schools::-webkit-scrollbar-track{background:transparent}
+.major-right .mr-schools::-webkit-scrollbar-thumb{background:var(--color-border);border-radius:3px}
 .major-right .mr-school{padding:var(--_sp-3) var(--_sp-4);border:1px solid var(--color-border-light);border-radius:var(--_radius-sm);display:flex;align-items:center;gap:var(--_sp-3);transition:all var(--_dur-fast);background:var(--color-surface)}
 .major-right .mr-school:hover{box-shadow:var(--_shadow-sm);border-color:var(--color-border)}
 .major-right .mr-rank{font-size:.85rem;font-weight:800;color:var(--color-accent);width:28px;text-align:center}
@@ -943,6 +948,8 @@ html[data-theme="dark"] .toast,
 .major-right .mr-sname{font-weight:600;font-size:.82rem}
 .major-right .mr-smeta{font-size:.68rem;color:var(--color-text-tertiary)}
 .major-right .mr-score{font-size:.9rem;font-weight:700;color:var(--color-accent);white-space:nowrap}
+.mr-back{display:inline-flex;align-items:center;gap:4px;font-size:.78rem;color:var(--color-accent);cursor:pointer;padding:4px 10px;border-radius:6px;background:var(--color-accent-light);margin-bottom:8px;border:none;transition:all .15s}
+.mr-back:hover{background:var(--color-accent);color:#fff}
 
 /* ===== 专业浏览 · 一键填报 ===== */
 .major-right .mr-rec-bar{padding:10px 0;display:flex;align-items:center;gap:10px;font-size:.82rem;flex-wrap:wrap;border-top:1px solid var(--color-border-light);margin-top:8px}
@@ -1079,7 +1086,9 @@ html[data-theme="dark"] .toast,
   .dash-entries{grid-template-columns:repeat(2,1fr)}
   .school-grid{grid-template-columns:1fr}
   .major-layout{grid-template-columns:1fr}
+  .major-layout.expanded{grid-template-columns:1fr}
   .major-left{max-height:250px}
+  .major-layout.expanded .major-left{max-height:0;padding:0}
   .ana-bignums{grid-template-columns:repeat(2,1fr)}
   .ana-grid-2{grid-template-columns:1fr}
   .fab-container{bottom:90px;right:16px}
@@ -1238,6 +1247,6 @@ html[data-theme="dark"] .toast,
 <script src="js/auth.js?v=13" defer></script>
 <script src="js/data.js?v=3" defer></script>
 <script src="js/core.js?v=3" defer></script>
-<script src="js/app.js?v=15" defer></script>
+<script src="js/app.js?v=16" defer></script>
 </body>
 </html>

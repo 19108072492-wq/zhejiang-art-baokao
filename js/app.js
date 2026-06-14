@@ -1647,7 +1647,7 @@ var __majorCat='all',__majorSubCat='all',__selectedMajor=null;
 var __majorProvince='all',__majorCity='all'; // 省份/城市筛选
 var __majorTierMap=null; // 一键填报冲稳保标记 {schoolCode|majorCode: tier}
 function renderMajorBrowser(catKey){
-  if(catKey!==undefined){__majorCat=catKey;__selectedMajor=null;__majorSubCat='all';__majorTierMap=null;}
+  if(catKey!==undefined){__majorCat=catKey;__selectedMajor=null;__majorSubCat='all';__majorTierMap=null;var layout=document.querySelector('.major-layout');if(layout)layout.classList.remove('expanded');}
   var all=getAllRecords();
   if(__majorCat!=='all')all=all.filter(function(r){return r.catKey===__majorCat;});
   // 子门类筛选
@@ -1725,12 +1725,16 @@ function renderMajorBrowser(catKey){
       __majorProvince=this.value;
       __majorCity='all';
       __majorTierMap=null;
+      __selectedMajor=null;
+      var layout=document.querySelector('.major-layout');if(layout)layout.classList.remove('expanded');
       updateBrowserCitySelect('major',all);
       renderMajorBrowser();
     };
     mcSel.onchange=function(){
       __majorCity=this.value;
       __majorTierMap=null;
+      __selectedMajor=null;
+      var layout=document.querySelector('.major-layout');if(layout)layout.classList.remove('expanded');
       renderMajorBrowser();
     };
   }
@@ -1755,7 +1759,7 @@ function renderMajorBrowser(catKey){
   // 右侧详情
   if(__selectedMajor && __selectedMajor.records.length>0){
     var m=__selectedMajor;
-    var rightHtml='<div class="mr-header"><h4 style="cursor:pointer"'+(isPaidUser()?' onclick="openMajorDetail(\''+escAttr(m.majorName)+'\')"':'')+'>📚 '+esc(m.majorName)+(isPaidUser()?' <span style="font-size:.68rem;color:var(--color-accent)">📈 查看详情</span>':'')+'</h4><div class="mr-stats">开设院校：<strong>'+m.schoolCount+'</strong> 所 | 综合分区间：<strong>'+m.scoreMin+' ~ '+m.scoreMax+'</strong> | 均值：<strong>'+m.scoreAvg+'</strong> | 平均学费：<strong>'+(m.tuitionAvg||'--').toLocaleString()+'</strong>/年</div></div><div class="mr-rec-bar" id="majorRecBar">我的综合分 <input type="number" id="majorRecScore" placeholder="如 520" style="width:90px;padding:4px 8px;border-radius:6px;border:1px solid var(--color-border);font-size:.85rem;margin:0 6px"> <button class="btn btn-sm" onclick="recommendMajorSchools()" style="font-size:.82rem">🤖 一键填报</button> <span id="majorRecLoginTip" class="hidden" style="font-size:.78rem;color:var(--color-accent);margin-left:8px">请先登录</span></div>';
+    var rightHtml='<button class="mr-back" onclick="collapseMajorLayout()">← 返回专业列表</button><div class="mr-header"><h4 style="cursor:pointer"'+(isPaidUser()?' onclick="openMajorDetail(\''+escAttr(m.majorName)+'\')"':'')+'>📚 '+esc(m.majorName)+(isPaidUser()?' <span style="font-size:.68rem;color:var(--color-accent)">📈 查看详情</span>':'')+'</h4><div class="mr-stats">开设院校：<strong>'+m.schoolCount+'</strong> 所 | 综合分区间：<strong>'+m.scoreMin+' ~ '+m.scoreMax+'</strong> | 均值：<strong>'+m.scoreAvg+'</strong> | 平均学费：<strong>'+(m.tuitionAvg||'--').toLocaleString()+'</strong>/年</div></div><div class="mr-rec-bar" id="majorRecBar">我的综合分 <input type="number" id="majorRecScore" placeholder="如 520" style="width:90px;padding:4px 8px;border-radius:6px;border:1px solid var(--color-border);font-size:.85rem;margin:0 6px"> <button class="btn btn-sm" onclick="recommendMajorSchools()" style="font-size:.82rem">🤖 一键填报</button> <span id="majorRecLoginTip" class="hidden" style="font-size:.78rem;color:var(--color-accent);margin-left:8px">请先登录</span></div>';
     rightHtml+='<div class="mr-schools">';
     var ranked=m.records;
     // 去重学校（同一学校可能有多条记录，取第一条）
@@ -1774,7 +1778,6 @@ function renderMajorBrowser(catKey){
     }
     // 未授权用户只看前5所
     if(!isPaidUser()&&dedup.length>5){dedup=dedup.slice(0,5);}
-    if(dedup.length>50)dedup=dedup.slice(0,50);
     for(var i=0;i<dedup.length;i++){
       var r=dedup[i];
       var tags=[];
@@ -1792,7 +1795,7 @@ function renderMajorBrowser(catKey){
       var recChecked=sel.has(recKey);
       rightHtml+='<div class="mr-school'+(__majorTierMap&&__majorTierMap[recKey]?' mr-school-tier-'+__majorTierMap[recKey]:'')+'"><div class="mr-cb" data-act="majSel" data-key="'+escAttr(recKey)+'"><div class="cb-box'+(recChecked?' on':'')+'">'+(recChecked?'✓':'')+'</div></div><span class="mr-rank">'+(i+1)+'</span><div class="mr-info"><div class="mr-sname">'+esc(r.schoolName)+' '+tags.join(' ')+'</div><div class="mr-smeta">📍 '+esc(r.city||'--')+' | 💰 '+(typeof r.tuition=='number'?r.tuition.toLocaleString():r.tuition||'--')+'/年'+(r.plan25?' | 📋 '+r.plan25+'人':'')+(r.rankPosition?' | 🏅 位次 '+r.rankPosition:'')+'</div></div><span class="mr-score">'+r.compositeScore+'</span></div>';
     }
-    if(m.records.length>50)rightHtml+='<p style="text-align:center;color:var(--color-text-tertiary);padding:10px;font-size:.78rem">仅显示前 50 所（共 '+m.records.length+' 条记录）</p>';
+    if(dedup.length>50)rightHtml+='<p style="text-align:center;color:var(--color-text-tertiary);padding:10px;font-size:.78rem">仅显示前 50 所（共 '+m.records.length+' 条记录）</p>';
     rightHtml+='</div>';
     document.getElementById('majorRight').innerHTML=rightHtml;
     // 一键填报栏：未登录时隐藏表单，显示登录提示
@@ -1849,6 +1852,17 @@ function selectMajor(majorName){
   for(var i=0;i<majors.length;i++){
     if(majors[i].majorName===majorName){__selectedMajor=majors[i];break;}
   }
+  // 展开院校列表
+  var layout=document.querySelector('.major-layout');
+  if(layout)layout.classList.add('expanded');
+  renderMajorBrowser();
+}
+
+function collapseMajorLayout(){
+  __selectedMajor=null;
+  __majorTierMap=null;
+  var layout=document.querySelector('.major-layout');
+  if(layout)layout.classList.remove('expanded');
   renderMajorBrowser();
 }
 
