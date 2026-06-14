@@ -1767,26 +1767,37 @@ function renderMajorBrowser(catKey){
     for(var i=0;i<ranked.length;i++){
       if(!seen[ranked[i].schoolName]){seen[ranked[i].schoolName]=true;dedup.push(ranked[i]);}
     }
-    // 一键填报：按冲稳保排序
+    // 一键填报：按冲稳保排序，同梯度内按综合分降序
     var tierOrd={reach:0,match:1,safety:2,out:3};
     if(__majorTierMap){
       dedup.sort(function(a,b){
         var ta=tierOrd[__majorTierMap[(a.schoolCode||'')+'|'+(a.majorCode||'')]]||99;
         var tb=tierOrd[__majorTierMap[(b.schoolCode||'')+'|'+(b.majorCode||'')]]||99;
-        return ta-tb;
+        if(ta!==tb)return ta-tb;
+        return (b.compositeScore||0)-(a.compositeScore||0);
       });
     }
     // 未授权用户只看前5所
     if(!isPaidUser()&&dedup.length>5){dedup=dedup.slice(0,5);}
+    var lastTierLabel='';
     for(var i=0;i<dedup.length;i++){
       var r=dedup[i];
       var tags=[];
-      // 冲稳保标签
+      // 冲稳保标签 + 分组标题
       var recKey=(r.schoolCode||'')+'|'+(r.majorCode||'');
+      var curTierLabel='';
       if(__majorTierMap&&__majorTierMap[recKey]){
         var tierTag=__majorTierMap[recKey];
+        curTierLabel=tierTag;
         var tierLabel=tierTag==='reach'?'🔴 冲刺':tierTag==='match'?'🟡 稳妥':tierTag==='safety'?'🟢 保底':'';
         if(tierLabel)tags.push('<span class="tag tag-tier tag-tier-'+tierTag+'">'+tierLabel+'</span>');
+        // 插入分组标题
+        if(curTierLabel!==lastTierLabel){
+          var tierCount=dedup.filter(function(x){return __majorTierMap[(x.schoolCode||'')+'|'+(x.majorCode||'')]===curTierLabel;}).length;
+          var tierTitle=curTierLabel==='reach'?'🔴 冲刺志愿':curTierLabel==='match'?'🟡 稳妥志愿':curTierLabel==='safety'?'🟢 保底志愿':'其他';
+          rightHtml+='<div class="mr-tier-header">'+tierTitle+'<span class="mr-tier-count">'+tierCount+' 所</span></div>';
+          lastTierLabel=curTierLabel;
+        }
       }
       if(r.is985)tags.push('<span class="tag tag-985">985</span>');
       if(r.is211)tags.push('<span class="tag tag-211">211</span>');
