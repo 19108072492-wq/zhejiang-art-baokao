@@ -2250,7 +2250,7 @@ function confirmAuth(){
   var phoneVal=phone.value.trim();
   var nameVal=name?name.value.trim():'';
   var majorVal=major?major.value.trim():'';
-  var daysVal=parseInt(days.value)||0;
+  var daysVal=parseInt(days&&days.value?days.value:'0')||0;
   var notesVal=notes?notes.value.trim():'';
   var expiresAt=null;
   if(daysVal>0){

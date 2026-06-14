@@ -144,7 +144,12 @@ function addAuthorizedUser(body) {
     { method: 'POST', headers: __supaHeaders(), body: JSON.stringify(body), timeout: 10000 }
   ).then(function(resp) {
     if (resp.ok) return { ok: true };
-    return resp.json().then(function(e) { return { ok: false, error: e }; }).catch(function() {
+    return resp.json().then(function(e) {
+      // Supabase 返回 {code, message, hint, details}，提取 message 便于 toast 显示
+      var msg = (e && e.message) ? e.message : ('HTTP ' + resp.status);
+      if (e && e.code === '23505') msg = '该手机号已被授权';
+      return { ok: false, error: msg };
+    }).catch(function() {
       return { ok: false, error: 'HTTP ' + resp.status };
     });
   }).catch(function(e) { return { ok: false, error: e.message || '网络错误' }; });

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>授权诊断测试</title>
+<style>
+body{font-family:monospace;background:#1a1a2e;color:#eee;padding:20px;max-width:800px;margin:0 auto}
+h1{color:#00d4ff;font-size:1.2rem}
+.step{background:#16213e;border:1px solid #333;border-radius:8px;padding:12px;margin:12px 0}
+.step-title{color:#ffd700;font-weight:bold;margin-bottom:8px}
+.ok{color:#00ff88}
+.fail{color:#ff4444}
+.warn{color:#ffaa00}
+pre{background:#0a0a1a;padding:8px;border-radius:4px;overflow-x:auto;font-size:.8rem;white-space:pre-wrap;word-break:break-all}
+button{background:#00d4ff;color:#000;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;font-weight:bold;margin:8px 4px}
+button:disabled{opacity:.5;cursor:not-allowed}
+input{background:#16213e;color:#eee;border:1px solid #444;padding:8px;border-radius:6px;font-size:1rem;width:200px}
+</style>
+</head>
+<body>
+<h1>🔍 授权验证诊断工具</h1>
+
+<div class="step">
+  <div class="step-title">1. 测试手机号</div>
+  <input type="tel" id="phoneInput" placeholder="输入11位手机号" value="18848450521">
+  <button onclick="runDiag()">🚀 开始诊断</button>
+</div>
+
+<div id="results"></div>
+
+<script>
+var SUPABASE_URL='https://nhewhebhbknydhcbvjnv.supabase.co';
+var SUPABASE_KEY='sb_publishable_9XfINH7l5nqjYbdEy4MqTQ__5O4BhnZ';
+var resultsDiv=document.getElementById('results');
+
+function log(html){
+  resultsDiv.innerHTML+=html;
+}
+
+function headers1(){
+  return {
+    'apikey':SUPABASE_KEY,
+    'Authorization':'Bearer '+SUPABASE_KEY,
+    'Content-Type':'application/json',
+    'Prefer':'return=minimal'
+  };
+}
+
+function headers2(){
+  return {
+    'apikey':SUPABASE_KEY,
+    'Authorization':'Bearer '+SUPABASE_KEY
+  };
+}
+
+async function runDiag(){
+  var phone=document.getElementById('phoneInput').value.trim();
+  resultsDiv.innerHTML='';
+  
+  log('<div class="step"><div class="step-title">2. 检查输入</div>');
+  log('<p>手机号: '+phone+'</p>');
+  if(!/^1[3-9]\d{9}$/.test(phone)){
+    log('<p class="fail">❌ 手机号格式不正确！必须为11位，1开头</p></div>');
+    return;
+  }
+  log('<p class="ok">✅ 手机号格式正确</p></div>');
+
+  // Test 1: Ping Supabase
+  log('<div class="step"><div class="step-title">3. 测试 Supabase 连通性 (GET phone_registrations)</div>');
+  try{
+    var t0=Date.now();
+    var r1=await fetch(SUPABASE_URL+'/rest/v1/phone_registrations?select=count&limit=1',{
+      method:'GET',headers:headers1()
+    });
+    var dt1=Date.now()-t0;
+    log('<p>状态: <span class="'+(r1.ok?'ok':'fail')+'">'+r1.status+' '+r1.statusText+'</span> ('+dt1+'ms)</p>');
+    var body1=await r1.text();
+    log('<pre>'+esc(body1)+'</pre>');
+  }catch(e){
+    log('<p class="fail">❌ 请求失败: '+esc(e.message)+'</p>');
+    log('<p class="warn">可能是CORS问题（从file://协议访问HTTPS时浏览器可能阻止）</p>');
+  }
+  log('</div>');
+
+  // Test 2: Query authorized_users with full headers
+  log('<div class="step"><div class="step-title">4. 查询 authorized_users（完整headers，含Content-Type+Prefer）</div>');
+  var url2=SUPABASE_URL+'/rest/v1/authorized_users?phone=eq.'+encodeURIComponent(phone)+'&is_active=eq.true&select=id,phone,expires_at,notes';
+  log('<p>URL: <pre>'+esc(url2)+'</pre></p>');
+  log('<p>Headers: <pre>'+esc(JSON.stringify(headers1(),null,2))+'</pre></p>');
+  try{
+    var t2=Date.now();
+    var r2=await fetch(url2,{method:'GET',headers:headers1()});
+    var dt2=Date.now()-t2;
+    log('<p>状态: <span class="'+(r2.ok?'ok':'fail')+'">'+r2.status+' '+r2.statusText+'</span> ('+dt2+'ms)</p>');
+    var body2=await r2.text();
+    log('<p>响应体: <pre>'+esc(body2)+'</pre></p>');
+    if(r2.ok){
+      try{
+        var data2=JSON.parse(body2);
+        if(data2.length>0) log('<p class="ok">✅ 找到授权记录！authorized=true</p>');
+        else log('<p class="warn">⚠️ 手机号不在授权表中</p>');
+      }catch(e){log('<p class="fail">JSON解析失败</p>');}
+    }
+  }catch(e){
+    log('<p class="fail">❌ 请求失败: '+esc(e.message)+'</p>');
+  }
+  log('</div>');
+
+  // Test 3: Query with minimal headers (no Content-Type, no Prefer)
+  log('<div class="step"><div class="step-title">5. 查询 authorized_users（精简headers，仅apikey+Authorization）</div>');
+  log('<p>Headers: <pre>'+esc(JSON.stringify(headers2(),null,2))+'</pre></p>');
+  try{
+    var t3=Date.now();
+    var r3=await fetch(url2,{method:'GET',headers:headers2()});
+    var dt3=Date.now()-t3;
+    log('<p>状态: <span class="'+(r3.ok?'ok':'fail')+'">'+r3.status+' '+r3.statusText+'</span> ('+dt3+'ms)</p>');
+    var body3=await r3.text();
+    log('<p>响应体: <pre>'+esc(body3)+'</pre></p>');
+    if(r3.ok){
+      try{
+        var data3=JSON.parse(body3);
+        if(data3.length>0) log('<p class="ok">✅ 找到授权记录！authorized=true</p>');
+        else log('<p class="warn">⚠️ 手机号不在授权表中</p>');
+      }catch(e){log('<p class="fail">JSON解析失败</p>');}
+    }
+  }catch(e){
+    log('<p class="fail">❌ 请求失败: '+esc(e.message)+'</p>');
+  }
+  log('</div>');
+
+  // Test 4: Query with no Authorization header (apikey only)
+  log('<div class="step"><div class="step-title">6. 查询 authorized_users（仅apikey，无Authorization）</div>');
+  var headers3={'apikey':SUPABASE_KEY};
+  try{
+    var t4=Date.now();
+    var r4=await fetch(url2,{method:'GET',headers:headers3});
+    var dt4=Date.now()-t4;
+    log('<p>状态: <span class="'+(r4.ok?'ok':'fail')+'">'+r4.status+' '+r4.statusText+'</span> ('+dt4+'ms)</p>');
+    var body4=await r4.text();
+    log('<p>响应体: <pre>'+esc(body4)+'</pre></p>');
+  }catch(e){
+    log('<p class="fail">❌ 请求失败: '+esc(e.message)+'</p>');
+  }
+  log('</div>');
+
+  // Test 5: Query all authorized_users
+  log('<div class="step"><div class="step-title">7. 查询所有 authorized_users（确认表中有数据）</div>');
+  try{
+    var r5=await fetch(SUPABASE_URL+'/rest/v1/authorized_users?select=phone,is_active,name,major_direction,expires_at&order=created_at.desc',{
+      method:'GET',headers:headers2()
+    });
+    log('<p>状态: <span class="'+(r5.ok?'ok':'fail')+'">'+r5.status+'</span></p>');
+    var body5=await r5.text();
+    log('<pre>'+esc(body5)+'</pre>');
+  }catch(e){
+    log('<p class="fail">❌ 请求失败: '+esc(e.message)+'</p>');
+  }
+  log('</div>');
+}
+
+function esc(s){
+  if(!s)return'';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
