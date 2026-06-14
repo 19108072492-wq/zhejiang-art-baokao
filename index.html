@@ -545,6 +545,10 @@ body{
 .tag-df{background:var(--_purple-50);color:var(--_purple-700)}
 .tag-pv{background:var(--_red-50);color:var(--_red-500)}
 .tag-est{background:var(--_yellow-50);color:#92400e;border:1px solid #fcd34d}
+.tag-tier{font-size:.66rem;padding:2px 8px;border-radius:4px}
+.tag-tier-reach{background:#fef2f2;color:#dc2626;border:1px solid #fecaca}
+.tag-tier-match{background:#fffbeb;color:#d97706;border:1px solid #fde68a}
+.tag-tier-safety{background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0}
 
 /* ===== SCORE BREAKDOWN (MINI BARS) ===== */
 .score-breakdown{
@@ -946,17 +950,6 @@ html[data-theme="dark"] .toast,
 .major-right .mr-rec-bar input[type="number"]{width:90px;padding:5px 8px;border-radius:6px;border:1px solid var(--color-border);font-size:.85rem;background:var(--color-surface);color:var(--color-text)}
 .major-right .mr-rec-bar input:focus{outline:none;border-color:var(--color-accent);box-shadow:0 0 0 2px var(--color-accent-light)}
 .major-right .mr-rec-bar .btn-sm{padding:5px 14px;font-size:.82rem;border-radius:6px;cursor:pointer}
-.major-rec-box{margin-top:12px;padding:14px 16px;background:var(--color-surface-alt);border-radius:var(--_radius-md);border:1px solid var(--color-border-light)}
-.major-rec-box .rec-header{font-weight:700;font-size:.88rem;margin-bottom:10px;color:var(--color-accent)}
-.major-rec-box .rec-tier{margin-top:10px;padding-top:10px;border-top:1px dashed var(--color-border-light)}
-.major-rec-box .rec-tier-label{font-weight:600;font-size:.82rem;margin-bottom:6px;color:var(--color-text-secondary)}
-.major-rec-box .rec-item{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--color-border-light);font-size:.82rem}
-.major-rec-box .rec-item:last-child{border-bottom:none}
-.major-rec-box .rec-rank{font-weight:700;color:var(--color-accent);width:24px;text-align:center;font-size:.85rem}
-.major-rec-box .rec-info{flex:1;min-width:0}
-.major-rec-box .rec-sname{font-weight:600;word-break:break-all}
-.major-rec-box .rec-meta{font-size:.68rem;color:var(--color-text-tertiary);margin-top:2px}
-.major-rec-box .rec-score{font-weight:700;color:var(--color-accent);white-space:nowrap;font-size:.9rem}
 
 /* ===== DATA ANALYSIS ===== */
 .ana-bignums{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--_sp-3);margin-bottom:var(--_sp-5)}
@@ -1245,6 +1238,6 @@ html[data-theme="dark"] .toast,
 <script src="js/auth.js?v=13" defer></script>
 <script src="js/data.js?v=3" defer></script>
 <script src="js/core.js?v=3" defer></script>
-<script src="js/app.js?v=14" defer></script>
+<script src="js/app.js?v=15" defer></script>
 </body>
 </html>
