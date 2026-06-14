@@ -279,10 +279,10 @@ function calc(){
   // 已授权用户：无限制
   var freeBanner=document.getElementById('freeLimitBanner');
   if(!isPaidUser()&&cur.length>0){
-    var reachSchools=cur.filter(function(x){return x.tier==='reach';});
-    var matchSchools=cur.filter(function(x){return x.tier==='match';});
-    var safetySchools=cur.filter(function(x){return x.tier==='safety';});
-    var limited=reachSchools.slice(0,2).concat(matchSchools.slice(0,2)).concat(safetySchools.slice(0,1));
+    var reachList=cur.filter(function(x){return x.tier==='reach';});
+    var matchList=cur.filter(function(x){return x.tier==='match';});
+    var safetyList=cur.filter(function(x){return x.tier==='safety';});
+    var limited=reachList.slice(0,2).concat(matchList.slice(0,2)).concat(safetyList.slice(0,1));
     cur=limited;
     window.__rec=window.__rec?window.__rec.filter(function(r){return limited.some(function(l){return l.schoolCode===r.schoolCode&&l.majorCode===r.majorCode;});}):[];
     if(freeBanner)freeBanner.classList.remove('hidden');
