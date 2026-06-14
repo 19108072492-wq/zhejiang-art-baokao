@@ -269,7 +269,8 @@ async function calc(){
   const m=matchSchools(res.score,k,c,filteredPool);
   cur=m.results;window.__rec=m.rec20;
 
-  // ★ 免费用户限制：仅展示10所学校（冲刺3+稳妥5+保底2）
+  // ★ 未授权用户限制：仅展示10所学校（冲刺3+稳妥5+保底2）
+  // 已授权用户：无限制
   var freeBanner=document.getElementById('freeLimitBanner');
   if(!isPaidUser()&&cur.length>0){
     var reachSchools=cur.filter(function(x){return x.tier==='reach';});
@@ -406,7 +407,8 @@ function renderCards(){
       var scMap={'音教声乐':'🎤 声乐主项','音教器乐':'🎹 器乐主项','音表声乐':'🎤 声乐','音表器乐':'🎻 器乐'};
       if(scMap[r.subCategory])subCatTag=' <span style="font-size:.68rem;padding:1px 5px;border-radius:8px;background:var(--color-surface-secondary);color:var(--color-accent)">'+scMap[r.subCategory]+'</span>';
     }
-    return `<div class="sc ${m.c}${ck?' sel':''}" data-key="${key}" data-idx="${i}"><div class="cb" data-act="sel"><div class="cb-box${ck?' on':''}">${ck?'✓':''}</div></div><div class="sinfo"><div class="sname">${esc(r.schoolName)} <span style="font-weight:400;font-size:.75rem">${tags.join(' ')}</span></div><div class="smaj"><span style="cursor:pointer;text-decoration:underline dotted;color:var(--color-accent);font-size:inherit" onclick="openMajorDetail(('${escAttr(r.majorName)}'))">${esc(r.majorName)}</span>${subCatTag} <span style="font-size:.72rem;color:#8c8c8c">${r.majorCode||''}</span></div><div class="smeta"><span>📍 ${esc(r.city||'')}</span><span>💰 ${typeof r.tuition=='number'?r.tuition.toLocaleString()+'/年':(r.tuition||'--')}</span><span>🏠 ${esc(r.dorm||'')||'--'}</span>${r.plan25?`<span>📋 ${r.plan25}人</span>`:r.plan24?`<span>📋 ${r.plan24}人</span>`:''}${r.rankPosition?`<span>📊 位次${r.rankPosition}</span>`:''}</div>${r.scoreLineReq?`<div style="margin-top:4px;font-size:.74rem;color:#9a6b2a;background:#faf6f0;padding:3px 8px;border-radius:4px;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📋 ${esc(r.scoreLineReq)}</div>`:''}<div class="sdet">${r.note?`<p>📝 ${esc(r.note)}</p>`:''}${r.courseGuide?`<p>📚 ${esc(r.courseGuide)}</p>`:''}${r.talentGoal?`<p>🎯 ${esc(r.talentGoal)}</p>`:''}${r.scoreSource==='estimated'?'<p style="color:#c0392b">⚠️ 预估分，请谨慎参考</p>':''}${scoreDetailHTML}</div></div><div class="sstat"><span class="sn">${r.compositeScore}</span><span class="ss">往年录取分</span><span class="ss">${dt}</span>${r.scoreSource==='estimated'?'<span class="ss" style="color:#c0392b">预估</span>':''}</div></div>`;
+	    var majorDetailLink=isPaidUser()?`<span style="cursor:pointer;text-decoration:underline dotted;color:var(--color-accent);font-size:inherit" onclick="openMajorDetail(('${escAttr(r.majorName)}'))">${esc(r.majorName)}</span>`:`${esc(r.majorName)}`;
+	    return `<div class="sc ${m.c}${ck?' sel':''}" data-key="${key}" data-idx="${i}"><div class="cb" data-act="sel"><div class="cb-box${ck?' on':''}">${ck?'✓':''}</div></div><div class="sinfo"><div class="sname">${esc(r.schoolName)} <span style="font-weight:400;font-size:.75rem">${tags.join(' ')}</span></div><div class="smaj">${majorDetailLink}${subCatTag} <span style="font-size:.72rem;color:#8c8c8c">${r.majorCode||''}</span></div><div class="smeta"><span>📍 ${esc(r.city||'')}</span><span>💰 ${typeof r.tuition=='number'?r.tuition.toLocaleString()+'/年':(r.tuition||'--')}</span><span>🏠 ${esc(r.dorm||'')||'--'}</span>${r.plan25?`<span>📋 ${r.plan25}人</span>`:r.plan24?`<span>📋 ${r.plan24}人</span>`:''}${r.rankPosition?`<span>📊 位次${r.rankPosition}</span>`:''}</div>${r.scoreLineReq?`<div style="margin-top:4px;font-size:.74rem;color:#9a6b2a;background:#faf6f0;padding:3px 8px;border-radius:4px;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📋 ${esc(r.scoreLineReq)}</div>`:''}<div class="sdet">${r.note?`<p>📝 ${esc(r.note)}</p>`:''}${r.courseGuide?`<p>📚 ${esc(r.courseGuide)}</p>`:''}${r.talentGoal?`<p>🎯 ${esc(r.talentGoal)}</p>`:''}${r.scoreSource==='estimated'?'<p style="color:#c0392b">⚠️ 预估分，请谨慎参考</p>':''}${isPaidUser()?scoreDetailHTML:''}</div></div><div class="sstat"><span class="sn">${r.compositeScore}</span><span class="ss">往年录取分</span><span class="ss">${dt}</span>${r.scoreSource==='estimated'?'<span class="ss" style="color:#c0392b">预估</span>':''}</div></div>`;
   }).join('');
   container.onclick=function(e){
     const selEl=e.target.closest('[data-act="sel"]');
@@ -414,7 +416,10 @@ function renderCards(){
       // 用 key 查找（修复索引错位 Bug）
       const r=cur.find(function(x){return x.schoolCode+'|'+x.majorCode===key;});
       if(r){if(sel.has(key))sel.delete(key);else sel.set(key,r);}updateFloat();renderCards();return;}
-    const card=e.target.closest('.sc');if(card)card.classList.toggle('exp');
+    const card=e.target.closest('.sc');
+    // 未授权用户不能展开卡片详情
+    if(card && !isPaidUser())return;
+    if(card)card.classList.toggle('exp');
   };
 }
 
@@ -714,6 +719,8 @@ function removeFormItem(key){
 
 // ===== 专业详情弹窗 =====
 function openMajorDetail(majorName){
+  // 未授权用户不能查看详情
+  if(!isPaidUser())return showUpgradeModal();
   var all=getAllRecords();
   var majors=aggregateByMajor(all);
   var target=null;
@@ -1189,9 +1196,9 @@ function switchTab(tabName){
   if(tabName==='analysisView' && !__adminAccess){
     switchTab('dashboard');return;
   }
-  // ★ 付费功能检查：院校浏览、专业浏览需付费
+  // ★ 未登录用户：四个模块均可进入，但有限制（数量+详情）
   var paidTabs=['schoolBrowser','majorBrowser'];
-  if(paidTabs.indexOf(tabName)>=0 && !isPaidUser()){
+  if(paidTabs.indexOf(tabName)>=0 && !__isLoggedIn){
     showUpgradeModal();
     switchTab('dashboard');return;
   }
@@ -1322,12 +1329,13 @@ function renderDashboard(){
     '<div class="dash-stat"><div class="ds-num">'+cityCount+'</div><div class="ds-lbl">覆盖城市</div></div>'+
     '<div class="dash-stat"><div class="ds-num">'+all.length+'</div><div class="ds-lbl">录取数据</div></div>';
   
-  // 快捷入口（免费用户仅显示智能填报+我的志愿单，付费用户显示全部）
+  // 快捷入口（未登录用户仅显示智能填报+我的志愿单，登录用户显示全部）
   var entries=[
     {icon:'🎯',title:'智能填报',desc:'输入成绩，匹配冲稳保院校',tab:'inputCard',paid:false},
-    {icon:'🏫',title:'院校浏览',desc:'浏览全部院校及其开设专业',tab:'schoolBrowser',paid:true},
-    {icon:'📚',title:'专业浏览',desc:'按专业筛选，查看院校排名',tab:'majorBrowser',paid:true},
+    {icon:'🏫',title:'院校浏览',desc:'浏览全部院校及其开设专业',tab:'schoolBrowser',paid:false},
+    {icon:'📚',title:'专业浏览',desc:'按专业筛选，查看院校排名',tab:'majorBrowser',paid:false},
     {icon:'📋',title:'我的志愿单',desc:'查看已保存的志愿选择',tab:'myForm',paid:false},
+    {icon:'📈',title:'数据分析',desc:'录取趋势与可视化分析',tab:'analysisView',paid:true},
   ];
   var entriesHtml='';
   for(var i=0;i<entries.length;i++){
@@ -1338,8 +1346,8 @@ function renderDashboard(){
     entriesHtml+='<div class="dash-entry" data-tab="'+e.tab+'" onclick="dashEntryClick(\''+e.tab+'\')"><span class="de-icon">'+e.icon+'</span><div class="de-title">'+e.title+lockBadge+'</div><div class="de-desc">'+e.desc+'</div></div>';
   }
   // 免费用户添加升级入口
-  if(!isPaidUser()){
-    entriesHtml+='<div class="dash-entry" onclick="showUpgradeModal()" style="border-color:var(--_orange-500);background:var(--_orange-50)"><span class="de-icon">🔓</span><div class="de-title" style="color:var(--_orange-500)">开通完整版</div><div class="de-desc">解锁院校浏览、专业浏览等全部功能</div></div>';
+  if(!__isPaidUser && __isLoggedIn){
+    entriesHtml+='<div class="dash-entry" onclick="showUpgradeModal()" style="border-color:var(--_orange-500);background:var(--_orange-50)"><span class="de-icon">🔓</span><div class="de-title" style="color:var(--_orange-500)">开通完整版</div><div class="de-desc">解锁数量无限制、查看详情等全部功能</div></div>';
   }
   document.getElementById('dashEntries').innerHTML=entriesHtml;
 }
@@ -1377,6 +1385,10 @@ function renderSchoolBrowser(catKey){
   // 省份/城市筛选
   all=filterByProvince(all,__schoolProvince);
   all=filterByCity(all,__schoolCity);
+  // 未授权用户限制：院校浏览仅显示前5所
+  if(!isPaidUser()&&all.length>0){
+    all=all.slice(0,5);
+  }
   var schools=aggregateBySchool(all);
 
   // 门类 tab
@@ -1516,7 +1528,10 @@ function renderSchoolBrowser(catKey){
       '</div>';
       infoBadge=' <span class="sch-info-badge" title="点击展开查看院校介绍和官网链接">ℹ️</span>';
     }
-    html+='<div class="school-card" onclick="toggleSchoolCard(this,event)" data-school="'+escAttr(s.schoolName)+'">'+
+    // 未授权用户：隐藏院校介绍，点击卡片不展开详情
+  var isPaidUserNow=isPaidUser();
+  if(!isPaidUserNow){infoHtml='';infoBadge='';}
+  html+='<div class="school-card" onclick="toggleSchoolCard(this,event)" data-school="'+escAttr(s.schoolName)+'"'+(isPaidUserNow?'':' style="cursor:default"')+'>'+
       '<div class="sch-cb" data-act="schSel" data-school="'+escAttr(s.schoolName)+'"><div class="cb-box'+(schoolChecked?' on':'')+'">'+(schoolChecked?'✓':'')+'</div></div>'+
       '<div class="sch-name">'+esc(s.schoolName)+infoBadge+' <span style="font-weight:400;font-size:.75rem">'+tags.join(' ')+'</span></div>'+
       '<div class="sch-meta">📍 '+esc(s.city||'--')+' | 💰 '+(s.tuitionMin?s.tuitionMin.toLocaleString():'--')+(s.tuitionMin!==s.tuitionMax?' ~ '+s.tuitionMax.toLocaleString():'')+'/年 | 📚 '+s.majorCount+'个专业</div>'+
@@ -1599,6 +1614,8 @@ function updateBrowserCitySelect(prefix,records){
 }
 
 function toggleSchoolCard(card,event){
+  // 未授权用户不允许展开院校详情
+  if(!isPaidUser())return;
   // 如果点击的是复选框区域，不展开卡片
   if(event){
     var cbEl=event.target.closest('[data-act="schSel"]');
@@ -1631,6 +1648,11 @@ function renderMajorBrowser(catKey){
   all=filterByProvince(all,__majorProvince);
   all=filterByCity(all,__majorCity);
   var majors=aggregateByMajor(all);
+
+  // 未授权用户限制：专业浏览仅显示前5个专业
+  if(!isPaidUser()&&majors.length>5){
+    majors=majors.slice(0,5);
+  }
 
   // 门类 tab
   var tabsHtml='<button class="'+(__majorCat==='all'?'on':'')+'" data-t="all">全部</button>';
@@ -1705,7 +1727,7 @@ function renderMajorBrowser(catKey){
   // 右侧详情
   if(__selectedMajor && __selectedMajor.records.length>0){
     var m=__selectedMajor;
-    var rightHtml='<div class="mr-header"><h4 style="cursor:pointer" onclick="openMajorDetail(\''+escAttr(m.majorName)+'\')">📚 '+esc(m.majorName)+' <span style="font-size:.68rem;color:var(--color-accent)">📈 查看详情</span></h4><div class="mr-stats">开设院校：<strong>'+m.schoolCount+'</strong> 所 | 综合分区间：<strong>'+m.scoreMin+' ~ '+m.scoreMax+'</strong> | 均值：<strong>'+m.scoreAvg+'</strong> | 平均学费：<strong>'+(m.tuitionAvg||'--').toLocaleString()+'</strong>/年</div></div><div class="mr-schools">';
+    var rightHtml='<div class="mr-header"><h4 style="cursor:pointer"'+(isPaidUser()?' onclick="openMajorDetail(\''+escAttr(m.majorName)+'\')"':'')+'>📚 '+esc(m.majorName)+(isPaidUser()?' <span style="font-size:.68rem;color:var(--color-accent)">📈 查看详情</span>':'')+'</h4><div class="mr-stats">开设院校：<strong>'+m.schoolCount+'</strong> 所 | 综合分区间：<strong>'+m.scoreMin+' ~ '+m.scoreMax+'</strong> | 均值：<strong>'+m.scoreAvg+'</strong> | 平均学费：<strong>'+(m.tuitionAvg||'--').toLocaleString()+'</strong>/年</div></div><div class="mr-schools">';
     var ranked=m.records;
     // 去重学校（同一学校可能有多条记录，取第一条）
     var seen={},dedup=[];

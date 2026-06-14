@@ -260,7 +260,7 @@ function updatePaidUI(){
     }
     bar.innerHTML='<span style="display:flex;align-items:center;gap:12px"><span style="color:var(--gr);font-weight:600">✅ 已授权 '+expText+'</span></span>';
   }else if(__isLoggedIn){
-    bar.innerHTML='<span style="color:var(--o);font-weight:600">🎁 试用模式 · 仅开放分数测算功能</span> <button class="btn btn-g btn-sm" id="btnUpgrade" style="font-size:.75rem;padding:2px 8px">🔓 开通完整版</button>';
+    bar.innerHTML='<span style="color:var(--o);font-weight:600">🎁 未授权模式 · 数量限制，无法查看详情</span> <button class="btn btn-g btn-sm" id="btnUpgrade" style="font-size:.75rem;padding:2px 8px">🔓 升级完整版</button>';
     setTimeout(function(){
       var bu=document.getElementById('btnUpgrade');
       if(bu)bu.addEventListener('click',showUpgradeModal);
