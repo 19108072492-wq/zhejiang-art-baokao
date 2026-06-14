@@ -1658,6 +1658,19 @@ function renderMajorBrowser(catKey){
   all=filterByCity(all,__majorCity);
   var majors=aggregateByMajor(all);
 
+  // 省份/城市变更时，同步更新已选专业的数据（否则右侧面板仍显示旧数据）
+  if(__selectedMajor){
+    var found=false;
+    for(var i=0;i<majors.length;i++){
+      if(majors[i].majorName===__selectedMajor.majorName){
+        __selectedMajor=majors[i];
+        found=true;
+        break;
+      }
+    }
+    if(!found)__selectedMajor=null;
+  }
+
   // 未授权用户限制：专业浏览仅显示前5个专业
   if(!isPaidUser()&&majors.length>5){
     majors=majors.slice(0,5);
