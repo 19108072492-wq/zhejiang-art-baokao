@@ -1059,7 +1059,7 @@ async function up(input){
     const fi=[...map.values()];saveData(k,fi);
     p.textContent=`✅ ${fs.length}文件→${fi.length}条`;
     renderAdmin();toast(`✅ ${fi.length}条`);
-  }catch(e){p.textContent='❌ '+e.message;console.error(e);}
+  }catch(e){p.textContent='❌ (数据格式错误)';}
   input.value='';
 }
 
@@ -1149,7 +1149,7 @@ async function renderUsers(){
         }
       });
     }
-  }catch(e){console.log('[Admin] 云端拉取失败:',e.message||e);}
+  }catch(e){/* 云端拉取失败，仅显示本地数据 */}
 
   // 按时间倒序
   allUsers.sort(function(a,b){return (b.time||'').localeCompare(a.time||'');});

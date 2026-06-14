@@ -102,24 +102,19 @@ function supaPing(){
 function checkUserAuthorization(phone) {
   var url = SUPABASE_URL + '/rest/v1/authorized_users?phone=eq.' + encodeURIComponent(phone) + '&is_active=eq.true&select=id,phone,expires_at,notes';
   var headers = __supaHeaders();
-  console.log('[Supa] checkUserAuthorization 请求:', url);
-  console.log('[Supa] headers:', JSON.stringify(headers));
   return __supaFetch(
     url,
     { method: 'GET', headers: headers, timeout: 8000 },
     1
   ).then(function(resp) {
-    console.log('[Supa] 响应状态:', resp.status, resp.ok);
     if (!resp.ok) {
       return resp.text().then(function(txt) {
-        console.error('[Supa] 响应内容:', txt);
         return { ok: false, error: 'HTTP ' + resp.status + ': ' + txt.substring(0, 200) };
       }).catch(function() {
         return { ok: false, error: 'HTTP ' + resp.status };
       });
     }
     return resp.json().then(function(data) {
-      console.log('[Supa] 返回数据:', JSON.stringify(data));
       if (!data || data.length === 0) return { ok: true, authorized: false };
       var user = data[0];
       if (user.expires_at) {
@@ -128,11 +123,9 @@ function checkUserAuthorization(phone) {
       }
       return { ok: true, authorized: true, data: user };
     }).catch(function(e) {
-      console.error('[Supa] JSON解析失败:', e);
       return { ok: true, authorized: false };
     });
   }).catch(function(e) {
-    console.error('[Supa] 网络错误:', e);
     return { ok: false, error: e.message || '网络错误' };
   });
 }
@@ -191,5 +184,3 @@ function deleteAuthorizedUser(id) {
 
 // 兼容旧代码：supabase 变量（供 auth.js syncToCloud 降级使用）
 var supabase=null;
-// 尝试用新 API 快速检查连通性
-supaPing().then(function(r){console.log('[Supabase] 连通性:',r.ok?'OK '+r.time+'ms':'失败: '+r.error);});
