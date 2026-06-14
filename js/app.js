@@ -1807,6 +1807,9 @@ function selectMajor(majorName){
   if(__majorCat!=='all'&&__majorSubCat!=='all'){
     all=filterBySubcat(all,__majorSubCat);
   }
+  // 省份/城市筛选（与 renderMajorBrowser 保持一致）
+  all=filterByProvince(all,__majorProvince);
+  all=filterByCity(all,__majorCity);
   var majors=aggregateByMajor(all);
   for(var i=0;i<majors.length;i++){
     if(majors[i].majorName===majorName){__selectedMajor=majors[i];break;}
