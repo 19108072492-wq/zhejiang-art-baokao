@@ -1752,7 +1752,7 @@ function renderMajorBrowser(catKey){
   // 右侧详情
   if(__selectedMajor && __selectedMajor.records.length>0){
     var m=__selectedMajor;
-    var rightHtml='<div class="mr-header"><h4 style="cursor:pointer"'+(isPaidUser()?' onclick="openMajorDetail(\''+escAttr(m.majorName)+'\')"':'')+'>📚 '+esc(m.majorName)+(isPaidUser()?' <span style="font-size:.68rem;color:var(--color-accent)">📈 查看详情</span>':'')+'</h4><div class="mr-stats">开设院校：<strong>'+m.schoolCount+'</strong> 所 | 综合分区间：<strong>'+m.scoreMin+' ~ '+m.scoreMax+'</strong> | 均值：<strong>'+m.scoreAvg+'</strong> | 平均学费：<strong>'+(m.tuitionAvg||'--').toLocaleString()+'</strong>/年</div></div><div class="mr-schools">';
+    var rightHtml='<div class="mr-header"><h4 style="cursor:pointer"'+(isPaidUser()?' onclick="openMajorDetail(\''+escAttr(m.majorName)+'\')"':'')+'>📚 '+esc(m.majorName)+(isPaidUser()?' <span style="font-size:.68rem;color:var(--color-accent)">📈 查看详情</span>':'')+'</h4><div class="mr-stats">开设院校：<strong>'+m.schoolCount+'</strong> 所 | 综合分区间：<strong>'+m.scoreMin+' ~ '+m.scoreMax+'</strong> | 均值：<strong>'+m.scoreAvg+'</strong> | 平均学费：<strong>'+(m.tuitionAvg||'--').toLocaleString()+'</strong>/年</div></div><div class="mr-rec-bar" id="majorRecBar">我的综合分 <input type="number" id="majorRecScore" placeholder="如 520" style="width:90px;padding:4px 8px;border-radius:6px;border:1px solid var(--color-border);font-size:.85rem;margin:0 6px"> <button class="btn btn-sm" onclick="recommendMajorSchools()" style="font-size:.82rem">🤖 一键填报</button> <span id="majorRecLoginTip" class="hidden" style="font-size:.78rem;color:var(--color-accent);margin-left:8px">请先登录</span></div><div class="mr-schools">';
     var ranked=m.records;
     // 去重学校（同一学校可能有多条记录，取第一条）
     var seen={},dedup=[];
@@ -1774,8 +1774,13 @@ function renderMajorBrowser(catKey){
       rightHtml+='<div class="mr-school"><div class="mr-cb" data-act="majSel" data-key="'+escAttr(recKey)+'"><div class="cb-box'+(recChecked?' on':'')+'">'+(recChecked?'✓':'')+'</div></div><span class="mr-rank">'+(i+1)+'</span><div class="mr-info"><div class="mr-sname">'+esc(r.schoolName)+' '+tags.join(' ')+'</div><div class="mr-smeta">📍 '+esc(r.city||'--')+' | 💰 '+(typeof r.tuition=='number'?r.tuition.toLocaleString():r.tuition||'--')+'/年'+(r.plan25?' | 📋 '+r.plan25+'人':'')+(r.rankPosition?' | 🏅 位次 '+r.rankPosition:'')+'</div></div><span class="mr-score">'+r.compositeScore+'</span></div>';
     }
     if(m.records.length>50)rightHtml+='<p style="text-align:center;color:var(--color-text-tertiary);padding:10px;font-size:.78rem">仅显示前 50 所（共 '+m.records.length+' 条记录）</p>';
-    rightHtml+='</div>';
+    rightHtml+='</div><div id="majorRecBox" class="major-rec-box"></div>';
     document.getElementById('majorRight').innerHTML=rightHtml;
+    // 一键填报栏：未登录时隐藏表单，显示登录提示
+    var barEl=document.getElementById('majorRecBar');
+    if(barEl)barEl.classList.toggle('hidden',!__isLoggedIn);
+    var tipEl=document.getElementById('majorRecLoginTip');
+    if(tipEl)tipEl.classList.toggle('hidden',__isLoggedIn);
     // 复选框事件
     document.getElementById('majorRight').onclick=function(e){
       var cb=e.target.closest('[data-act="majSel"]');
@@ -1828,6 +1833,66 @@ function selectMajor(majorName){
     if(majors[i].majorName===majorName){__selectedMajor=majors[i];break;}
   }
   renderMajorBrowser();
+}
+
+function recommendMajorSchools(){
+  if(!__isLoggedIn){
+    toast('请先登录后使用一键填报功能',1);
+    document.getElementById('authModal').classList.remove('hidden');
+    return;
+  }
+  var score=parseFloat(document.getElementById('majorRecScore').value);
+  if(isNaN(score)||score<=0){
+    toast('请输入有效的综合分',1);
+    return;
+  }
+  // 确定 catKey
+  var catKey=__majorCat;
+  if(catKey==='all'){
+    var keys=Object.keys(__selectedMajor.categories||{});
+    if(keys.length)catKey=keys[0];
+    else catKey='finearts';
+  }
+  // __selectedMajor.records 已由 selectMajor 按省份/城市筛选过
+  var pool=__selectedMajor.records.filter(function(r){return !r.isSuspended;});
+  if(!pool.length){
+    toast('当前筛选条件下无有效院校记录',1);
+    return;
+  }
+  var m=matchSchools(score,catKey,0,pool);
+  var results=m.results;
+  var box=document.getElementById('majorRecBox');
+  if(!results.length){
+    box.innerHTML='<p style="text-align:center;color:var(--color-text-tertiary);padding:20px 0">未找到匹配院校</p>';
+    box.style.display='block';
+    return;
+  }
+  // 按 tier 分组
+  var groups={reach:[],match:[],safety:[]};
+  for(var i=0;i<results.length;i++){
+    var r=results[i];
+    if(groups[r.tier])groups[r.tier].push(r);
+  }
+  var html='<div class="rec-header">🤖 一键推荐结果（综合分 '+score+'）</div>';
+  var tierLabels={reach:'🔴 冲刺',match:'🟡 稳妥',safety:'🟢 保底'};
+  var tierOrder=['reach','match','safety'];
+  for(var ti=0;ti<tierOrder.length;ti++){
+    var t=tierOrder[ti];
+    if(!groups[t].length)continue;
+    html+='<div class="rec-tier"><div class="rec-tier-label">'+tierLabels[t]+'（'+groups[t].length+' 所）</div>';
+    for(var i=0;i<groups[t].length;i++){
+      var r=groups[t][i];
+      var tags=[];
+      if(r.is985)tags.push('<span class="tag tag-985">985</span>');
+      if(r.is211)tags.push('<span class="tag tag-211">211</span>');
+      if(r.isDoubleFirst)tags.push('<span class="tag tag-df">双一流</span>');
+      if(r.isPrivate)tags.push('<span class="tag tag-pv">民办</span>');
+      html+='<div class="rec-item"><span class="rec-rank">'+(i+1)+'</span><div class="rec-info"><div class="rec-sname">'+esc(r.schoolName)+' '+tags.join(' ')+'</div><div class="rec-meta">📍 '+esc(r.city||'--')+' | 💰 '+(typeof r.tuition=='number'?r.tuition.toLocaleString():r.tuition||'--')+'/年</div></div><span class="rec-score">'+r.compositeScore+'</span></div>';
+    }
+    html+='</div>';
+  }
+  box.innerHTML=html;
+  box.style.display='block';
 }
 
 // ===== 管理员数据分析面板 =====
