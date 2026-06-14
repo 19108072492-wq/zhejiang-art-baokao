@@ -193,9 +193,15 @@ function getSubcatLabel(catKey,subcatKey){
   return '';
 }
 
-async function calc(){
-  // 认证检查
-  if(!(await checkAuthAndSpend()))return;
+function calc(){
+  // 检查是否已登录（未登录提示登录）
+  if(!__isLoggedIn){
+    toast('请先登录后使用智能填报功能',1);
+    document.getElementById('authModal').classList.remove('hidden');
+    var phoneInput=document.getElementById('authPhone');
+    if(phoneInput)phoneInput.focus();
+    return;
+  }
 
   const c=parseFloat(document.getElementById('culture').value);
   const a=parseFloat(document.getElementById('art').value);
