@@ -275,14 +275,14 @@ function calc(){
   const m=matchSchools(res.score,k,c,filteredPool);
   cur=m.results;window.__rec=m.rec20;
 
-  // ★ 未授权用户限制：仅展示10所学校（冲刺3+稳妥5+保底2）
+  // ★ 未授权用户限制：仅展示5所学校（冲刺2+稳妥2+保底1）
   // 已授权用户：无限制
   var freeBanner=document.getElementById('freeLimitBanner');
   if(!isPaidUser()&&cur.length>0){
     var reachSchools=cur.filter(function(x){return x.tier==='reach';});
     var matchSchools=cur.filter(function(x){return x.tier==='match';});
     var safetySchools=cur.filter(function(x){return x.tier==='safety';});
-    var limited=reachSchools.slice(0,3).concat(matchSchools.slice(0,5)).concat(safetySchools.slice(0,2));
+    var limited=reachSchools.slice(0,2).concat(matchSchools.slice(0,2)).concat(safetySchools.slice(0,1));
     cur=limited;
     window.__rec=window.__rec?window.__rec.filter(function(r){return limited.some(function(l){return l.schoolCode===r.schoolCode&&l.majorCode===r.majorCode;});}):[];
     if(freeBanner)freeBanner.classList.remove('hidden');
