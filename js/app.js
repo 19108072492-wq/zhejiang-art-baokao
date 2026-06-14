@@ -1491,7 +1491,10 @@ function renderSchoolBrowser(catKey){
   
   var catLabel=__schoolCat!=='all'?'（'+CATS.filter(function(c){return c.k===__schoolCat;}).map(function(c){return c.l;})[0]+(__schoolSubCat!=='all'?' - '+getSubcatLabel(__schoolCat,__schoolSubCat):'')+'）':'';
   document.getElementById('schoolSub').textContent='共 '+filtered.length+' 所院校'+catLabel;
-  
+  // 未授权用户提示
+  var schoolBanner=document.getElementById('schoolFreeBanner');
+  if(schoolBanner){schoolBanner.classList.toggle('hidden',isPaidUser());}
+
   if(!filtered.length){
     document.getElementById('schoolList').innerHTML='<p style="text-align:center;color:var(--color-text-tertiary);padding:40px 0">暂无匹配院校</p>';
     return;
@@ -1723,7 +1726,10 @@ function renderMajorBrowser(catKey){
     leftHtml+='<div class="ml-item'+selClass+'" onclick="selectMajor(\''+escAttr(m.majorName)+'\')"><span>'+esc(m.majorName)+'</span><span class="ml-count">'+m.schoolCount+'校</span></div>';
   }
   document.getElementById('majorLeft').innerHTML=leftHtml;
-  
+  // 未授权用户提示
+  var majorBanner=document.getElementById('majorFreeBanner');
+  if(majorBanner){majorBanner.classList.toggle('hidden',isPaidUser());}
+
   // 右侧详情
   if(__selectedMajor && __selectedMajor.records.length>0){
     var m=__selectedMajor;
@@ -1734,6 +1740,8 @@ function renderMajorBrowser(catKey){
     for(var i=0;i<ranked.length;i++){
       if(!seen[ranked[i].schoolName]){seen[ranked[i].schoolName]=true;dedup.push(ranked[i]);}
     }
+    // 未授权用户只看前5所
+    if(!isPaidUser()&&dedup.length>5){dedup=dedup.slice(0,5);}
     if(dedup.length>50)dedup=dedup.slice(0,50);
     for(var i=0;i<dedup.length;i++){
       var r=dedup[i];
