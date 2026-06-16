@@ -1793,20 +1793,14 @@ function renderMajorBrowser(catKey){
     var rightHtml='<button class="mr-back" onclick="collapseMajorLayout()">← 返回专业列表</button><div class="mr-header"><h4 style="cursor:pointer"'+(isPaidUser()?' onclick="openMajorDetail(\''+escAttr(m.majorName)+'\')"':'')+'>📚 '+esc(m.majorName)+(isPaidUser()?' <span style="font-size:.68rem;color:var(--color-accent)">📈 查看详情</span>':'')+'</h4><div class="mr-stats">开设院校：<strong>'+m.schoolCount+'</strong> 所 | 综合分区间：<strong>'+m.scoreMin+' ~ '+m.scoreMax+'</strong> | 均值：<strong>'+m.scoreAvg+'</strong> | 平均学费：<strong>'+(m.tuitionAvg||'--').toLocaleString()+'</strong>/年</div></div>'+recBarHtml;
     rightHtml+='<div class="mr-schools">';
     var ranked=m.records;
-    // 去重学校（同一学校可能有多条记录，取第一条）
-    var seen={},dedup=[];
-    for(var i=0;i<ranked.length;i++){
-      if(!seen[ranked[i].schoolName]){seen[ranked[i].schoolName]=true;dedup.push(ranked[i]);}
-    }
-    // 未授权用户只看前5所
-    if(!isPaidUser()&&dedup.length>5){dedup=dedup.slice(0,5);}
 
     // ===== 一键填报后：三列冲稳保视图 =====
     if(__majorTierMap && isPaidUser()){
-      // 按梯度分组
+      // 三列模式：直接用原始 records，不做 schoolName 去重
+      // （tierMap key 是 schoolCode|majorCode，去重会导致 key 对不上）
       var tierGroups={reach:[],match:[],safety:[]};
-      for(var i=0;i<dedup.length;i++){
-        var r=dedup[i];
+      for(var i=0;i<ranked.length;i++){
+        var r=ranked[i];
         var rk=(r.schoolCode||'')+'|'+(r.majorCode||'');
         var t=__majorTierMap[rk]||'out';
         if(tierGroups[t])tierGroups[t].push(r);
@@ -1873,6 +1867,13 @@ function renderMajorBrowser(catKey){
       rightHtml+='</div>';
     } else {
       // ===== 普通列表模式（未填报或体验版） =====
+      // 普通列表按 schoolName 去重（同一学校只显示一次）
+      var seenN={},dedup=[];
+      for(var i=0;i<ranked.length;i++){
+        if(!seenN[ranked[i].schoolName]){seenN[ranked[i].schoolName]=true;dedup.push(ranked[i]);}
+      }
+      // 未授权用户只看前5所
+      if(!isPaidUser()&&dedup.length>5){dedup=dedup.slice(0,5);}
       // 按冲稳保排序（若有 tierMap）
       var tierOrd={reach:0,match:1,safety:2,out:3};
       if(__majorTierMap){
@@ -1926,9 +1927,10 @@ function renderMajorBrowser(catKey){
           sel.delete(key);
         }else{
           var found=null;
-          for(var i=0;i<dedup.length;i++){
-            var dk=(dedup[i].schoolCode||'')+'|'+(dedup[i].majorCode||'');
-            if(dk===key){found=dedup[i];break;}
+          // 从 ranked（原始完整数据）查找，兼容三列模式和普通列表模式
+          for(var i=0;i<ranked.length;i++){
+            var dk=(ranked[i].schoolCode||'')+'|'+(ranked[i].majorCode||'');
+            if(dk===key){found=ranked[i];break;}
           }
           if(found){found.tier=found.tier||'match';sel.set(key,found);}
         }
@@ -1956,7 +1958,7 @@ function renderMajorBrowser(catKey){
       var detail=e.target.closest('[data-act="majDetail"]');
       if(detail){
         var schoolName=detail.dataset.school;
-        if(schoolName)showMajorSchoolDetail(schoolName,detail.dataset.key,dedup);
+        if(schoolName)showMajorSchoolDetail(schoolName,detail.dataset.key,ranked);
         return;
       }
     };
