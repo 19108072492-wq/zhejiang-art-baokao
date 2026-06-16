@@ -2714,6 +2714,9 @@ function selectMajor(majorName){
 function collapseMajorLayout(){
   __selectedMajor=null;
   __majorTierMap=null;
+  // 清除冲稳保三列悬浮面板
+  var overlay=document.getElementById('tierOverlay');
+  if(overlay)overlay.classList.add('hidden');
   var layout=document.querySelector('.major-layout');
   if(layout)layout.classList.remove('expanded');
   renderMajorBrowser();
