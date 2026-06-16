@@ -294,7 +294,7 @@ function showUpgradeModal(){
     modal.onclick=function(e){if(e.target===modal)modal.classList.add('hidden');};
   }else{
     // 兜底：upgradeModal 不存在时降级到 alert
-    alert('当前为体验版。请联系客服提供手机号：'+phone+'，开通完整版后即刻生效。');
+    alert('当前为体验版，如需了解完整版详情，请联系顾问：139-1213-1231');
   }
 }
 
