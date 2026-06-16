@@ -2271,11 +2271,9 @@ function renderMajorBrowser(catKey){
       rightHtml+='</div>'; // 关闭 mr-schools
     }
     document.getElementById('majorRight').innerHTML=rightHtml;
-    // 一键填报栏：未登录时隐藏表单，显示登录提示
+    // 一键填报栏：未登录时隐藏表单
     var barEl=document.getElementById('majorRecBar');
-    if(barEl)barEl.classList.toggle('hidden',!__isLoggedIn);
-    var tipEl=document.getElementById('majorRecLoginTip');
-    if(tipEl)tipEl.classList.toggle('hidden',__isLoggedIn);
+    if(barEl)barEl.style.display=__isLoggedIn?'':'none';
     // 事件路由：复选框 / 院校详情（同时覆盖 majorRight 和 tierOverlay）
     function _handleMajorClick(e){
       // --- 优先检查：复选框区域（.mr-tier-card-cb 或普通列表 .mr-cb）---
@@ -2751,9 +2749,6 @@ function recommendMajorSchools(presetScore){
   toast('🔴 冲刺 '+counts.reach+' 所 | 🟡 稳妥 '+counts.match+' 所 | 🟢 保底 '+counts.safety+' 所');
   // 重新渲染右侧面板（会按 tier 排序 + 显示标签）
   renderMajorBrowser();
-  // 恢复输入框的分数值
-  var scoreInput=document.getElementById('majorRecScore');
-  if(scoreInput)scoreInput.value=score;
 }
 
 // ===== 管理员数据分析面板 =====
