@@ -1833,7 +1833,12 @@ function renderMajorBrowser(catKey){
           var tagHtml='';
           if(r.is985)tagHtml+='<span class="tag tag-985">985</span>';
           if(r.is211&&!r.is985)tagHtml+='<span class="tag tag-211">211</span>';
-          h+='<div class="mr-tier-card'+(isChecked?' sel':'')+'" data-act="majSel" data-key="'+escAttr(rk)+'">';
+          // 卡片：左侧复选框 + 中间内容（可点击详情） + 右侧详情按钮
+          h+='<div class="mr-tier-card'+(isChecked?' sel':'')+'">';
+          // 复选框区域（独立点击，不触发详情）
+          h+='<div class="mr-tier-card-cb" data-act="majSel" data-key="'+escAttr(rk)+'"><div class="cb-box'+(isChecked?' on':'')+'">'+( isChecked?'✓':'')+'</div></div>';
+          // 内容区（点击打开院校详情）
+          h+='<div class="mr-tier-card-body" data-act="majDetail" data-school="'+escAttr(r.schoolName)+'" data-key="'+escAttr(rk)+'">';
           h+='<div class="mr-tier-card-row1">';
           h+='<div class="mr-tier-card-name">'+esc(r.schoolName)+(tagHtml?' '+tagHtml:'')+'</div>';
           h+='<div class="mr-tier-card-score">'+r.compositeScore+'</div>';
@@ -1843,6 +1848,9 @@ function renderMajorBrowser(catKey){
           if(diffHtml)h+=diffHtml;
           if(r.plan25)h+='<span>📋 '+r.plan25+'人</span>';
           h+='</div>';
+          h+='</div>';
+          // 详情箭头按钮
+          h+='<div class="mr-tier-card-arrow" data-act="majDetail" data-school="'+escAttr(r.schoolName)+'" data-key="'+escAttr(rk)+'">›</div>';
           h+='</div>';
         }
         return h;
@@ -1908,46 +1916,137 @@ function renderMajorBrowser(catKey){
     if(barEl)barEl.classList.toggle('hidden',!__isLoggedIn);
     var tipEl=document.getElementById('majorRecLoginTip');
     if(tipEl)tipEl.classList.toggle('hidden',__isLoggedIn);
-    // 复选框事件（兼容普通列表 .mr-cb 和三列卡片 .mr-tier-card）
+    // 事件路由：复选框 / 院校详情 / 背景点击
     document.getElementById('majorRight').onclick=function(e){
+      // --- 优先检查：复选框区域（.mr-tier-card-cb 或普通列表 .mr-cb）---
       var cb=e.target.closest('[data-act="majSel"]');
-      if(!cb)return;
-      var key=cb.dataset.key;
-      if(sel.has(key)){
-        sel.delete(key);
-      }else{
-        // 从 dedup 里找到对应记录
-        var found=null;
-        for(var i=0;i<dedup.length;i++){
-          var dk=(dedup[i].schoolCode||'')+'|'+(dedup[i].majorCode||'');
-          if(dk===key){found=dedup[i];break;}
+      if(cb){
+        var key=cb.dataset.key;
+        if(sel.has(key)){
+          sel.delete(key);
+        }else{
+          var found=null;
+          for(var i=0;i<dedup.length;i++){
+            var dk=(dedup[i].schoolCode||'')+'|'+(dedup[i].majorCode||'');
+            if(dk===key){found=dedup[i];break;}
+          }
+          if(found){found.tier=found.tier||'match';sel.set(key,found);}
         }
-        if(found){
-          found.tier=found.tier||'match';
-          sel.set(key,found);
+        updateFloat();
+        // 更新复选框 UI（新版三列卡片）
+        var allCbs=document.querySelectorAll('#majorRight [data-act="majSel"]');
+        for(var k=0;k<allCbs.length;k++){
+          var thisKey=allCbs[k].dataset.key;
+          if(thisKey!==key)continue;
+          var box=allCbs[k].querySelector('.cb-box');
+          if(box){
+            if(sel.has(thisKey)){box.classList.add('on');box.textContent='✓';}
+            else{box.classList.remove('on');box.textContent='';}
+          }
         }
+        // 更新所在卡片的 sel class
+        var card=cb.closest('.mr-tier-card');
+        if(card){
+          if(sel.has(key))card.classList.add('sel');
+          else card.classList.remove('sel');
+        }
+        return; // 已处理，不继续
       }
-      updateFloat();
-      // 更新所有匹配该 key 的选中态
-      var allCbs=document.querySelectorAll('#majorRight [data-act="majSel"]');
-      for(var k=0;k<allCbs.length;k++){
-        var thisKey=allCbs[k].dataset.key;
-        if(thisKey!==key)continue;
-        // 普通列表：内部有 .cb-box
-        var box=allCbs[k].querySelector('.cb-box');
-        if(box){
-          if(sel.has(thisKey)){box.classList.add('on');box.textContent='✓';}
-          else{box.classList.remove('on');box.textContent='';}
-        }
-        // 三列卡片：自身是 .mr-tier-card
-        if(allCbs[k].classList.contains('mr-tier-card')){
-          if(sel.has(thisKey))allCbs[k].classList.add('sel');
-          else allCbs[k].classList.remove('sel');
-        }
+      // --- 院校详情：内容区或箭头按钮 ---
+      var detail=e.target.closest('[data-act="majDetail"]');
+      if(detail){
+        var schoolName=detail.dataset.school;
+        if(schoolName)showMajorSchoolDetail(schoolName,detail.dataset.key,dedup);
+        return;
       }
     };
   }else{
     document.getElementById('majorRight').innerHTML='<p style="text-align:center;color:var(--color-text-tertiary);padding:60px 20px">👈 请从左侧选择一个专业</p>';
+  }
+}
+
+// ===== 专业浏览 · 三列卡片院校详情弹窗 =====
+function showMajorSchoolDetail(schoolName,currentKey,dedup){
+  // 聚合同名学校的所有专业记录（从当前 dedup 列表中取，涵盖当前专业的所有该校记录）
+  var allRec=getAllRecords();
+  var schoolRecords=allRec.filter(function(r){return r.schoolName===schoolName;});
+  var info=window.getSchoolInfo?window.getSchoolInfo(schoolName):null;
+  // 找到当前专业记录（用于显示当前专业详情）
+  var curRecord=null;
+  if(currentKey&&dedup){
+    for(var i=0;i<dedup.length;i++){
+      var dk=(dedup[i].schoolCode||'')+'|'+(dedup[i].majorCode||'');
+      if(dk===currentKey){curRecord=dedup[i];break;}
+    }
+  }
+  // 统计该学校的专业列表（去重）
+  var majorMap={};
+  for(var i=0;i<schoolRecords.length;i++){
+    var r=schoolRecords[i];
+    var mn=r.majorName||'未知专业';
+    if(!majorMap[mn]){majorMap[mn]={name:mn,score:r.compositeScore,plan:r.plan25,tuition:r.tuition};}
+  }
+  var majorList=Object.values(majorMap).sort(function(a,b){return (b.score||0)-(a.score||0);});
+  // 标签
+  var tags=[];
+  var sr=schoolRecords[0]||{};
+  if(sr.is985)tags.push('<span class="tag tag-985">985</span>');
+  if(sr.is211&&!sr.is985)tags.push('<span class="tag tag-211">211</span>');
+  if(sr.isDoubleFirst)tags.push('<span class="tag tag-df">双一流</span>');
+  if(sr.isPrivate)tags.push('<span class="tag tag-pv">民办</span>');
+  // 综合分区间
+  var scores=schoolRecords.map(function(r){return r.compositeScore||0;}).filter(Boolean);
+  var scoreMin=scores.length?Math.min.apply(null,scores):0;
+  var scoreMax=scores.length?Math.max.apply(null,scores):0;
+  // 构建 HTML
+  var html='';
+  html+='<div class="msd-head">';
+  html+='<div class="msd-title">'+esc(schoolName)+(tags.length?' <span class="msd-tags">'+tags.join('')+'</span>':'')+'</div>';
+  html+='<div class="msd-meta">';
+  if(sr.city)html+='📍 '+esc(sr.city)+'&nbsp;&nbsp;';
+  if(sr.province&&sr.province!==sr.city)html+='';
+  if(scoreMin)html+='综合分 <strong>'+scoreMin+(scoreMin!==scoreMax?' ~ '+scoreMax:'')+'</strong>&nbsp;&nbsp;';
+  html+='</div>';
+  if(info&&info.intro){
+    html+='<div class="msd-intro">'+esc(info.intro)+'</div>';
+  }
+  if(info&&info.web){
+    html+='<a class="msd-weblink" href="'+escAttr(info.web)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">🌐 访问官网 →</a>';
+  }
+  html+='</div>';
+  // 当前专业高亮
+  if(curRecord){
+    html+='<div class="msd-cur-major">';
+    html+='<div class="msd-sec-title">当前专业</div>';
+    html+='<div class="msd-cur-row">';
+    html+='<span class="msd-cur-name">'+esc(curRecord.majorName||'未知')+'</span>';
+    html+='<span class="msd-cur-score">综合分 <strong>'+curRecord.compositeScore+'</strong></span>';
+    if(curRecord.plan25)html+='<span class="msd-cur-plan">📋 招生 '+curRecord.plan25+' 人</span>';
+    if(typeof curRecord.tuition==='number')html+='<span class="msd-cur-tuition">💰 '+curRecord.tuition.toLocaleString()+'/年</span>';
+    html+='</div>';
+    html+='</div>';
+  }
+  // 该校全部专业列表
+  if(majorList.length>0){
+    html+='<div class="msd-major-list">';
+    html+='<div class="msd-sec-title">该校全部专业（'+majorList.length+' 个）</div>';
+    for(var i=0;i<majorList.length;i++){
+      var mj=majorList[i];
+      var isCur=curRecord&&curRecord.majorName===mj.name;
+      html+='<div class="msd-major-row'+(isCur?' cur':'')+'">'+
+        '<span class="msd-mj-name">'+esc(mj.name)+'</span>'+
+        '<span class="msd-mj-score">'+mj.score+'</span>'+
+        '</div>';
+    }
+    html+='</div>';
+  }
+  // 写入并打开弹窗
+  var contentEl=document.getElementById('msdContent');
+  var modal=document.getElementById('msdModal');
+  if(contentEl)contentEl.innerHTML=html;
+  if(modal){
+    modal.classList.remove('hidden');
+    modal.onclick=function(e){if(e.target===modal)modal.classList.add('hidden');};
   }
 }
 
