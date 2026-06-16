@@ -1713,5 +1713,24 @@ html[data-theme="dark"] .si-highlight,
 <script src="js/school-intros.js" defer></script>
     <script src="js/app.js?v=19" defer></script>
     <script src="js/auth.js?v=13" defer></script>
+<!-- 编辑顾问弹窗 -->
+<div class="mod hidden" id="editAdvisorModal">
+  <div class="mod-box" style="background:#fff;border-radius:16px;padding:24px;max-width:440px;width:calc(100% - 32px);box-shadow:var(--shl)">
+    <h3 style="font-size:.95rem;font-weight:700;margin-bottom:16px;color:var(--t)">✏️ 编辑顾问信息</h3>
+    <input type="hidden" id="editAdvisorId">
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="fcol"><label>姓名</label><input type="text" id="editAdvisorName" placeholder="顾问姓名"></div>
+      <div class="fcol"><label>手机号</label><input type="tel" id="editAdvisorPhone" placeholder="11位手机号"></div>
+      <div class="fcol"><label>顾问码</label><input type="text" id="editAdvisorCode" placeholder="如 AD001" style="text-transform:uppercase"></div>
+      <div class="fcol"><label>是否启用</label><select id="editAdvisorActive"><option value="true">✅ 启用</option><option value="false">⛔ 停用</option></select></div>
+      <div class="fcol"><label>授权到期</label><input type="date" id="editAdvisorExpires"></div>
+      <div class="fcol"><label>备注</label><input type="text" id="editAdvisorNotes" placeholder="备注信息"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
+      <button class="btn btn-o btn-sm" onclick="document.getElementById('editAdvisorModal').classList.add('hidden')">取消</button>
+      <button class="btn btn-g btn-sm" id="btnSaveAdvisor">💾 保存修改</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

@@ -3348,7 +3348,7 @@ function loadAdvisorCards(){
         var sc=isActive&&!isExpired?'var(--_green-500)':'var(--_red-500)';
         var st=isActive&&!isExpired?'✅ 有效':(isExpired?'⏰ 已过期':'⛔ 已停用');
         var nm=a.display_name||a.name||'未知';
-        html+='<div class="advisor-card" onclick="selectAdvisor(\''+escAttr(code)+'\',\''+escAttr(nm)+'\',\''+escAttr(a.phone||'')+'\')" style="background:var(--color-surface);border:1.5px solid var(--color-border-light);border-radius:var(--rlg);padding:14px 16px;cursor:pointer;transition:all var(--_dur-normal);box-shadow:var(--sh);position:relative;'+(__selectedAdvisor===code?'border-color:var(--color-accent)!important;box-shadow:0 0 0 3px rgba(176,133,67,.15)!important':'')+'">';
+        html+='<div class="advisor-card" style="background:var(--color-surface);border:1.5px solid var(--color-border-light);border-radius:var(--rlg);padding:14px 16px;cursor:pointer;transition:all var(--_dur-normal);box-shadow:var(--sh);position:relative;'+(__selectedAdvisor===code?'border-color:var(--color-accent)!important;box-shadow:0 0 0 3px rgba(176,133,67,.15)!important':'')+'" data-code="'+escAttr(code)+'" data-phone="'+escAttr(a.phone||'')+'" data-name="'+escAttr(nm)+'" data-notes="'+escAttr(a.notes||'')+'" data-is-active="'+(isActive&&!isExpired)+'" data-id="'+escAttr(a.id||'')+'">';
         html+='<div style="position:absolute;top:0;left:0;right:0;height:3px;background:'+sc+'"></div>';
         html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-top:3px;margin-bottom:6px">';
         html+='<span style="font-size:.92rem;font-weight:700">'+esc(nm)+'</span>';
@@ -3358,7 +3358,10 @@ function loadAdvisorCards(){
         if(isActive)html+=' ｜ 📅 至'+(a.expires_at?new Date(a.expires_at).toLocaleDateString('zh-CN'):'永久');
         html+='</div>';
         if(a.notes)html+='<div style="font-size:.7rem;color:var(--t3);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">💬 '+esc(a.notes)+'</div>';
-        html+='<div style="font-size:.65rem;color:var(--color-accent);font-weight:600;margin-top:6px;opacity:.6">👆 点击查看客户详情</div></div>';
+        html+='<div style="font-size:.65rem;color:var(--color-accent);font-weight:600;margin-top:6px;opacity:.6;display:flex;gap:8px">';
+        html+='<span onclick="event.stopPropagation();selectAdvisor(\''+escAttr(code)+'\',\''+escAttr(nm)+'\',\''+escAttr(a.phone||'')+'\')" style="cursor:pointer">👆 查看客户</span>';
+        html+='<span onclick="event.stopPropagation();editAdvisor(\''+escAttr(a.id||'')+'\',\''+escAttr(nm)+'\',\''+escAttr(a.phone||'')+'\',\''+escAttr(code)+'\',\''+escAttr(a.notes||'')+'\',\''+isActive+'\',\''+(a.expires_at||'')+'\')" style="cursor:pointer;color:var(--color-text-secondary)">✏️ 编辑</span>';
+        html+='</div></div>';
       }
       container.innerHTML=html;
     }).catch(function(e){container.innerHTML='<p style="color:var(--_red-500);text-align:center;padding:20px;grid-column:1/-1">加载失败：'+esc(e.message||'')+'</p>';});
@@ -3407,3 +3410,65 @@ function exportAdvisorPhones(code){
     toast('已导出 '+clients.length+' 条记录');
   }).catch(function(e){toast('导出失败：'+esc(e.message||'网络错误'),1);});
 }
+
+// ===== 编辑顾问 =====
+function editAdvisor(id,name,phone,code,notes,isActive,expiresAt){
+  document.getElementById('editAdvisorId').value=id||'';
+  document.getElementById('editAdvisorName').value=name||'';
+  document.getElementById('editAdvisorPhone').value=phone||'';
+  document.getElementById('editAdvisorCode').value=code||'';
+  document.getElementById('editAdvisorActive').value=isActive==='true'?'true':'false';
+  document.getElementById('editAdvisorNotes').value=notes||'';
+  document.getElementById('editAdvisorExpires').value=(expiresAt||'').slice(0,10);
+  document.getElementById('editAdvisorModal').classList.remove('hidden');
+}
+
+function initEditAdvisorEvents(){
+  var btn=document.getElementById('btnSaveAdvisor');
+  if(!btn||btn.dataset.init)return;
+  btn.dataset.init='1';
+  btn.onclick=function(){
+    var id=document.getElementById('editAdvisorId').value;
+    var name=document.getElementById('editAdvisorName').value.trim();
+    var phone=document.getElementById('editAdvisorPhone').value.trim();
+    var code=document.getElementById('editAdvisorCode').value.trim().toUpperCase();
+    var isActive=document.getElementById('editAdvisorActive').value==='true';
+    var expires=document.getElementById('editAdvisorExpires').value;
+    var notes=document.getElementById('editAdvisorNotes').value.trim();
+    if(!phone||!/^1[3-9]\d{9}$/.test(phone)){toast('请输入有效手机号',1);return;}
+    if(!code){toast('请输入顾问码',1);return;}
+
+    // 重新编码 notes
+    var newNotes='';
+    if(notes)newNotes=notes;
+    if(code)newNotes=newNotes?newNotes+'|advisor_code:'+code:'advisor_code:'+code;
+    if(name)newNotes=newNotes?newNotes+'|display_name:'+name:'display_name:'+name;
+
+    var updates={phone:phone,name:name,notes:newNotes,is_active:isActive};
+    if(expires)updates.expires_at=new Date(expires+'T23:59:59Z').toISOString();
+    else updates.expires_at=null;
+
+    btn.disabled=true;btn.textContent='⏳ 保存中...';
+    supaUpdateAuthUser(id,updates).then(function(res){
+      btn.disabled=false;btn.textContent='💾 保存修改';
+      if(res&&res.ok){
+        toast('✅ 顾问信息已更新');
+        document.getElementById('editAdvisorModal').classList.add('hidden');
+        loadAdvisorCards();
+      }else{
+        toast('❌ '+(res&&res.error?res.error:'保存失败'),1);
+      }
+    }).catch(function(e){
+      btn.disabled=false;btn.textContent='💾 保存修改';
+      toast('保存失败：'+(e.message||'网络错误'),1);
+    });
+  };
+  // 点击遮罩关闭
+  document.getElementById('editAdvisorModal').addEventListener('click',function(e){
+    if(e.target===this)this.classList.add('hidden');
+  });
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  setTimeout(initEditAdvisorEvents,200);
+});
