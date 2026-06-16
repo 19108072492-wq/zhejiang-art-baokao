@@ -414,8 +414,8 @@ function renderCards(){
       var scMap={'音教声乐':'🎤 声乐主项','音教器乐':'🎹 器乐主项','音表声乐':'🎤 声乐','音表器乐':'🎻 器乐'};
       if(scMap[r.subCategory])subCatTag=' <span style="font-size:.68rem;padding:1px 5px;border-radius:8px;background:var(--color-surface-secondary);color:var(--color-accent)">'+scMap[r.subCategory]+'</span>';
     }
-	    var _normMjName=normMajorName(r.majorName);
-	    var majorDetailLink=isPaidUser()?`<span style="cursor:pointer;text-decoration:underline dotted;color:var(--color-accent);font-size:inherit" onclick="openMajorDetail(('${escAttr(_normMjName)}'))">${esc(_normMjName)}</span>`:`${esc(_normMjName)}`;
+	    var _normMjName=normMajorName(r.majorName)||r.majorName||'';
+	    var majorDetailLink=_normMjName&&isPaidUser()?`<span style="cursor:pointer;text-decoration:underline dotted;color:var(--color-accent);font-size:inherit" onclick="openMajorDetail(('${escAttr(_normMjName)}'))">${esc(_normMjName)}</span>`:`${esc(_normMjName)}`;
 	    // ★ 体验版：精简一行卡片；完整版：完整详情卡片
 	    if(!isPaidUser()){
 	      // 方案A：梯度标签 + 院校名 · 专业 · 往年录取分 xxx · 你高/低 xx 分
@@ -431,7 +431,7 @@ function renderCards(){
 	        ?`<span class="sc-lite-diff higher">↑ 高 ${Math.abs(diffVal).toFixed(1)} 分</span>`
 	        :`<span class="sc-lite-diff lower">↓ 低 ${Math.abs(diffVal).toFixed(1)} 分</span>`;
 	      var estHtml=r.scoreSource==='estimated'?'<span style="color:#c0392b;font-size:.72rem">预估</span>':'';
-	      return `<div class="sc ${m.c} sc-lite${ck?' sel':''}" data-key="${key}" data-idx="${i}"><div class="cb" data-act="sel"><div class="cb-box${ck?' on':''}">${ck?'✓':''}</div></div><div class="sc-lite-body"><div class="sc-lite-row">${tierBadge} <strong>${esc(r.schoolName)}</strong>${rankTags?'<span style="margin-left:4px;display:inline-flex;gap:2px;flex-shrink:0">'+rankTags+'</span>':''}</div><div class="sc-lite-major">${esc(normMajorName(r.majorName))}</div><div class="sc-lite-meta"><span>往年录取分 <span class="sc-lite-score">${r.compositeScore}</span></span>${diffHtml}${estHtml}</div></div></div>`;
+	      return `<div class="sc ${m.c} sc-lite${ck?' sel':''}" data-key="${key}" data-idx="${i}"><div class="cb" data-act="sel"><div class="cb-box${ck?' on':''}">${ck?'✓':''}</div></div><div class="sc-lite-body"><div class="sc-lite-row">${tierBadge} <strong>${esc(r.schoolName)}</strong>${rankTags?'<span style="margin-left:4px;display:inline-flex;gap:2px;flex-shrink:0">'+rankTags+'</span>':''}</div><div class="sc-lite-major">${esc(normMajorName(r.majorName)||r.majorName||'')}</div><div class="sc-lite-meta"><span>往年录取分 <span class="sc-lite-score">${r.compositeScore}</span></span>${diffHtml}${estHtml}</div></div></div>`;
 	    }
 	    return `<div class="sc ${m.c}${ck?' sel':''}" data-key="${key}" data-idx="${i}"><div class="cb" data-act="sel"><div class="cb-box${ck?' on':''}">${ck?'✓':''}</div></div><div class="sinfo"><div class="sname">${esc(r.schoolName)} <span style="font-weight:400;font-size:.75rem">${tags.join(' ')}</span></div><div class="smaj">${majorDetailLink}${subCatTag} <span style="font-size:.72rem;color:#8c8c8c">${r.majorCode||''}</span></div><div class="smeta"><span>📍 ${esc(r.city||'')}</span><span>💰 ${typeof r.tuition=='number'?r.tuition.toLocaleString()+'/年':(r.tuition||'--')}</span><span>🏠 ${esc(r.dorm||'')||'--'}</span>${r.plan25?`<span>📋 ${r.plan25}人</span>`:r.plan24?`<span>📋 ${r.plan24}人</span>`:''}${r.rankPosition?`<span>📊 位次${r.rankPosition}</span>`:''}</div>${r.scoreLineReq?`<div style="margin-top:4px;font-size:.74rem;color:#9a6b2a;background:#faf6f0;padding:3px 8px;border-radius:4px;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📋 ${esc(r.scoreLineReq)}</div>`:''}<div class="sdet">${r.note?`<p>📝 ${esc(r.note)}</p>`:''}${r.courseGuide?`<p>📚 ${esc(r.courseGuide)}</p>`:''}${r.talentGoal?`<p>🎯 ${esc(r.talentGoal)}</p>`:''}${r.scoreSource==='estimated'?'<p style="color:#c0392b">⚠️ 预估分，请谨慎参考</p>':''}${isPaidUser()?scoreDetailHTML:''}</div></div><div class="sstat"><span class="sn">${r.compositeScore}</span><span class="ss">往年录取分</span><span class="ss">${dt}</span>${r.scoreSource==='estimated'?'<span class="ss" style="color:#c0392b">预估</span>':''}</div></div>`;
   }).join('');
@@ -544,7 +544,7 @@ function openForm(){
         <td class="col-drag"><span class="drag-handle" title="拖拽排序">⋮</span></td>
         <td class="col-seq">${i+1}</td>
         <td>${esc(r.schoolName)}${r.scoreSource==='estimated'?' <span style="color:#c0392b;font-size:.68rem">⚠️预估</span>':''}</td>
-        <td>${esc(normMajorName(r.majorName))}</td>
+        <td>${esc(normMajorName(r.majorName)||r.majorName||'')}</td>
         <td><strong>${r.compositeScore}</strong></td>
         ${_extraTd}
         <td>${esc(r.city)}</td>
@@ -835,7 +835,7 @@ function openCmp(){
   const diffRows=new Set();
   for(const fd of fields){const vals=selected.map(r=>fd.r?fd.r(r):(fd.n?r[fd.f]:r[fd.f]));if(!vals.every(v=>String(v)===String(vals[0])))diffRows.add(fd.l);}
   let html='<div class="ctw"><table class="ct"><thead><tr><th></th>';
-  for(const r of selected)html+=`<th>${esc(r.schoolName)}<br><small style="font-weight:400;color:#8c8c8c">${esc(normMajorName(r.majorName))}</small></th>`;
+  for(const r of selected)html+=`<th>${esc(r.schoolName)}<br><small style="font-weight:400;color:#8c8c8c">${esc(normMajorName(r.majorName)||r.majorName||'')}</small></th>`;
   html+='</tr></thead><tbody>';
   for(const fd of fields){const isDiff=diffRows.has(fd.l);html+=`<tr class="dr${isDiff?'':''}"><td class="rlb">${fd.l}</td>`;for(const r of selected){const v=fd.r?fd.r(r):(fd.n?r[fd.f]:esc(r[fd.f]||'--'));html+=`<td>${v}</td>`;}html+='</tr>';}
   html+='</tbody></table></div>';

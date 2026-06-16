@@ -181,6 +181,10 @@ function getAllRecords(){
       // 确保每条记录有 rawCategory 和 catKey
       r.catKey=r.catKey||cat.k;
       r.rawCategory=r.rawCategory||cat.l;
+      // 过滤脏数据：schoolName 为纯数字/过短 或 compositeScore 异常低（< 50 且为预估分）
+      if(/^\d+$/.test(String(r.schoolName||''))||(r.scoreSource==='estimated'&&typeof r.compositeScore==='number'&&r.compositeScore<50)){
+        continue;
+      }
       // 解析布尔标志
       if(r.schoolType&&!(r.isPublic!==undefined)){
         var st=r.schoolType||'';
