@@ -3427,34 +3427,37 @@ function reverseCalcCulture(targetScore, artScore, catKey){
   return Math.round(need*100)/100;
 }
 
-// 构建分数对比 HTML（院校总览卡片内）
+// 构建分数对比 HTML（院校总览卡片内）- 面向家长/学生的文化课补习引导
 function buildScoreComparison(userScore,userCulture,userArt,catKey,avgScore,minScore,maxScore){
   if(userScore==null)return'';
   var diff=userScore-avgScore;
   var diffAbs=Math.abs(diff).toFixed(1);
   var diffClass=diff>=0?'higher':'lower';
   var diffSign=diff>=0?'+':'-';
-  var diffText=diff>=0?'你高 '+diffAbs+' 分':'你低 '+diffAbs+' 分';
 
   // 用院校平均分反算需要的文化分
   var needCulture=reverseCalcCulture(avgScore,userArt,catKey);
   var needDiff=needCulture-userCulture;
   var needText='';
   if(needDiff>0){
-    needText='专业分不变，需文化 <strong style="color:var(--color-accent)">'+needCulture.toFixed(0)+'</strong> 分（+'+needDiff.toFixed(0)+'分）';
+    // 还需要提分
+    needText='提升文化课至 <strong style="color:var(--color-accent);font-size:.85rem">'+needCulture.toFixed(0)+'</strong> 分即可达到该校平均录取线'+
+            '（当前<strong style="color:var(--_red-500)">差 '+needDiff.toFixed(0)+' 分</strong>，努努力就能够到！）';
   }else if(needDiff<0){
-    needText='专业分不变，文化 <strong style="color:var(--color-accent)">'+needCulture.toFixed(0)+'</strong> 分即够（可低 '+Math.abs(needDiff).toFixed(0)+'分）';
+    // 已经够了
+    needText='当前文化课<strong style="color:var(--_green-500)">已超出 '+Math.abs(needDiff).toFixed(0)+' 分</strong>'+
+            '，稳住优势，冲刺更高层次院校！';
   }else{
-    needText='专业分不变，文化需 <strong style="color:var(--color-accent)">'+needCulture.toFixed(0)+'</strong> 分（刚好匹配）';
+    needText='当前文化课 <strong style="color:var(--color-accent)">'+needCulture.toFixed(0)+'</strong> 分刚好匹配该校录取线，保持住！';
   }
 
-  var html='<div style="margin-top:6px;padding:8px 10px;background:var(--color-surface-alt);border-radius:8px;font-size:.74rem;line-height:1.6">';
-  html+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">';
-  html+='<span style="color:var(--t2)">📊 与均值差距：</span>';
+  var html='<div style="margin-top:6px;padding:8px 10px;background:var(--color-surface-alt);border-radius:8px;font-size:.74rem;line-height:1.7">';
+  html+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">';
+  html+='<span style="color:var(--t2)">📊 综合分对比：</span>';
   html+='<span style="font-weight:700;color:'+(diff>=0?'var(--_green-500)':'var(--_red-500)')+'">'+diffSign+diffAbs+' 分</span>';
-  html+='<span style="color:var(--t3);font-size:.7rem">（你的综合分 '+userScore.toFixed(2)+' vs 均值 '+avgScore+'）</span>';
+  html+='<span style="color:var(--t3);font-size:.7rem">（你 '+userScore.toFixed(2)+' vs 该校均值 '+avgScore+'）</span>';
   html+='</div>';
-  html+='<div style="color:var(--t2);font-size:.72rem">🎯 '+needText+'</div>';
+  html+='<div style="color:var(--t2);font-size:.72rem;background:'+(needDiff>0?'var(--_orange-50)':'var(--_green-50)')+';padding:6px 10px;border-radius:6px;border-left:3px solid '+(needDiff>0?'var(--_orange-500)':'var(--_green-500)')+'">💡 '+needText+'</div>';
   html+='</div>';
   return html;
 }
