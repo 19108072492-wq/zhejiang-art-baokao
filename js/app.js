@@ -3493,14 +3493,24 @@ function buildScoreComparison(userScore,userCulture,userArt,catKey,avgScore,minS
 
   var levelBg=diffLevel==='hard'?'var(--_red-50)':diffLevel==='medium'?'var(--_orange-50)':diffLevel==='easy'?'var(--_yellow-50)':'var(--_green-50)';
   var levelBorder=diffLevel==='hard'?'var(--_red-500)':diffLevel==='medium'?'var(--_orange-500)':diffLevel==='easy'?'var(--_yellow-600)':'var(--_green-500)';
+  var levelColor=diffLevel==='hard'?'var(--_red-500)':diffLevel==='medium'?'var(--_orange-500)':diffLevel==='easy'?'var(--_yellow-600)':'var(--_green-500)';
 
-  var html='<div style="margin-top:6px;padding:8px 10px;background:var(--color-surface-alt);border-radius:8px;font-size:.74rem;line-height:1.7">';
-  html+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">';
-  html+='<span style="color:var(--t2)">📊 综合分对比：</span>';
-  html+='<span style="font-weight:700;color:'+(diff>=0?'var(--_green-500)':'var(--_red-500)')+'">'+diffSign+diffAbs+' 分</span>';
-  html+='<span style="color:var(--t3);font-size:.7rem">（你 '+userScore.toFixed(2)+' vs 该校均值 '+avgScore+'）</span>';
+  var html='<div style="margin-top:8px;padding:10px 12px;background:'+levelBg+';border-radius:8px;border:1px solid '+levelBorder+';font-size:.72rem;line-height:1.6">';
+  // 第一行：综合分差值
+  html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">';
+  html+='<span style="color:var(--t2);white-space:nowrap">📊 综合分</span>';
+  html+='<span style="font-weight:700;color:var(--t)">'+userScore.toFixed(2)+'</span>';
+  html+='<span style="color:var(--t3)">vs</span>';
+  html+='<span style="font-weight:700;color:var(--t)">'+avgScore+'</span>';
+  html+='<span style="font-weight:700;color:'+levelColor+';margin-left:auto;white-space:nowrap">'+diffSign+diffAbs+' 分</span>';
   html+='</div>';
-  html+='<div style="color:var(--t2);font-size:.72rem;background:'+levelBg+';padding:6px 10px;border-radius:6px;border-left:3px solid '+levelBorder+'">💡 '+needText+'</div>';
+  // 第二行：文化分建议
+  html+='<div style="display:flex;align-items:center;gap:6px">';
+  html+='<span style="color:var(--t2);white-space:nowrap">🎯 目标文化</span>';
+  html+='<span style="font-weight:800;color:'+levelColor+';font-size:.85rem">'+needCulture.toFixed(0)+'</span>';
+  html+='<span style="color:var(--t2)">分</span>';
+  html+='<span style="color:'+levelColor+';margin-left:auto;font-weight:600;text-align:right">'+(needDiff>0?'还需提升 '+needDiff.toFixed(0)+' 分':'已超出 '+Math.abs(needDiff).toFixed(0)+' 分')+'</span>';
+  html+='</div>';
   html+='</div>';
   return html;
 }
