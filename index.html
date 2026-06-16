@@ -1050,10 +1050,10 @@ html[data-theme="dark"] .si-highlight,
   margin-bottom:var(--_sp-4);
 }
 .sci-row{display:flex;align-items:flex-end;gap:var(--_sp-3);flex-wrap:wrap}
-.sci-item{display:flex;flex-direction:column;gap:2px;min-width:100px}
+.sci-item{display:flex;flex-direction:column;gap:2px;flex:1 1 0;min-width:90px}
 .sci-item label{font-size:.7rem;font-weight:600;color:var(--color-text-tertiary)}
 .sci-item select,.sci-item input{
-  height:34px;padding:0 10px;border:1.5px solid var(--color-border);
+  width:100%;height:34px;padding:0 10px;border:1.5px solid var(--color-border);
   border-radius:var(--_radius-sm);font-size:.78rem;
   font-family:var(--_font-sans);background:var(--color-surface);
   color:var(--color-text);outline:none;
@@ -1064,7 +1064,7 @@ html[data-theme="dark"] .si-highlight,
   background-repeat:no-repeat;background-position:right 8px center;
 }
 .sci-item select:focus,.sci-item input:focus{border-color:var(--color-accent);box-shadow:0 0 0 3px rgba(176,133,67,.08)}
-.sci-btn{align-self:flex-end}
+.sci-btn{flex:0 0 auto;align-self:flex-end}
 .sci-result{margin-top:var(--_sp-3);padding-top:var(--_sp-3);border-top:1px dashed var(--color-border)}
 .sci-result .sci-score{font-size:1rem;font-weight:800;color:var(--color-accent)}
 .sci-result .sci-formula{font-size:.72rem;color:var(--color-text-tertiary);margin-top:2px}
