@@ -304,8 +304,8 @@ function showUpgradeModal(source){
     var sourceMap={
       'form' :{icon:'📋',title:'生成志愿单',desc:'完整版才可使用，升级后解锁'},
       'cmp'  :{icon:'🔍',title:'院校对比',desc:'完整版才可使用，升级后解锁'},
-      'school':{icon:'🏫',title:'院校浏览',desc:'完整版才可使用，升级后解锁'},
-      'major' :{icon:'📚',title:'专业浏览',desc:'完整版才可使用，升级后解锁'}
+      'school':{icon:'🎯',title:'院校浏览 · 文化课目标分析',desc:'查看分数差距、文化分目标'},
+      'major' :{icon:'📚',title:'专业浏览 · 冲稳保分析',desc:'查看专业录取分、冲稳保匹配'}
     };
     var cfg=source&&sourceMap[source]?sourceMap[source]:{icon:'🌟',title:'升级完整版，解锁全部功能',desc:'如需了解完整版详情，请联系顾问'};
     if(iconEl)iconEl.textContent=cfg.icon;
