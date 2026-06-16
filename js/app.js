@@ -833,7 +833,7 @@ document.addEventListener('DOMContentLoaded',function(){
     var el=document.getElementById(id);if(el)el.addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('btnSciCalc').click();});
   });
 
-  // 专业浏览内嵌算分器
+  // 专业浏览：合算分器 + 一键填报
   var btnMci=document.getElementById('btnMciCalc');
   if(btnMci)btnMci.addEventListener('click',function(){
     var cat=document.getElementById('mciCat').value;
@@ -841,11 +841,28 @@ document.addEventListener('DOMContentLoaded',function(){
     var art=parseFloat(document.getElementById('mciArt').value);
     var resultEl=document.getElementById('mciResult');
     if(!cat||isNaN(culture)||isNaN(art)){if(resultEl){resultEl.classList.remove('hidden');resultEl.innerHTML='<span style="color:var(--_red-500);font-size:.76rem">请填写完整信息</span>';}return;}
-    var res=calcScore(culture,art,cat==='calligraphy'?'finearts':cat);
-    window.__lastUserScore=res.score;window.__lastUserCulture=culture;window.__lastUserArt=art;window.__lastUserCatKey=cat==='calligraphy'?'finearts':cat;
-    // 刷新专业浏览卡片（如果已渲染）
-    if(!document.getElementById('majorBrowser').classList.contains('hidden'))renderMajorBrowser(cat);
+    var catKey=cat==='calligraphy'?'finearts':cat;
+    var res=calcScore(culture,art,catKey);
+    window.__lastUserScore=res.score;window.__lastUserCulture=culture;window.__lastUserArt=art;window.__lastUserCatKey=catKey;
+
+    // 显示综合分
     if(resultEl){resultEl.classList.remove('hidden');resultEl.innerHTML='<span class="sci-score">'+res.score.toFixed(2)+'</span><span class="sci-formula">'+res.text+'</span>';}
+
+    // 自动同步到专业浏览：切换门类并填入综合分
+    if(!document.getElementById('majorBrowser').classList.contains('hidden')){
+      // 切换到对应门类
+      if(__majorCat!==cat||__majorCat!==catKey){
+        renderMajorBrowser(cat);
+      }
+      // 延迟填入综合分并触发一键填报
+      setTimeout(function(){
+        var scoreInput=document.getElementById('majorRecScore');
+        if(scoreInput){scoreInput.value=res.score.toFixed(2);}
+        if(typeof recommendMajorSchools==='function')recommendMajorSchools();
+      },300);
+    }else{
+      renderMajorBrowser(cat);
+    }
   });
   ['mciCat','mciCulture','mciArt'].forEach(function(id){
     var el=document.getElementById(id);if(el)el.addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('btnMciCalc').click();});
