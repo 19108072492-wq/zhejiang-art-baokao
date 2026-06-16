@@ -218,6 +218,11 @@ function calc(){
   var filteredPool=filterBySubcat(pool,subCatKey);
 
   const res=calcScore(c,a,k==='calligraphy'?'finearts':k);
+  // 保存用户分数用于院校总览对比
+  window.__lastUserScore=res.score;
+  window.__lastUserCulture=c;
+  window.__lastUserArt=a;
+  window.__lastUserCatKey=k==='calligraphy'?'finearts':k;
   const sb=document.getElementById('scoreBox');
   sb.classList.remove('hidden');
   const minC=CULTURE_MIN[k]||369,canB=c>=minC;
@@ -1879,6 +1884,7 @@ function renderSchoolBrowser(catKey){
       '<div class="sch-meta">📍 '+esc(s.city||'--')+' | 💰 '+(s.tuitionMin?s.tuitionMin.toLocaleString():'--')+(s.tuitionMin!==s.tuitionMax?' ~ '+s.tuitionMax.toLocaleString():'')+'/年 | 📚 '+s.majorCount+'个专业</div>'+
       '<div class="sch-majors">'+majorsHtml+'</div>'+
       '<div class="sch-scores"><span>综合分区间 <strong>'+s.compositeMin+' ~ '+s.compositeMax+'</strong></span>'+'<span>均值 <strong>'+s.compositeAvg+'</strong></span></div>'+
+      (window.__lastUserScore!=null?buildScoreComparison(window.__lastUserScore,window.__lastUserCulture,window.__lastUserArt,window.__lastUserCatKey,s.compositeAvg||0,s.compositeMin||0,s.compositeMax||0):'')+
       infoHtml+
     '</div>';
   }
@@ -3411,7 +3417,48 @@ function exportAdvisorPhones(code){
   }).catch(function(e){toast('导出失败：'+esc(e.message||'网络错误'),1);});
 }
 
-// ===== 编辑顾问 =====
+// ===== 分数对比计算 =====
+// 根据公式反算：目标综合分需要多少文化分（专业课不变）
+function reverseCalcCulture(targetScore, artScore, catKey){
+  var f=FORMULA[catKey]||FORMULA['finearts'];
+  // target = cw*culture + aw*art*am
+  // culture = (target - aw*art*am) / cw
+  var need=(targetScore-f.aw*artScore*f.am)/f.cw;
+  return Math.round(need*100)/100;
+}
+
+// 构建分数对比 HTML（院校总览卡片内）
+function buildScoreComparison(userScore,userCulture,userArt,catKey,avgScore,minScore,maxScore){
+  if(userScore==null)return'';
+  var diff=userScore-avgScore;
+  var diffAbs=Math.abs(diff).toFixed(1);
+  var diffClass=diff>=0?'higher':'lower';
+  var diffSign=diff>=0?'+':'-';
+  var diffText=diff>=0?'你高 '+diffAbs+' 分':'你低 '+diffAbs+' 分';
+
+  // 用院校平均分反算需要的文化分
+  var needCulture=reverseCalcCulture(avgScore,userArt,catKey);
+  var needDiff=needCulture-userCulture;
+  var needText='';
+  if(needDiff>0){
+    needText='专业分不变，需文化 <strong style="color:var(--color-accent)">'+needCulture.toFixed(0)+'</strong> 分（+'+needDiff.toFixed(0)+'分）';
+  }else if(needDiff<0){
+    needText='专业分不变，文化 <strong style="color:var(--color-accent)">'+needCulture.toFixed(0)+'</strong> 分即够（可低 '+Math.abs(needDiff).toFixed(0)+'分）';
+  }else{
+    needText='专业分不变，文化需 <strong style="color:var(--color-accent)">'+needCulture.toFixed(0)+'</strong> 分（刚好匹配）';
+  }
+
+  var html='<div style="margin-top:6px;padding:8px 10px;background:var(--color-surface-alt);border-radius:8px;font-size:.74rem;line-height:1.6">';
+  html+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">';
+  html+='<span style="color:var(--t2)">📊 与均值差距：</span>';
+  html+='<span style="font-weight:700;color:'+(diff>=0?'var(--_green-500)':'var(--_red-500)')+'">'+diffSign+diffAbs+' 分</span>';
+  html+='<span style="color:var(--t3);font-size:.7rem">（你的综合分 '+userScore.toFixed(2)+' vs 均值 '+avgScore+'）</span>';
+  html+='</div>';
+  html+='<div style="color:var(--t2);font-size:.72rem">🎯 '+needText+'</div>';
+  html+='</div>';
+  return html;
+}
+
 function editAdvisor(id,name,phone,code,notes,isActive,expiresAt){
   document.getElementById('editAdvisorId').value=id||'';
   document.getElementById('editAdvisorName').value=name||'';
