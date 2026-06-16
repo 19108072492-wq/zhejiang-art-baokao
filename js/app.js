@@ -1850,21 +1850,34 @@ function renderMajorBrowser(catKey){
         return h;
       }
       rightHtml+='</div>'; // 关闭 mr-schools（空）
-      rightHtml+='<div class="mr-tier-cols">';
+      // ===== 三列视图：写入悬浮面板 #tierOverlay，不在 majorRight 内渲染 =====
       var tierCfg=[
         {key:'reach',cls:'col-reach',label:'🔴 冲刺'},
         {key:'match',cls:'col-match',label:'🟡 稳妥'},
         {key:'safety',cls:'col-safety',label:'🟢 保底'}
       ];
+      var colsHtml='';
       for(var ti=0;ti<tierCfg.length;ti++){
         var tc=tierCfg[ti];
         var tList=tierGroups[tc.key];
-        rightHtml+='<div class="mr-tier-col '+tc.cls+'">';
-        rightHtml+='<div class="mr-tier-col-head"><span class="mr-tier-col-title">'+tc.label+'</span><span class="mr-tier-col-cnt">'+tList.length+' 所</span></div>';
-        rightHtml+='<div class="mr-tier-col-body">'+buildTierColCards(tList,tc.key)+'</div>';
-        rightHtml+='</div>';
+        colsHtml+='<div class="mr-tier-col '+tc.cls+'">';
+        colsHtml+='<div class="mr-tier-col-head"><span class="mr-tier-col-title">'+tc.label+'</span><span class="mr-tier-col-cnt">'+tList.length+' 所</span></div>';
+        colsHtml+='<div class="mr-tier-col-body">'+buildTierColCards(tList,tc.key)+'</div>';
+        colsHtml+='</div>';
       }
-      rightHtml+='</div>';
+      // 注入悬浮面板内容并显示
+      var _overlay=document.getElementById('tierOverlay');
+      if(_overlay){
+        document.getElementById('tierPanelMajor').textContent='📚 '+m.majorName;
+        var totalTier=tierGroups.reach.length+tierGroups.match.length+tierGroups.safety.length;
+        document.getElementById('tierPanelSub').textContent='共 '+totalTier+' 所院校匹配';
+        document.getElementById('tierColsInner').innerHTML=colsHtml;
+        // 初始化选中状态
+        _syncTierSelCount(sel);
+        _overlay.classList.remove('hidden');
+      }
+      // 在 majorRight 里放一个入口提示按钮（点击可重新打开）
+      rightHtml+='<div style="text-align:center;padding:24px 0"><button class="btn btn-g" onclick="document.getElementById(\'tierOverlay\').classList.remove(\'hidden\')">📊 查看冲稳保院校分析</button><div style="font-size:.76rem;color:#999;margin-top:6px">已为您找到 '+(tierGroups.reach.length+tierGroups.match.length+tierGroups.safety.length)+' 所匹配院校</div></div>';
     } else {
       // ===== 普通列表模式（未填报或体验版） =====
       // 普通列表按 schoolName 去重（同一学校只显示一次）
@@ -1917,8 +1930,8 @@ function renderMajorBrowser(catKey){
     if(barEl)barEl.classList.toggle('hidden',!__isLoggedIn);
     var tipEl=document.getElementById('majorRecLoginTip');
     if(tipEl)tipEl.classList.toggle('hidden',__isLoggedIn);
-    // 事件路由：复选框 / 院校详情 / 背景点击
-    document.getElementById('majorRight').onclick=function(e){
+    // 事件路由：复选框 / 院校详情（同时覆盖 majorRight 和 tierOverlay）
+    function _handleMajorClick(e){
       // --- 优先检查：复选框区域（.mr-tier-card-cb 或普通列表 .mr-cb）---
       var cb=e.target.closest('[data-act="majSel"]');
       if(cb){
@@ -1935,8 +1948,8 @@ function renderMajorBrowser(catKey){
           if(found){found.tier=found.tier||'match';sel.set(key,found);}
         }
         updateFloat();
-        // 更新复选框 UI（新版三列卡片）
-        var allCbs=document.querySelectorAll('#majorRight [data-act="majSel"]');
+        // 同步两个容器内所有匹配 key 的复选框 UI
+        var allCbs=document.querySelectorAll('#majorRight [data-act="majSel"], #tierColsInner [data-act="majSel"]');
         for(var k=0;k<allCbs.length;k++){
           var thisKey=allCbs[k].dataset.key;
           if(thisKey!==key)continue;
@@ -1945,14 +1958,14 @@ function renderMajorBrowser(catKey){
             if(sel.has(thisKey)){box.classList.add('on');box.textContent='✓';}
             else{box.classList.remove('on');box.textContent='';}
           }
+          var card=allCbs[k].closest('.mr-tier-card');
+          if(card){
+            if(sel.has(thisKey))card.classList.add('sel');
+            else card.classList.remove('sel');
+          }
         }
-        // 更新所在卡片的 sel class
-        var card=cb.closest('.mr-tier-card');
-        if(card){
-          if(sel.has(key))card.classList.add('sel');
-          else card.classList.remove('sel');
-        }
-        return; // 已处理，不继续
+        _syncTierSelCount(sel);
+        return;
       }
       // --- 院校详情：内容区或箭头按钮 ---
       var detail=e.target.closest('[data-act="majDetail"]');
@@ -1961,13 +1974,31 @@ function renderMajorBrowser(catKey){
         if(schoolName)showMajorSchoolDetail(schoolName,detail.dataset.key,ranked);
         return;
       }
-    };
+    }
+    document.getElementById('majorRight').onclick=_handleMajorClick;
+    var _tierOverlayEl=document.getElementById('tierOverlay');
+    if(_tierOverlayEl){
+      // 点击遮罩背景（非面板区）关闭
+      _tierOverlayEl.onclick=function(e){
+        if(e.target===_tierOverlayEl)_tierOverlayEl.classList.add('hidden');
+        else _handleMajorClick(e);
+      };
+    }
   }else{
     document.getElementById('majorRight').innerHTML='<p style="text-align:center;color:var(--color-text-tertiary);padding:60px 20px">👈 请从左侧选择一个专业</p>';
   }
 }
 
 // ===== 专业浏览 · 三列卡片院校详情弹窗 =====
+// ===== 同步悬浮面板底部已选数 =====
+function _syncTierSelCount(sel){
+  var countEl=document.getElementById('tierSelCount');
+  var btnEl=document.getElementById('tierGenForm');
+  var n=sel?sel.size:0;
+  if(countEl)countEl.textContent=n;
+  if(btnEl)btnEl.style.display=n>0?'':'none';
+}
+
 function showMajorSchoolDetail(schoolName,currentKey,dedup){
   // 聚合同名学校的所有专业记录（从当前 dedup 列表中取，涵盖当前专业的所有该校记录）
   var allRec=getAllRecords();
