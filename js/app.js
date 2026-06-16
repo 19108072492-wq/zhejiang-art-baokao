@@ -2714,7 +2714,11 @@ function recommendMajorSchools(presetScore){
     document.getElementById('authModal').classList.remove('hidden');
     return;
   }
-  var score=presetScore||parseFloat(document.getElementById('majorRecScore')?(document.getElementById('majorRecScore').value||0):0);
+  var score=presetScore;
+  if(!score||isNaN(score)||score<=0){
+    // fallback: 尝试从旧输入框读取
+    score=parseFloat((document.getElementById('majorRecScore')||{}).value)||0;
+  }
   if(isNaN(score)||score<=0){
     toast('请输入有效的综合分',1);
     return;
