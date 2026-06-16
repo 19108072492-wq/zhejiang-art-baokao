@@ -2079,7 +2079,11 @@ function showMajorSchoolDetail(schoolName,currentKey,dedup){
   if(contentEl)contentEl.innerHTML=html;
   if(modal){
     modal.classList.remove('hidden');
-    modal.onclick=function(e){if(e.target===modal)modal.classList.add('hidden');};
+    modal.onclick=function(e){
+      // 点击遮罩背景关闭，阻止冒泡到 tierOverlay 避免误触发
+      e.stopPropagation();
+      if(e.target===modal)modal.classList.add('hidden');
+    };
   }
 }
 
