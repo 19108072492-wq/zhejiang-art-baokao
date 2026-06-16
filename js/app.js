@@ -2000,11 +2000,11 @@ function _syncTierSelCount(sel){
 }
 
 function showMajorSchoolDetail(schoolName,currentKey,dedup){
-  // 聚合同名学校的所有专业记录（从当前 dedup 列表中取，涵盖当前专业的所有该校记录）
+  // 聚合全量记录中该学校的所有行
   var allRec=getAllRecords();
   var schoolRecords=allRec.filter(function(r){return r.schoolName===schoolName;});
   var info=window.getSchoolInfo?window.getSchoolInfo(schoolName):null;
-  // 找到当前专业记录（用于显示当前专业详情）
+  // 找到当前专业记录
   var curRecord=null;
   if(currentKey&&dedup){
     for(var i=0;i<dedup.length;i++){
@@ -2012,17 +2012,10 @@ function showMajorSchoolDetail(schoolName,currentKey,dedup){
       if(dk===currentKey){curRecord=dedup[i];break;}
     }
   }
-  // 统计该学校的专业列表（去重）
-  var majorMap={};
-  for(var i=0;i<schoolRecords.length;i++){
-    var r=schoolRecords[i];
-    var mn=r.majorName||'未知专业';
-    if(!majorMap[mn]){majorMap[mn]={name:mn,score:r.compositeScore,plan:r.plan25,tuition:r.tuition};}
-  }
-  var majorList=Object.values(majorMap).sort(function(a,b){return (b.score||0)-(a.score||0);});
+  // 基础数据
+  var sr=schoolRecords[0]||{};
   // 标签
   var tags=[];
-  var sr=schoolRecords[0]||{};
   if(sr.is985)tags.push('<span class="tag tag-985">985</span>');
   if(sr.is211&&!sr.is985)tags.push('<span class="tag tag-211">211</span>');
   if(sr.isDoubleFirst)tags.push('<span class="tag tag-df">双一流</span>');
@@ -2031,26 +2024,60 @@ function showMajorSchoolDetail(schoolName,currentKey,dedup){
   var scores=schoolRecords.map(function(r){return r.compositeScore||0;}).filter(Boolean);
   var scoreMin=scores.length?Math.min.apply(null,scores):0;
   var scoreMax=scores.length?Math.max.apply(null,scores):0;
-  // 构建 HTML
+  // 宿舍 & 校区（取非空的第一条）
+  var dormVal='',campusVal='';
+  for(var i=0;i<schoolRecords.length;i++){
+    if(!dormVal&&schoolRecords[i].dorm)dormVal=schoolRecords[i].dorm;
+    if(!campusVal&&schoolRecords[i].campus)campusVal=schoolRecords[i].campus;
+    if(dormVal&&campusVal)break;
+  }
+  // 专业去重列表
+  var majorMap={};
+  for(var i=0;i<schoolRecords.length;i++){
+    var r=schoolRecords[i];
+    var mn=r.majorName||'未知专业';
+    if(!majorMap[mn])majorMap[mn]={name:mn,score:r.compositeScore,plan:r.plan25,tuition:r.tuition};
+  }
+  var majorList=Object.values(majorMap).sort(function(a,b){return (b.score||0)-(a.score||0);});
+  // ===== 构建 HTML =====
   var html='';
-  html+='<div class="msd-head">';
+  // --- 顶部渐变头部 ---
+  html+='<div class="msd-hero">';
   html+='<div class="msd-title">'+esc(schoolName)+(tags.length?' <span class="msd-tags">'+tags.join('')+'</span>':'')+'</div>';
-  html+='<div class="msd-meta">';
-  if(sr.city)html+='📍 '+esc(sr.city)+'&nbsp;&nbsp;';
-  if(sr.province&&sr.province!==sr.city)html+='';
-  if(scoreMin)html+='综合分 <strong>'+scoreMin+(scoreMin!==scoreMax?' ~ '+scoreMax:'')+'</strong>&nbsp;&nbsp;';
+  html+='<div class="msd-location">';
+  if(sr.city)html+='📍 <span>'+esc(sr.city)+'</span>';
+  if(sr.province&&sr.province!==sr.city)html+=' · <span>'+esc(sr.province)+'</span>';
   html+='</div>';
+  if(scoreMin){
+    html+='<span class="msd-score-badge">艺术综合分 <strong>'+scoreMin+(scoreMin!==scoreMax?' ~ '+scoreMax:'')+'</strong></span>';
+  }
+  html+='</div>';
+  // --- 信息卡片网格（宿舍/校区/招生计划/学费）---
+  var gridItems=[];
+  if(dormVal)gridItems.push({label:'🏠 宿舍条件',value:dormVal});
+  if(campusVal)gridItems.push({label:'🏫 校区',value:campusVal});
+  if(curRecord&&curRecord.plan25)gridItems.push({label:'📋 今年招生计划',value:curRecord.plan25+' 人'});
+  if(curRecord&&typeof curRecord.tuition==='number')gridItems.push({label:'💰 学费',value:curRecord.tuition.toLocaleString()+' 元/年',accent:true});
+  if(sr.schoolType)gridItems.push({label:'🎓 院校类型',value:sr.schoolType});
+  if(gridItems.length>0){
+    html+='<div class="msd-info-grid">';
+    for(var i=0;i<gridItems.length;i++){
+      var gi=gridItems[i];
+      html+='<div class="msd-info-item"><span class="msd-info-label">'+gi.label+'</span><span class="msd-info-value'+(gi.accent?' accent':'')+'"">'+esc(String(gi.value))+'</span></div>';
+    }
+    html+='</div>';
+  }
+  // --- 院校简介 ---
   if(info&&info.intro){
-    html+='<div class="msd-intro">'+esc(info.intro)+'</div>';
+    html+='<div class="msd-intro-sec">';
+    html+='<div class="msd-sec-title">院校简介</div>';
+    html+='<div class="msd-intro-text">'+esc(info.intro)+'</div>';
+    html+='</div>';
   }
-  if(info&&info.web){
-    html+='<a class="msd-weblink" href="'+escAttr(info.web)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">🌐 访问官网 →</a>';
-  }
-  html+='</div>';
-  // 当前专业高亮
+  // --- 当前专业高亮 ---
   if(curRecord){
     html+='<div class="msd-cur-major">';
-    html+='<div class="msd-sec-title">当前专业</div>';
+    html+='<div class="msd-sec-title">当前所选专业</div>';
     html+='<div class="msd-cur-row">';
     html+='<span class="msd-cur-name">'+esc(curRecord.majorName||'未知')+'</span>';
     html+='<span class="msd-cur-score">综合分 <strong>'+curRecord.compositeScore+'</strong></span>';
@@ -2059,10 +2086,16 @@ function showMajorSchoolDetail(schoolName,currentKey,dedup){
     html+='</div>';
     html+='</div>';
   }
-  // 该校全部专业列表
+  // --- 官网链接 ---
+  if(info&&info.web){
+    html+='<div class="msd-link-row">';
+    html+='<a class="msd-weblink" href="'+escAttr(info.web)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">🌐 访问官网 →</a>';
+    html+='</div>';
+  }
+  // --- 该校专业列表（次要区域） ---
   if(majorList.length>0){
     html+='<div class="msd-major-list">';
-    html+='<div class="msd-sec-title">该校全部专业（'+majorList.length+' 个）</div>';
+    html+='<div class="msd-sec-title">该校可报专业（'+majorList.length+' 个）</div>';
     for(var i=0;i<majorList.length;i++){
       var mj=majorList[i];
       var isCur=curRecord&&curRecord.majorName===mj.name;
