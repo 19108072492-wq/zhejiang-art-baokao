@@ -1161,23 +1161,23 @@ function showAdminSection(section){
   var userSec=document.getElementById('adminUsers');
   var analysisSec=document.getElementById('adminAnalysis');
   var authSec=document.getElementById('adminAuth');
+  var advisorSec=document.getElementById('adminAdvisor');
   if(dataSec)dataSec.style.display=section==='data'?'':'none';
   if(userSec)userSec.style.display=section==='users'?'':'none';
   if(analysisSec)analysisSec.style.display=section==='analysis'?'':'none';
   if(authSec)authSec.style.display=section==='auth'?'':'none';
+  if(advisorSec)advisorSec.style.display=section==='advisor'?'':'none';
   // 更新 tab 按钮样式
-  var btnData=document.getElementById('btnTabData');
-  var btnUsers=document.getElementById('btnTabUsers');
-  var btnAnalysis=document.getElementById('btnTabAnalysis');
-  var btnAuth=document.getElementById('btnTabAuth');
-  if(btnData){btnData.className='btn btn-sm '+(section==='data'?'btn-g':'btn-gh');}
-  if(btnUsers){btnUsers.className='btn btn-sm '+(section==='users'?'btn-g':'btn-gh');}
-  if(btnAnalysis){btnAnalysis.className='btn btn-sm '+(section==='analysis'?'btn-g':'btn-gh');}
-  if(btnAuth){btnAuth.className='btn btn-sm '+(section==='auth'?'btn-g':'btn-gh');}
+  var tabMap={btnTabData:'data',btnTabUsers:'users',btnTabAnalysis:'analysis',btnTabAuth:'auth',btnTabAdvisor:'advisor'};
+  for(var btnId in tabMap){
+    var btn=document.getElementById(btnId);
+    if(btn)btn.className='btn btn-sm '+(tabMap[btnId]===section?'btn-g':'btn-gh');
+  }
   if(section==='data')renderAdmin();
   if(section==='users')renderUsers();
   if(section==='analysis')renderAdminAnalysis();
   if(section==='auth')renderAdminAuth();
+  if(section==='advisor')renderAdvisorDashboard();
 }
 
 async function renderUsers(){

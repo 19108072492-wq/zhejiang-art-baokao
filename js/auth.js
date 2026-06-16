@@ -7,6 +7,16 @@ var __isLoggedIn=false;
 var __isPaidUser=false;
 var __paidExpires=null;
 
+// ===== 顾问追踪：URL 参数捕获 =====
+(function(){
+  var params=new URLSearchParams(window.location.search);
+  var ref=params.get('ref');
+  if(ref){
+    localStorage.setItem('zjyk_advisor_code',ref);
+    console.log('[auth] 顾问码已捕获：'+ref);
+  }
+})();
+
 function initAuth(){
   setupAuthUI();
 
@@ -165,8 +175,9 @@ function handleRegister(){
   var btn=document.getElementById('btnRegSubmit');
   if(btn){btn.disabled=true;btn.textContent='⏳ 注册中...';}
 
-  // 注册到 Supabase users 表
-  supaInsert({phone:phone,grade:grade,direction:direction,source:'register'}).then(function(res){
+  // 注册到 Supabase，带上顾问追踪码
+  var advisorCode=localStorage.getItem('zjyk_advisor_code')||'';
+  supaInsert({phone:phone,grade:grade,direction:direction,source:'register',advisor_code:advisorCode}).then(function(res){
     if(btn){btn.disabled=false;btn.textContent='✅ 注册';}
 
     __isLoggedIn=true;

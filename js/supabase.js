@@ -72,11 +72,33 @@ function supaInsert(body){
 // 查询 phone_registrations 表（按时间倒序）
 function supaSelect(limit){
   limit=limit||500;
-  return __supaFetch(SUPABASE_URL+'/rest/v1/phone_registrations?select=id,phone,grade,direction,created_at&order=created_at.desc&limit='+limit,{
+  return __supaFetch(SUPABASE_URL+'/rest/v1/phone_registrations?select=id,phone,grade,direction,advisor_code,created_at&order=created_at.desc&limit='+limit,{
     method:'GET',
     headers:__supaHeaders(),
     timeout:10000
   }).then(function(resp){
+    if(resp.ok)return resp.json();
+    throw new Error('HTTP '+resp.status);
+  });
+}
+
+// 按顾问码查询绑定学生（用于顾问看板）
+function supaGetAdvisorClients(advisorCode){
+  return __supaFetch(
+    SUPABASE_URL+'/rest/v1/phone_registrations?select=id,phone,grade,direction,advisor_code,created_at&advisor_code=eq.'+encodeURIComponent(advisorCode)+'&order=created_at.desc&limit=500',
+    { method:'GET', headers:__supaHeaders(), timeout:10000 }
+  ).then(function(resp){
+    if(resp.ok)return resp.json();
+    throw new Error('HTTP '+resp.status);
+  });
+}
+
+// 获取所有注册用户（管理员看板用）
+function supaGetAllRegistrations(){
+  return __supaFetch(
+    SUPABASE_URL+'/rest/v1/phone_registrations?select=id,phone,grade,direction,advisor_code,created_at&order=created_at.desc&limit=1000',
+    { method:'GET', headers:__supaHeaders(), timeout:10000 }
+  ).then(function(resp){
     if(resp.ok)return resp.json();
     throw new Error('HTTP '+resp.status);
   });
