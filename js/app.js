@@ -846,7 +846,12 @@ document.addEventListener('DOMContentLoaded',function(){
 
     if(resultEl){resultEl.style.display='';resultEl.innerHTML='<span class="sci-score">'+res.score.toFixed(2)+'</span><span class="sci-formula">'+res.text+'</span>';}
 
+    // 确保已选择专业后才触发一键填报
     setTimeout(function(){
+      if(!__selectedMajor){
+        toast('请先在左侧选择一个专业后再填报',1);
+        return;
+      }
       if(typeof recommendMajorSchools==='function')recommendMajorSchools(res.score);
     },200);
   }
