@@ -93,6 +93,61 @@ function supaGetAdvisorClients(advisorCode){
   });
 }
 
+// 查询所有顾问（从 authorized_users 中解析 notes 字段）
+function supaGetAdvisors(){
+  return __supaFetch(
+    SUPABASE_URL+'/rest/v1/authorized_users?select=id,phone,name,is_active,expires_at,notes&order=created_at.desc&limit=200',
+    { method:'GET', headers:__supaHeaders(), timeout:10000 }
+  ).then(function(resp){
+    if(resp.ok)return resp.json().then(function(users){
+      // 解析 notes 中的 advisor_code 和 display_name
+      return users.filter(function(u){
+        return u.notes&&u.notes.indexOf('advisor_code:')!==-1;
+      }).map(function(u){
+        var parsed={};
+        var parts=(u.notes||'').split('|');
+        for(var i=0;i<parts.length;i++){
+          var kv=parts[i].split(':',2);
+          if(kv.length===2)parsed[kv[0]]=kv[1];
+        }
+        return {
+          id:u.id, phone:u.phone, name:u.name, is_active:u.is_active,
+          expires_at:u.expires_at, notes:u.notes,
+          advisor_code:parsed.advisor_code||'',
+          display_name:parsed.display_name||u.name||''
+        };
+      });
+    });
+    throw new Error('HTTP '+resp.status);
+  });
+}
+
+// 更新授权用户（含顾问信息）
+function supaUpdateAuthUser(id, updates){
+  return __supaFetch(
+    SUPABASE_URL+'/rest/v1/authorized_users?id=eq.'+encodeURIComponent(id),
+    { method:'PATCH', headers:__supaHeaders(), body:JSON.stringify(updates), timeout:10000 }
+  ).then(function(resp){
+    if(resp.ok)return{ok:true};
+    return resp.json().then(function(e){return{ok:false,error:e.message||'更新失败'};}).catch(function(){return{ok:false,error:'HTTP '+resp.status};});
+  });
+}
+
+// 添加授权用户（含顾问信息）
+function addAdvisorUser(body){
+  // 将 advisor_code 和 display_name 编码到 notes 中
+  var parts=[];
+  var notes=body.notes||'';
+  if(notes)parts.push(notes);
+  if(body.advisor_code)parts.push('advisor_code:'+body.advisor_code);
+  if(body.display_name)parts.push('display_name:'+body.display_name);
+  var mergedNotes=parts.join('|');
+  var reqBody={phone:body.phone,name:body.name,is_active:body.is_active!==false,notes:mergedNotes};
+  if(body.expires_at)reqBody.expires_at=body.expires_at;
+  if(body.major_direction)reqBody.major_direction=body.major_direction;
+  return addAuthorizedUser(reqBody);
+}
+
 // 获取所有注册用户（管理员看板用）
 function supaGetAllRegistrations(){
   return __supaFetch(

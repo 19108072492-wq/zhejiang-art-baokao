@@ -3247,3 +3247,163 @@ function deleteAuthUser(id,phone){
     else{toast('删除失败',1);}
   }).catch(function(e){toast('删除失败',1);});
 }
+
+// ===== 顾问看板 =====
+var __selectedAdvisor=null;
+
+function renderAdvisorDashboard(){
+  var btnAdd=document.getElementById('btnAddAdvisor');
+  var btnRefresh=document.getElementById('btnRefreshAdvisors');
+  if(btnAdd&&!btnAdd.dataset.init){
+    btnAdd.dataset.init='1';
+    btnAdd.onclick=function(){
+      var form=document.getElementById('advisorAddForm');
+      if(form)form.style.display=form.style.display==='none'?'':'none';
+    };
+  }
+  if(btnRefresh&&!btnRefresh.dataset.init){
+    btnRefresh.dataset.init='1';
+    btnRefresh.onclick=function(){loadAdvisorCards();};
+  }
+  var btnConfirm=document.getElementById('btnConfirmAdvisor');
+  var btnCancel=document.getElementById('btnCancelAdvisor');
+  var codeInput=document.getElementById('advisorCodeAddInput');
+  if(btnConfirm&&!btnConfirm.dataset.init){
+    btnConfirm.dataset.init='1';
+    btnConfirm.onclick=function(){confirmAddAdvisor();};
+  }
+  if(btnCancel&&!btnCancel.dataset.init){
+    btnCancel.dataset.init='1';
+    btnCancel.onclick=function(){
+      document.getElementById('advisorAddForm').style.display='none';
+      clearAdvisorForm();
+    };
+  }
+  if(codeInput&&!codeInput.dataset.init){
+    codeInput.dataset.init='1';
+    codeInput.oninput=function(){
+      var preview=document.getElementById('advisorPreviewCode');
+      if(preview)preview.textContent=this.value.toUpperCase()||'ADXXX';
+    };
+  }
+  loadAdvisorCards();
+}
+
+function clearAdvisorForm(){
+  ['advisorPhoneInput','advisorNameInput','advisorCodeAddInput','advisorNotesInput'].forEach(function(id){
+    var el=document.getElementById(id);if(el)el.value='';
+  });
+}
+
+function confirmAddAdvisor(){
+  var phone=document.getElementById('advisorPhoneInput');
+  var name=document.getElementById('advisorNameInput');
+  var code=document.getElementById('advisorCodeAddInput');
+  var notes=document.getElementById('advisorNotesInput');
+  if(!phone||!/^1[3-9]\d{9}$/.test(phone.value)){toast('请输入有效的11位手机号',1);if(phone)phone.focus();return;}
+  var phoneVal=phone.value.trim();
+  var nameVal=name?name.value.trim():'';
+  var codeVal=code?code.value.trim().toUpperCase():'';
+  if(!codeVal){toast('请输入顾问码',1);return;}
+  var notesVal=notes?notes.value.trim():'';
+  var btn=document.getElementById('btnConfirmAdvisor');
+  if(btn){btn.disabled=true;btn.textContent='⏳ 添加中...';}
+  addAdvisorUser({
+    phone:phoneVal,name:nameVal,is_active:true,notes:notesVal,advisor_code:codeVal,display_name:nameVal
+  }).then(function(res){
+    if(btn){btn.disabled=false;btn.textContent='✅ 确认添加';}
+    if(res&&res.ok){
+      toast('✅ 顾问 '+nameVal+' ('+codeVal+') 已添加');
+      clearAdvisorForm();
+      document.getElementById('advisorAddForm').style.display='none';
+      loadAdvisorCards();
+    }else{toast('❌ '+(res&&res.error?res.error:'添加失败'),1);}
+  }).catch(function(e){
+    if(btn){btn.disabled=false;btn.textContent='✅ 确认添加';}
+    toast('添加失败：'+(e.message||'网络错误'),1);
+  });
+}
+
+function loadAdvisorCards(){
+  var container=document.getElementById('adminAdvisorCards');
+  if(!container)return;
+  container.innerHTML='<p style="color:var(--t3);font-size:.82rem;text-align:center;padding:20px;grid-column:1/-1">⏳ 加载中...</p>';
+  supaGetAdvisors().then(function(advisors){
+    if(!advisors||!advisors.length){
+      container.innerHTML='<p style="color:var(--t3);font-size:.82rem;text-align:center;padding:20px;grid-column:1/-1">暂无顾问，点击"+ 添加顾问"按钮添加</p>';
+      return;
+    }
+    var items=advisors.map(function(a){
+      var code=a.advisor_code||'';
+      if(code)return supaGetAdvisorClients(code).then(function(clients){return{advisor:a,count:clients?clients.length:0};}).catch(function(){return{advisor:a,count:0};});
+      return Promise.resolve({advisor:a,count:0});
+    });
+    Promise.all(items).then(function(results){
+      var html='';
+      for(var i=0;i<results.length;i++){
+        var r=results[i],a=r.advisor;
+        var code=a.advisor_code||'--';
+        var isActive=a.is_active!==false;
+        var isExpired=a.expires_at&&new Date(a.expires_at)<new Date();
+        var sc=isActive&&!isExpired?'var(--_green-500)':'var(--_red-500)';
+        var st=isActive&&!isExpired?'✅ 有效':(isExpired?'⏰ 已过期':'⛔ 已停用');
+        var nm=a.display_name||a.name||'未知';
+        html+='<div class="advisor-card" onclick="selectAdvisor(\''+escAttr(code)+'\',\''+escAttr(nm)+'\',\''+escAttr(a.phone||'')+'\')" style="background:var(--color-surface);border:1.5px solid var(--color-border-light);border-radius:var(--rlg);padding:14px 16px;cursor:pointer;transition:all var(--_dur-normal);box-shadow:var(--sh);position:relative;'+(__selectedAdvisor===code?'border-color:var(--color-accent)!important;box-shadow:0 0 0 3px rgba(176,133,67,.15)!important':'')+'">';
+        html+='<div style="position:absolute;top:0;left:0;right:0;height:3px;background:'+sc+'"></div>';
+        html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-top:3px;margin-bottom:6px">';
+        html+='<span style="font-size:.92rem;font-weight:700">'+esc(nm)+'</span>';
+        html+='<span style="font-size:.68rem;font-weight:600;color:'+sc+'">'+st+'</span></div>';
+        html+='<div style="font-size:.78rem;color:var(--t3);margin-bottom:4px">📱 '+esc(a.phone||'--')+' ｜ 🏷️ <strong style="color:var(--color-accent)">'+esc(code)+'</strong></div>';
+        html+='<div style="font-size:.72rem;color:var(--t2)">👥 客户：<strong style="color:var(--color-accent);font-size:.85rem">'+r.count+'</strong> 人';
+        if(isActive)html+=' ｜ 📅 至'+(a.expires_at?new Date(a.expires_at).toLocaleDateString('zh-CN'):'永久');
+        html+='</div>';
+        if(a.notes)html+='<div style="font-size:.7rem;color:var(--t3);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">💬 '+esc(a.notes)+'</div>';
+        html+='<div style="font-size:.65rem;color:var(--color-accent);font-weight:600;margin-top:6px;opacity:.6">👆 点击查看客户详情</div></div>';
+      }
+      container.innerHTML=html;
+    }).catch(function(e){container.innerHTML='<p style="color:var(--_red-500);text-align:center;padding:20px;grid-column:1/-1">加载失败：'+esc(e.message||'')+'</p>';});
+  }).catch(function(e){container.innerHTML='<p style="color:var(--_red-500);text-align:center;padding:20px;grid-column:1/-1">加载失败：'+esc(e.message||'')+'</p>';});
+}
+
+function selectAdvisor(code,name,phone){
+  __selectedAdvisor=code;
+  var cards=document.querySelectorAll('.advisor-card');
+  for(var i=0;i<cards.length;i++){cards[i].style.borderColor='var(--color-border-light)';cards[i].style.boxShadow='var(--sh)';}
+  var detail=document.getElementById('adminAdvisorDetail');
+  var body=document.getElementById('adminAdvisorDetailBody');
+  var title=document.getElementById('advisorDetailTitle');
+  if(detail)detail.style.display='';
+  if(title)title.textContent='📊 '+esc(name)+' ('+esc(code)+') - 客户列表';
+  if(!body)return;
+  body.innerHTML='<p style="color:var(--t3);text-align:center;padding:20px">⏳ 查询中...</p>';
+  supaGetAdvisorClients(code).then(function(clients){
+    if(!clients||!clients.length){body.innerHTML='<p style="color:var(--t3);text-align:center;padding:20px">该顾问暂无客户。<br>学生扫码链接：<br><code style="background:var(--color-surface-alt);padding:4px 8px;border-radius:4px">https://19108072492-wq.github.io/zhejiang-art-baokao/?ref='+esc(code)+'</code></p>';return;}
+    var total=clients.length;
+    var gc={};
+    for(var i=0;i<clients.length;i++){var g=clients[i].grade||'未知';gc[g]=(gc[g]||0)+1;}
+    var gp=[];for(var k in gc){gp.push(k+': '+gc[k]+'人');}
+    var html='<div style="margin-bottom:10px;display:flex;gap:16px;flex-wrap:wrap;align-items:center">';
+    html+='<span>📱 '+esc(phone)+'</span>';
+    html+='<span>👥 <strong style="color:var(--color-accent);font-size:1rem">'+total+'</strong> 人</span>';
+    html+='<span style="color:var(--t3);font-size:.76rem">'+gp.join(' / ')+'</span>';
+    html+='<button class="btn btn-o btn-sm" onclick="exportAdvisorPhones(\''+escAttr(code)+'\')">📥 导出</button></div>';
+    html+='<div class="ctw"><table><thead><tr><th>#</th><th>手机号</th><th>年级</th><th>专业方向</th><th>注册时间</th></tr></thead><tbody>';
+    for(var i=0;i<clients.length;i++){var c=clients[i];html+='<tr><td>'+(i+1)+'</td><td>'+esc(c.phone||'')+'</td><td>'+esc(c.grade||'')+'</td><td>'+esc(c.direction||'')+'</td><td>'+esc(c.created_at||'')+'</td></tr>';}
+    html+='</tbody></table></div>';
+    body.innerHTML=html;
+    detail.scrollIntoView({behavior:'smooth'});
+  }).catch(function(e){body.innerHTML='<p style="color:var(--_red-500);text-align:center;padding:20px">查询失败：'+esc(e.message||'')+'</p>';});
+}
+
+function exportAdvisorPhones(code){
+  supaGetAdvisorClients(code).then(function(clients){
+    if(!clients||!clients.length){toast('该顾问暂无数据',1);return;}
+    var lines=['手机号,年级,专业方向,注册时间'];
+    for(var i=0;i<clients.length;i++){var c=clients[i];lines.push([c.phone||'',c.grade||'',c.direction||'',c.created_at||''].join(','));}
+    var blob=new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
+    var url=URL.createObjectURL(blob);var a=document.createElement('a');
+    a.href=url;a.download='顾问'+code+'_客户列表_'+new Date().toISOString().slice(0,10)+'.csv';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+    toast('已导出 '+clients.length+' 条记录');
+  }).catch(function(e){toast('导出失败：'+esc(e.message||'网络错误'),1);});
+}
