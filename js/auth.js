@@ -266,7 +266,7 @@ function updatePaidUI(){
     }
     bar.innerHTML='<span style="display:flex;align-items:center;gap:12px"><span style="color:var(--gr);font-weight:600">✅ 已授权 '+expText+'</span></span>';
   }else if(__isLoggedIn){
-    bar.innerHTML='<span style="color:var(--o);font-weight:600">🎁 体验版 · 完整院校名单 + 精简信息，升级解锁详情/院校浏览/专业浏览</span> <button class="btn btn-g btn-sm" id="btnUpgrade" style="font-size:.75rem;padding:2px 8px">🔓 升级完整版</button>';
+    bar.innerHTML='<span style="color:var(--o);font-weight:600">🎁 体验版 · 升级解锁院校详情/院校浏览/专业浏览等更多功能</span> <button class="btn btn-g btn-sm" id="btnUpgrade" style="font-size:.75rem;padding:2px 8px">🔓 升级完整版</button>';
     setTimeout(function(){
       var bu=document.getElementById('btnUpgrade');
       if(bu)bu.addEventListener('click',showUpgradeModal);
