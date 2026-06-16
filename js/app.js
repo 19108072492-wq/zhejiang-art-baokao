@@ -839,6 +839,43 @@ function openMajorDetail(majorName){
 document.addEventListener('DOMContentLoaded',function(){
   var btn=document.getElementById('btnMdClose');
   if(btn)btn.addEventListener('click',function(){document.getElementById('majorDetailModal').classList.add('hidden');});
+
+  // 院校浏览内嵌算分器
+  var btnSci=document.getElementById('btnSciCalc');
+  if(btnSci)btnSci.addEventListener('click',function(){
+    var cat=document.getElementById('sciCat').value;
+    var culture=parseFloat(document.getElementById('sciCulture').value);
+    var art=parseFloat(document.getElementById('sciArt').value);
+    var resultEl=document.getElementById('sciResult');
+    if(!cat||isNaN(culture)||isNaN(art)){if(resultEl){resultEl.classList.remove('hidden');resultEl.innerHTML='<span style="color:var(--_red-500);font-size:.76rem">请填写完整信息</span>';}return;}
+    var res=calcScore(culture,art,cat==='calligraphy'?'finearts':cat);
+    window.__lastUserScore=res.score;window.__lastUserCulture=culture;window.__lastUserArt=art;window.__lastUserCatKey=cat==='calligraphy'?'finearts':cat;
+    // 刷新院校总览卡片（如果已渲染）
+    if(!document.getElementById('schoolBrowser').classList.contains('hidden'))renderSchoolBrowser();
+    if(resultEl){resultEl.classList.remove('hidden');resultEl.innerHTML='<span class="sci-score">'+res.score.toFixed(2)+'</span><span class="sci-formula">'+res.text+'</span>';}
+  });
+  // 回车触发
+  ['sciCat','sciCulture','sciArt'].forEach(function(id){
+    var el=document.getElementById(id);if(el)el.addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('btnSciCalc').click();});
+  });
+
+  // 专业浏览内嵌算分器
+  var btnMci=document.getElementById('btnMciCalc');
+  if(btnMci)btnMci.addEventListener('click',function(){
+    var cat=document.getElementById('mciCat').value;
+    var culture=parseFloat(document.getElementById('mciCulture').value);
+    var art=parseFloat(document.getElementById('mciArt').value);
+    var resultEl=document.getElementById('mciResult');
+    if(!cat||isNaN(culture)||isNaN(art)){if(resultEl){resultEl.classList.remove('hidden');resultEl.innerHTML='<span style="color:var(--_red-500);font-size:.76rem">请填写完整信息</span>';}return;}
+    var res=calcScore(culture,art,cat==='calligraphy'?'finearts':cat);
+    window.__lastUserScore=res.score;window.__lastUserCulture=culture;window.__lastUserArt=art;window.__lastUserCatKey=cat==='calligraphy'?'finearts':cat;
+    // 刷新专业浏览卡片（如果已渲染）
+    if(!document.getElementById('majorBrowser').classList.contains('hidden'))renderMajorBrowser(cat);
+    if(resultEl){resultEl.classList.remove('hidden');resultEl.innerHTML='<span class="sci-score">'+res.score.toFixed(2)+'</span><span class="sci-formula">'+res.text+'</span>';}
+  });
+  ['mciCat','mciCulture','mciArt'].forEach(function(id){
+    var el=document.getElementById(id);if(el)el.addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('btnMciCalc').click();});
+  });
 });
 
 function openCmp(){

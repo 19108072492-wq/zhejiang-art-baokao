@@ -1041,6 +1041,41 @@ html[data-theme="dark"] .si-highlight,
   .si-detail-foot{padding:var(--_sp-2) var(--_sp-4)}
 }
 
+/* ===== INLINE SCORE CALCULATOR ===== */
+.score-calc-inline{
+  background:var(--color-surface-alt);
+  border:1.5px solid var(--color-border-light);
+  border-radius:var(--_radius-md);
+  padding:var(--_sp-3) var(--_sp-4);
+  margin-bottom:var(--_sp-4);
+}
+.sci-row{display:flex;align-items:flex-end;gap:var(--_sp-3);flex-wrap:wrap}
+.sci-item{display:flex;flex-direction:column;gap:2px;min-width:100px}
+.sci-item label{font-size:.7rem;font-weight:600;color:var(--color-text-tertiary)}
+.sci-item select,.sci-item input{
+  height:34px;padding:0 10px;border:1.5px solid var(--color-border);
+  border-radius:var(--_radius-sm);font-size:.78rem;
+  font-family:var(--_font-sans);background:var(--color-surface);
+  color:var(--color-text);outline:none;
+  transition:border-color var(--_dur-fast);
+}
+.sci-item select{appearance:none;-webkit-appearance:none;padding-right:24px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%237a828c' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 8px center;
+}
+.sci-item select:focus,.sci-item input:focus{border-color:var(--color-accent);box-shadow:0 0 0 3px rgba(176,133,67,.08)}
+.sci-btn{align-self:flex-end}
+.sci-result{margin-top:var(--_sp-3);padding-top:var(--_sp-3);border-top:1px dashed var(--color-border)}
+.sci-result .sci-score{font-size:1rem;font-weight:800;color:var(--color-accent)}
+.sci-result .sci-formula{font-size:.72rem;color:var(--color-text-tertiary);margin-top:2px}
+
+@media(max-width:640px){
+  .sci-row{flex-direction:column;align-items:stretch}
+  .sci-item{min-width:auto}
+  .sci-btn{align-self:stretch}
+  .sci-btn button{width:100%}
+}
+
 /* ===== MAJOR BROWSER ===== */
 .major-layout{display:grid;grid-template-columns:280px 1fr;gap:var(--_sp-4);margin-top:var(--_sp-3);transition:grid-template-columns .3s ease}
 .major-layout.expanded{grid-template-columns:0 1fr}
@@ -1471,6 +1506,16 @@ html[data-theme="dark"] .si-highlight,
     <!-- 院校总览面板 -->
     <div id="schoolOverviewPanel">
     <div class="card-sub" id="schoolSub"></div>
+    <!-- 院校浏览内嵌算分器 -->
+    <div class="score-calc-inline" id="schoolScoreCalc">
+      <div class="sci-row">
+        <div class="sci-item"><label>艺术门类</label><select id="sciCat"><option value="">请选择</option><option value="finearts">🎨 美术与设计类</option><option value="music">🎵 音乐类</option><option value="dance">💃 舞蹈类</option><option value="broadcast">🎙️ 播音与主持类</option><option value="acting">🎭 表（导）演类</option><option value="calligraphy">✒️ 书法类</option></select></div>
+        <div class="sci-item"><label>文化课</label><input type="number" id="sciCulture" placeholder="满分750" min="0" max="750" step="0.5"></div>
+        <div class="sci-item"><label>统考成绩</label><input type="number" id="sciArt" placeholder="例：245" min="0" step="0.5"></div>
+        <div class="sci-item sci-btn"><button class="btn btn-g btn-sm" id="btnSciCalc">🔢 计算</button></div>
+      </div>
+      <div class="sci-result hidden" id="sciResult"></div>
+    </div>
     <div id="schoolFreeBanner" class="upgrade-banner hidden">
       <div class="upgrade-banner-left">
         <div class="upgrade-banner-icon">🏫</div>
@@ -1514,6 +1559,16 @@ html[data-theme="dark"] .si-highlight,
   <div class="card hidden" id="majorBrowser">
     <div class="card-tt">📚 专业浏览</div>
     <div class="card-sub">选择专业，查看开设该专业的院校排名</div>
+    <!-- 专业浏览内嵌算分器 -->
+    <div class="score-calc-inline" id="majorScoreCalc">
+      <div class="sci-row">
+        <div class="sci-item"><label>艺术门类</label><select id="mciCat"><option value="">请选择</option><option value="finearts">🎨 美术与设计类</option><option value="music">🎵 音乐类</option><option value="dance">💃 舞蹈类</option><option value="broadcast">🎙️ 播音与主持类</option><option value="acting">🎭 表（导）演类</option><option value="calligraphy">✒️ 书法类</option></select></div>
+        <div class="sci-item"><label>文化课</label><input type="number" id="mciCulture" placeholder="满分750" min="0" max="750" step="0.5"></div>
+        <div class="sci-item"><label>统考成绩</label><input type="number" id="mciArt" placeholder="例：245" min="0" step="0.5"></div>
+        <div class="sci-item sci-btn"><button class="btn btn-g btn-sm" id="btnMciCalc">🔢 计算</button></div>
+      </div>
+      <div class="sci-result hidden" id="mciResult"></div>
+    </div>
     <div id="majorFreeBanner" class="upgrade-banner hidden">
       <div class="upgrade-banner-left">
         <div class="upgrade-banner-icon">📚</div>
