@@ -33,8 +33,17 @@ function initAuth(){
   }
 }
 
-// defer 脚本在 DOMContentLoaded 后执行，直接调用即可
-document.addEventListener('DOMContentLoaded',function(){initAuth();});
+// 等待 app.js 就绪后再初始化认证模块
+// app.js 末尾会设置 window.__appReady=true 并回调 window.__authInitPending
+(function(){
+  if(window.__appReady){
+    // app.js 已经执行完（正常情况，auth.js 在 app.js 之后加载）
+    initAuth();
+  }else{
+    // 万一 auth.js 先执行（不应发生，但保底）
+    window.__authInitPending=initAuth;
+  }
+})();
 
 function setupAuthUI(){
   // === 登录按钮 ===

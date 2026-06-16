@@ -1324,6 +1324,13 @@ function showDashboard(){
   if(typeof updatePaidUI==='function')updatePaidUI();
 }
 
+// app.js 全部就绪，通知 auth.js 初始化
+window.__appReady=true;
+if(typeof window.__authInitPending==='function'){
+  window.__authInitPending();
+  window.__authInitPending=null;
+}
+
 // ===== 仪表盘 =====
 function renderDashboard(){
   var all=getAllRecords();
