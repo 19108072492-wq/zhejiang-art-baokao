@@ -532,19 +532,22 @@ function openForm(){
   for(const tier of['reach','match','safety']){
     const list=groups[tier];
     if(!list.length)continue;
-    html+=`<div class="vsec ${tier}"><h3><span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:.78rem;font-weight:700;color:#fff;background:${labelColors[tier]}">${labels[tier]}</span> <small style="color:var(--t3)">（${list.length} 所）</small></h3><div class="vtbl-wrap"><table class="vtab"><thead><tr><th class="col-drag"></th><th class="col-seq">#</th><th>院校</th><th>专业</th><th>综合分</th><th>评分</th><th>位次</th><th>学费</th><th>城市</th><th class="col-act">操作</th></tr></thead><tbody>`;
+    var _paid=isPaidUser();
+    var _extraTh=_paid?'<th>评分</th><th>位次</th><th>学费</th>':'';
+    html+=`<div class="vsec ${tier}"><h3><span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:.78rem;font-weight:700;color:#fff;background:${labelColors[tier]}">${labels[tier]}</span> <small style="color:var(--t3)">（${list.length} 所）</small></h3><div class="vtbl-wrap"><table class="vtab"><thead><tr><th class="col-drag"></th><th class="col-seq">#</th><th>院校</th><th>专业</th><th>综合分</th>${_extraTh}<th>城市</th><th class="col-act">操作</th></tr></thead><tbody>`;
     for(let i=0;i<list.length;i++){
       const r=list[i];
       const key=(r.schoolCode||'')+'|'+(r.majorCode||'');
+      var _extraTd=_paid
+        ?`<td style="font-weight:700;color:var(--g)">${r.recScore||'--'}</td><td>${r.rankPosition||'--'}</td><td>${typeof r.tuition=='number'?r.tuition.toLocaleString():r.tuition||'--'}</td>`
+        :'';
       html+=`<tr data-key="${escAttr(key)}" data-tier="${tier}" class="${tier} draggable-row" draggable="true">
         <td class="col-drag"><span class="drag-handle" title="拖拽排序">⋮</span></td>
         <td class="col-seq">${i+1}</td>
         <td>${esc(r.schoolName)}${r.scoreSource==='estimated'?' <span style="color:#c0392b;font-size:.68rem">⚠️预估</span>':''}</td>
         <td>${esc(r.majorName)}</td>
         <td><strong>${r.compositeScore}</strong></td>
-        <td style="font-weight:700;color:var(--g)">${r.recScore||'--'}</td>
-        <td>${r.rankPosition||'--'}</td>
-        <td>${typeof r.tuition=='number'?r.tuition.toLocaleString():r.tuition||'--'}</td>
+        ${_extraTd}
         <td>${esc(r.city)}</td>
         <td class="col-act">
           ${i>0?`<button class="btn btn-gh btn-xs" onclick="moveFormItem('${escAttr(key)}','up')" title="上移">🔼</button>`:'<span class="col-drag"></span>'}
