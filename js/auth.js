@@ -283,12 +283,23 @@ function updatePaidUI(){
   }
 }
 
-function showUpgradeModal(){
-  var phone=localStorage.getItem('zjyk_phone')||'—';
-  var el=document.getElementById('upgradePhone');
-  if(el)el.textContent=phone;
+function showUpgradeModal(source){
   var modal=document.getElementById('upgradeModal');
   if(modal){
+    // 根据触发来源动态更新顶部文案
+    var iconEl=modal.querySelector('.up-modal-head-icon');
+    var h2El=modal.querySelector('.up-modal-head h2');
+    var pEl=modal.querySelector('.up-modal-head p');
+    var sourceMap={
+      'form' :{icon:'📋',title:'生成志愿单',desc:'完整版才可使用，升级后解锁'},
+      'cmp'  :{icon:'🔍',title:'院校对比',desc:'完整版才可使用，升级后解锁'},
+      'school':{icon:'🏫',title:'院校浏览',desc:'完整版才可使用，升级后解锁'},
+      'major' :{icon:'📚',title:'专业浏览',desc:'完整版才可使用，升级后解锁'}
+    };
+    var cfg=source&&sourceMap[source]?sourceMap[source]:{icon:'🌟',title:'升级完整版，解锁全部功能',desc:'如需了解完整版详情，请联系顾问'};
+    if(iconEl)iconEl.textContent=cfg.icon;
+    if(h2El)h2El.textContent=cfg.title==='升级完整版，解锁全部功能'?cfg.title:('🔒 '+cfg.title+'为完整版专属');
+    if(pEl)pEl.textContent=cfg.desc;
     modal.classList.remove('hidden');
     // 点击遮罩关闭
     modal.onclick=function(e){if(e.target===modal)modal.classList.add('hidden');};

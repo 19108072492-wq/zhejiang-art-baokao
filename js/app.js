@@ -504,6 +504,7 @@ function updateFloat(){
 })();
 
 function openForm(){
+  if(!isPaidUser())return showUpgradeModal('form');
   if(!sel.size)return toast('请先勾选学校',1);
   // 用 __formOrder 维护自定义排序（持久化在 sel 的插入顺序）
   if(!window.__formOrder)window.__formOrder=[];
@@ -805,6 +806,7 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 
 function openCmp(){
+  if(!isPaidUser())return showUpgradeModal('cmp');
   const selected=[...sel.values()].slice(0,MAX_CMP);
   if(selected.length<2)return toast('至少选2所',1);
   // 扩展对比维度
