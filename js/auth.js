@@ -275,7 +275,7 @@ function updatePaidUI(){
     }
     bar.innerHTML='<span style="display:flex;align-items:center;gap:12px"><span style="color:var(--gr);font-weight:600">✅ 已授权 '+expText+'</span></span>';
   }else if(__isLoggedIn){
-    bar.innerHTML='<span style="color:var(--o);font-weight:600">🎁 体验版 · 升级解锁院校详情/院校浏览/专业浏览等更多功能</span> <button class="btn btn-g btn-sm" id="btnUpgrade" style="font-size:.75rem;padding:2px 8px">🔓 升级完整版</button>';
+    bar.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;background:linear-gradient(135deg,#fff7ed,#fef3c7);border:1.5px solid #f59e0b;border-radius:var(--rd);padding:8px 12px"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:1.1rem">🎁</span><div><div style="font-size:.82rem;font-weight:700;color:#92400e">体验版</div><div style="font-size:.73rem;color:#b45309">升级解锁院校详情/院校浏览/专业浏览等完整功能</div></div></div><button class="upgrade-banner-btn" id="btnUpgrade" style="font-size:.76rem;padding:5px 12px">🔓 升级</button></div>';
     setTimeout(function(){
       var bu=document.getElementById('btnUpgrade');
       if(bu)bu.addEventListener('click',showUpgradeModal);
@@ -284,9 +284,18 @@ function updatePaidUI(){
 }
 
 function showUpgradeModal(){
-  var phone=localStorage.getItem('zjyk_phone')||'';
-  var msg='🔓 开通完整版\n\n当前为【体验版】，以下功能需完整版才可使用：\n· 🏫 院校浏览（按院校维度筛选）\n· 📚 专业浏览（一键填报功能）\n· 📊 推荐算法详情（13维评分）\n· 🔍 院校对比 & 导出Excel\n· 📋 卡片展开详情\n\n体验版已可免费使用：\n· ✅ 智能填报 · 完整院校名单\n· ✅ 冲 / 稳 / 保 分级展示\n· ✅ 生成志愿单\n\n📞 开通方式：请联系客服，提供手机号：'+phone+'\n付款后管理员将在后台授权，即刻升级。';
-  alert(msg);
+  var phone=localStorage.getItem('zjyk_phone')||'—';
+  var el=document.getElementById('upgradePhone');
+  if(el)el.textContent=phone;
+  var modal=document.getElementById('upgradeModal');
+  if(modal){
+    modal.classList.remove('hidden');
+    // 点击遮罩关闭
+    modal.onclick=function(e){if(e.target===modal)modal.classList.add('hidden');};
+  }else{
+    // 兜底：upgradeModal 不存在时降级到 alert
+    alert('当前为体验版。请联系客服提供手机号：'+phone+'，开通完整版后即刻生效。');
+  }
 }
 
 function doLogout(){
