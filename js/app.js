@@ -242,53 +242,55 @@ function calc(){
   if(subLabel)filterInfo='<div style="font-size:.75rem;color:var(--color-text-secondary);margin-top:4px">筛选条件：'+subLabel+' | 共 '+filteredPool.length+' 条数据</div>';
   sb.innerHTML=`<div class="sbox"><span class="lbl">你的综合分${subLabel}</span><span class="val">${res.score.toFixed(2)}</span><span class="frm">${res.text}</span></div>${filterInfo}<div class="snote ${canB?'ok':'warn'}">${canB?`✅ 文化分 ${c} ≥ ${minC}，已展示本科及专科结果`:`⚠️ 文化分 ${c} < ${minC}，仅展示专科及低分段结果`}</div>`;
 
-  // 算法说明面板
-  document.getElementById('algoCard').classList.remove('hidden');
-  document.getElementById('algoBody').innerHTML=[
-    {icon:'🎯',name:'分差接近度',wt:24,desc:'综合分越接近往年录取分越推荐（平方衰减）'},
-    {icon:'🏛️',name:'院校层次',wt:19,desc:'985/211/双一流/艺术院校/公办/民办 9档'},
-    {icon:'📊',name:'软科排名',wt:6,desc:'A+→C- 7级评分，反映学术实力'},
-    {icon:'🎨',name:'专业特色',wt:9,desc:'国家级/省级一流/特色专业→有培养方案→普通'},
-    {icon:'🔧',name:'培养模式',wt:6,desc:'校企合作/实验班/导师制/实训基地分级加分'},
-    {icon:'🎓',name:'学历层次',wt:4,desc:'本科满分/公办专科42/民办专科18，独立评分'},
-    {icon:'📋',name:'数据可信度',wt:10,desc:'有历史位次满分/无位次降权/预估分最低'},
-    {icon:'📍',name:'地理位置',wt:4,desc:'弱化权重，浙江>长三角>华东>其他'},
-    {icon:'💰',name:'学费合理度',wt:4,desc:'≤6000满分→1.2万/2万/3.5万/6万分段'},
-    {icon:'📋',name:'招生计划数',wt:3,desc:'计划多→竞争分散，30+得高分'},
-    {icon:'🏅',name:'位次匹配度',wt:6,desc:'位次差距越小越好，连续评分'},
-    {icon:'🏙️',name:'城市级别',wt:3,desc:'杭州/宁波→新一线→二线→三线递减'},
-    {icon:'📈',name:'计划趋势',wt:2,desc:'对比24/25届计划数，扩招加分缩招降分'},
-  ].map(d=>`<div class="algo-dim"><span class="dim-lbl">${d.icon} ${d.name}</span><div class="dim-bar"><div class="dim-fill" style="width:${d.wt/0.25*100}%"></div></div><span class="dim-val">${d.wt}%</span><span class="dim-desc">${d.desc}</span></div>`).join('')+`<div class="algo-total">📊 13维度严格评分 · 艺术院校独立加分 · 本专科分流 · 专业特色+培养模式加持</div>`;
+  // 算法说明面板（完整版才展示）
+  var algoCardEl=document.getElementById('algoCard');
+  if(isPaidUser()){
+    algoCardEl.classList.remove('hidden');
+    document.getElementById('algoBody').innerHTML=[
+      {icon:'🎯',name:'分差接近度',wt:24,desc:'综合分越接近往年录取分越推荐（平方衰减）'},
+      {icon:'🏛️',name:'院校层次',wt:19,desc:'985/211/双一流/艺术院校/公办/民办 9档'},
+      {icon:'📊',name:'软科排名',wt:6,desc:'A+→C- 7级评分，反映学术实力'},
+      {icon:'🎨',name:'专业特色',wt:9,desc:'国家级/省级一流/特色专业→有培养方案→普通'},
+      {icon:'🔧',name:'培养模式',wt:6,desc:'校企合作/实验班/导师制/实训基地分级加分'},
+      {icon:'🎓',name:'学历层次',wt:4,desc:'本科满分/公办专科42/民办专科18，独立评分'},
+      {icon:'📋',name:'数据可信度',wt:10,desc:'有历史位次满分/无位次降权/预估分最低'},
+      {icon:'📍',name:'地理位置',wt:4,desc:'弱化权重，浙江>长三角>华东>其他'},
+      {icon:'💰',name:'学费合理度',wt:4,desc:'≤6000满分→1.2万/2万/3.5万/6万分段'},
+      {icon:'📋',name:'招生计划数',wt:3,desc:'计划多→竞争分散，30+得高分'},
+      {icon:'🏅',name:'位次匹配度',wt:6,desc:'位次差距越小越好，连续评分'},
+      {icon:'🏙️',name:'城市级别',wt:3,desc:'杭州/宁波→新一线→二线→三线递减'},
+      {icon:'📈',name:'计划趋势',wt:2,desc:'对比24/25届计划数，扩招加分缩招降分'},
+    ].map(d=>`<div class="algo-dim"><span class="dim-lbl">${d.icon} ${d.name}</span><div class="dim-bar"><div class="dim-fill" style="width:${d.wt/0.25*100}%"></div></div><span class="dim-val">${d.wt}%</span><span class="dim-desc">${d.desc}</span></div>`).join('')+`<div class="algo-total">📊 13维度严格评分 · 艺术院校独立加分 · 本专科分流 · 专业特色+培养模式加持</div>`;
+  }else{
+    algoCardEl.classList.add('hidden');
+  }
 
-  // 梯度说明卡片
+  // 梯度说明卡片（完整版才展示）
   const tierExplain=document.getElementById('tierExplain');
-  tierExplain.classList.remove('hidden');
-  tierExplain.innerHTML=`<h4>📌 冲·稳·保 梯度说明</h4>
-    <div class="tier-row"><div class="tr-icon">🔴</div><div class="tr-body"><strong>冲刺志愿</strong><span>你的综合分低于该校往年录取分 → 需要一定运气，适合“梦想院校”</span></div></div>
-    <div class="tier-row"><div class="tr-icon">🟡</div><div class="tr-body"><strong>稳妥志愿</strong><span>你的综合分高于该校0~15分 → 录取概率较高，重点填报的核心区域</span></div></div>
-    <div class="tier-row"><div class="tr-icon">🟢</div><div class="tr-body"><strong>保底志愿</strong><span>你的综合分高于该校15~35分 → 高概率录取，确保有学上</span></div></div>
-    <div class="tier-row"><div class="tr-icon">⚠️</div><div class="tr-body"><strong>预估分说明</strong><span>标注“预估”的院校为新招专业或无往年数据，系统自动降一档处理（稳妥→冲刺，保底→稳妥）</span></div></div>`;
+  if(isPaidUser()){
+    tierExplain.classList.remove('hidden');
+    tierExplain.innerHTML=`<h4>📌 冲·稳·保 梯度说明</h4>
+      <div class="tier-row"><div class="tr-icon">🔴</div><div class="tr-body"><strong>冲刺志愿</strong><span>你的综合分低于该校往年录取分 → 需要一定运气，适合"梦想院校"</span></div></div>
+      <div class="tier-row"><div class="tr-icon">🟡</div><div class="tr-body"><strong>稳妥志愿</strong><span>你的综合分高于该校0~15分 → 录取概率较高，重点填报的核心区域</span></div></div>
+      <div class="tier-row"><div class="tr-icon">🟢</div><div class="tr-body"><strong>保底志愿</strong><span>你的综合分高于该校15~35分 → 高概率录取，确保有学上</span></div></div>
+      <div class="tier-row"><div class="tr-icon">⚠️</div><div class="tr-body"><strong>预估分说明</strong><span>标注"预估"的院校为新招专业或无往年数据，系统自动降一档处理（稳妥→冲刺，保底→稳妥）</span></div></div>`;
+  }else{
+    tierExplain.classList.add('hidden');
+  }
 
-  // 数据来源卡片
-  document.getElementById('dataSourceCard').classList.remove('hidden');
+  // 数据来源卡片（完整版才展示）
+  var dsc=document.getElementById('dataSourceCard');
+  if(isPaidUser())dsc.classList.remove('hidden');
+  else dsc.classList.add('hidden');
 
   const m=matchSchools(res.score,k,c,filteredPool);
   cur=m.results;window.__rec=m.rec20;
 
-  // ★ 未授权用户限制：仅展示5所学校（冲刺2+稳妥2+保底1）
-  // 已授权用户：无限制
+  // ★ 版本权限：体验版（已登录未付费）= 全量院校 + 精简卡片；完整版（付费）= 完整信息
+  // cur 全量保留，卡片渲染时按 isPaidUser() 决定展示字段
   var freeBanner=document.getElementById('freeLimitBanner');
-  if(!isPaidUser()&&cur.length>0){
-    var reachList=cur.filter(function(x){return x.tier==='reach';});
-    var matchList=cur.filter(function(x){return x.tier==='match';});
-    var safetyList=cur.filter(function(x){return x.tier==='safety';});
-    var limited=reachList.slice(0,2).concat(matchList.slice(0,2)).concat(safetyList.slice(0,1));
-    cur=limited;
-    window.__rec=window.__rec?window.__rec.filter(function(r){return limited.some(function(l){return l.schoolCode===r.schoolCode&&l.majorCode===r.majorCode;});}):[];
-    if(freeBanner)freeBanner.classList.remove('hidden');
-  }else{
-    if(freeBanner)freeBanner.classList.add('hidden');
-  }
+  if(!isPaidUser()&&freeBanner)freeBanner.classList.remove('hidden');
+  else if(freeBanner)freeBanner.classList.add('hidden');
 
   sel.clear();updateFloat();curTier='all';
   curSearch='';curSort='diff';
@@ -414,6 +416,18 @@ function renderCards(){
       if(scMap[r.subCategory])subCatTag=' <span style="font-size:.68rem;padding:1px 5px;border-radius:8px;background:var(--color-surface-secondary);color:var(--color-accent)">'+scMap[r.subCategory]+'</span>';
     }
 	    var majorDetailLink=isPaidUser()?`<span style="cursor:pointer;text-decoration:underline dotted;color:var(--color-accent);font-size:inherit" onclick="openMajorDetail(('${escAttr(r.majorName)}'))">${esc(r.majorName)}</span>`:`${esc(r.majorName)}`;
+	    // ★ 体验版：精简一行卡片；完整版：完整详情卡片
+	    if(!isPaidUser()){
+	      // 方案A：梯度标签 + 院校名 · 专业 · 往年录取分 xxx · 你高/低 xx 分
+	      var tierBadge=m.c==='reach'?'<span class="tag tag-tier tag-tier-reach">🔴 冲刺</span>':m.c==='match'?'<span class="tag tag-tier tag-tier-match">🟡 稳妥</span>':'<span class="tag tag-tier tag-tier-safety">🟢 保底</span>';
+	      var rankTags='';
+	      if(r.is985)rankTags+='<span class="tag tag-985">985</span>';
+	      if(r.is211)rankTags+='<span class="tag tag-211">211</span>';
+	      if(r.isDoubleFirst)rankTags+='<span class="tag tag-df">双一流</span>';
+	      if(r.isPrivate)rankTags+='<span class="tag tag-pv">民办</span>';
+	      if(r.scoreSource==='estimated')rankTags+='<span class="tag tag-est">预估</span>';
+	      return `<div class="sc ${m.c} sc-lite${ck?' sel':''}" data-key="${key}" data-idx="${i}"><div class="cb" data-act="sel"><div class="cb-box${ck?' on':''}">${ck?'✓':''}</div></div><div class="sc-lite-body"><div class="sc-lite-row">${tierBadge} <strong>${esc(r.schoolName)}</strong>${rankTags?'<span style="margin-left:4px">'+rankTags+'</span>':''}</div><div class="sc-lite-meta">${esc(r.majorName)} &nbsp;·&nbsp; 往年录取分 <strong>${r.compositeScore}</strong> &nbsp;·&nbsp; ${(r.diff||0)>=0?`你高 ${Math.abs(r.diff||0).toFixed(1)} 分`:`你低 ${Math.abs(r.diff||0).toFixed(1)} 分`}${r.scoreSource==='estimated'?'<span style="color:#c0392b;margin-left:4px">（预估）</span>':''}</div></div></div>`;
+	    }
 	    return `<div class="sc ${m.c}${ck?' sel':''}" data-key="${key}" data-idx="${i}"><div class="cb" data-act="sel"><div class="cb-box${ck?' on':''}">${ck?'✓':''}</div></div><div class="sinfo"><div class="sname">${esc(r.schoolName)} <span style="font-weight:400;font-size:.75rem">${tags.join(' ')}</span></div><div class="smaj">${majorDetailLink}${subCatTag} <span style="font-size:.72rem;color:#8c8c8c">${r.majorCode||''}</span></div><div class="smeta"><span>📍 ${esc(r.city||'')}</span><span>💰 ${typeof r.tuition=='number'?r.tuition.toLocaleString()+'/年':(r.tuition||'--')}</span><span>🏠 ${esc(r.dorm||'')||'--'}</span>${r.plan25?`<span>📋 ${r.plan25}人</span>`:r.plan24?`<span>📋 ${r.plan24}人</span>`:''}${r.rankPosition?`<span>📊 位次${r.rankPosition}</span>`:''}</div>${r.scoreLineReq?`<div style="margin-top:4px;font-size:.74rem;color:#9a6b2a;background:#faf6f0;padding:3px 8px;border-radius:4px;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📋 ${esc(r.scoreLineReq)}</div>`:''}<div class="sdet">${r.note?`<p>📝 ${esc(r.note)}</p>`:''}${r.courseGuide?`<p>📚 ${esc(r.courseGuide)}</p>`:''}${r.talentGoal?`<p>🎯 ${esc(r.talentGoal)}</p>`:''}${r.scoreSource==='estimated'?'<p style="color:#c0392b">⚠️ 预估分，请谨慎参考</p>':''}${isPaidUser()?scoreDetailHTML:''}</div></div><div class="sstat"><span class="sn">${r.compositeScore}</span><span class="ss">往年录取分</span><span class="ss">${dt}</span>${r.scoreSource==='estimated'?'<span class="ss" style="color:#c0392b">预估</span>':''}</div></div>`;
   }).join('');
   container.onclick=function(e){
@@ -1202,11 +1216,12 @@ function switchTab(tabName){
   if(tabName==='analysisView' && !__adminAccess){
     switchTab('dashboard');return;
   }
-  // ★ 未登录用户：四个模块均可进入，但有限制（数量+详情）
+  // ★ 未登录用户：不可访问院校浏览/专业浏览
+  // ★ 已登录体验版用户（!isPaidUser）：同样不可访问院校浏览/专业浏览，弹升级引导
   var paidTabs=['schoolBrowser','majorBrowser'];
-  if(paidTabs.indexOf(tabName)>=0 && !__isLoggedIn){
-    showUpgradeModal();
-    switchTab('dashboard');return;
+  if(paidTabs.indexOf(tabName)>=0){
+    if(!__isLoggedIn){showUpgradeModal();switchTab('dashboard');return;}
+    if(!isPaidUser()){showUpgradeModal();switchTab('dashboard');return;}
   }
   // 隐藏所有顶层卡片
   var cards=['dashboard','inputCard','resultBox','schoolBrowser','majorBrowser','analysisView'];
@@ -1353,7 +1368,7 @@ function renderDashboard(){
   }
   // 免费用户添加升级入口
   if(!__isPaidUser && __isLoggedIn){
-    entriesHtml+='<div class="dash-entry" onclick="showUpgradeModal()" style="border-color:var(--_orange-500);background:var(--_orange-50)"><span class="de-icon">🔓</span><div class="de-title" style="color:var(--_orange-500)">开通完整版</div><div class="de-desc">解锁数量无限制、查看详情等全部功能</div></div>';
+    entriesHtml+='<div class="dash-entry" onclick="showUpgradeModal()" style="border-color:var(--_orange-500);background:var(--_orange-50)"><span class="de-icon">🔓</span><div class="de-title" style="color:var(--_orange-500)">升级完整版</div><div class="de-desc">解锁院校详情 / 院校浏览 / 专业浏览 / 算法评分</div></div>';
   }
   document.getElementById('dashEntries').innerHTML=entriesHtml;
 }

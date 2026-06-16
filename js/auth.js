@@ -227,10 +227,20 @@ function updatePaidUI(){
   var bar=document.getElementById('usesBar');
   var userBar=document.getElementById('userBar');
   if(!bar)return;
-  // 控制付费导航链接的显隐
+  // 控制付费导航链接：体验版显示但加锁样式，完整版正常显示
   var paidNavLinks=document.querySelectorAll('#topNav a[data-paid="1"]');
   for(var i=0;i<paidNavLinks.length;i++){
-    paidNavLinks[i].style.display=__isPaidUser?'':'none';
+    if(__isPaidUser){
+      paidNavLinks[i].style.display='';
+      paidNavLinks[i].classList.remove('nav-locked');
+    }else if(__isLoggedIn){
+      // 体验版：显示但加锁标记
+      paidNavLinks[i].style.display='';
+      paidNavLinks[i].classList.add('nav-locked');
+    }else{
+      paidNavLinks[i].style.display='none';
+      paidNavLinks[i].classList.remove('nav-locked');
+    }
   }
   // 顶部用户栏
   if(userBar){
@@ -256,7 +266,7 @@ function updatePaidUI(){
     }
     bar.innerHTML='<span style="display:flex;align-items:center;gap:12px"><span style="color:var(--gr);font-weight:600">✅ 已授权 '+expText+'</span></span>';
   }else if(__isLoggedIn){
-    bar.innerHTML='<span style="color:var(--o);font-weight:600">🎁 未授权模式 · 数量限制，无法查看详情</span> <button class="btn btn-g btn-sm" id="btnUpgrade" style="font-size:.75rem;padding:2px 8px">🔓 升级完整版</button>';
+    bar.innerHTML='<span style="color:var(--o);font-weight:600">🎁 体验版 · 完整院校名单 + 精简信息，升级解锁详情/院校浏览/专业浏览</span> <button class="btn btn-g btn-sm" id="btnUpgrade" style="font-size:.75rem;padding:2px 8px">🔓 升级完整版</button>';
     setTimeout(function(){
       var bu=document.getElementById('btnUpgrade');
       if(bu)bu.addEventListener('click',showUpgradeModal);
@@ -266,7 +276,7 @@ function updatePaidUI(){
 
 function showUpgradeModal(){
   var phone=localStorage.getItem('zjyk_phone')||'';
-  var msg='📞 开通完整版\n\n请添加客服微信，提供您的注册手机号：'+phone+'\n\n付费后即可解锁全部功能：\n· 志愿填报完整结果（无数量限制）\n· 院校浏览\n· 专业浏览\n· 数据分析\n\n💡 管理员确认收款后，将在后台授权您的手机号';
+  var msg='🔓 开通完整版\n\n当前为【体验版】，以下功能需完整版才可使用：\n· 🏫 院校浏览（按院校维度筛选）\n· 📚 专业浏览（一键填报功能）\n· 📊 推荐算法详情（13维评分）\n· 🔍 院校对比 & 导出Excel\n· 📋 卡片展开详情\n\n体验版已可免费使用：\n· ✅ 智能填报 · 完整院校名单\n· ✅ 冲 / 稳 / 保 分级展示\n· ✅ 生成志愿单\n\n📞 开通方式：请联系客服，提供手机号：'+phone+'\n付款后管理员将在后台授权，即刻升级。';
   alert(msg);
 }
 
