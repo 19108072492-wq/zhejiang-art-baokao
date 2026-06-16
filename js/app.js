@@ -312,21 +312,47 @@ function calc(){
   document.getElementById('resultBox').scrollIntoView({behavior:'smooth'});
   setTimeout(()=>{const br=document.getElementById('btnRec');if(br)br.addEventListener('click',()=>{
     sel.clear();
-    // 根据当前省份筛选结果来推荐
+    // 获取当前匹配结果 + 全量推荐列表
+    var allResults=cur||[];
     var recList=window.__rec||[];
-    if(__resultProvince&&__resultProvince!=='all'){
-      recList=recList.filter(r=>{
-        var match=filterByProvince([r],__resultProvince);
-        return match.length>0;
-      });
-      if(__resultCity&&__resultCity!=='all'){
-        recList=recList.filter(r=>{
-          var match=filterByCity([r],__resultCity);
-          return match.length>0;
-        });
+
+    // 如果有省份/城市筛选，从筛选后的全部结果中重新按评分推荐20所
+    var hasProvinceFilter=__resultProvince&&__resultProvince!=='all';
+    var hasCityFilter=__resultCity&&__resultCity!=='all';
+    if(hasProvinceFilter||hasCityFilter){
+      // 筛选后的全部可用院校
+      var filteredPool=allResults.slice();
+      if(hasProvinceFilter)filteredPool=filterByProvince(filteredPool,__resultProvince);
+      if(hasCityFilter)filteredPool=filterByCity(filteredPool,__resultCity);
+      if(!filteredPool.length){toast('当前省份范围内无匹配院校，请扩大筛选范围');return;}
+
+      // 复用 core.js 的评分算法，从筛选池中重算 Top 20（冲6稳8保6）
+      var seenNames=new Map();
+      var recByTier=[];
+      var tiers=['reach','match','safety'];
+      var maxByTier={reach:6,match:8,safety:6};
+      for(var ti=0;ti<tiers.length;ti++){
+        var tierKey=tiers[ti];
+        var tierPool=filteredPool.filter(function(r){return r.tier===tierKey&&!seenNames.has(r.schoolName);});
+        // 按 recScore（已在 matchSchools 中计算）降序
+        tierPool.sort(function(a,b){return(b.recScore||0)-(a.recScore||0);});
+        for(var ri=0;ri<tierPool.length;ri++){
+          if(recByTier.filter(function(x){return x.tier===tierKey;}).length>=maxByTier[tierKey])break;
+          seenNames.set(tierPool[ri].schoolName,true);
+          recByTier.push(tierPool[ri]);
+        }
       }
+      // 不足20所时从剩余补齐
+      var remaining20=filteredPool.filter(function(r){return !seenNames.has(r.schoolName);});
+      remaining20.sort(function(a,b){return(b.recScore||0)-(a.recScore||0);});
+      for(var ri2=0;ri2<remaining20.length;ri2++){
+        if(recByTier.length>=20)break;
+        recByTier.push(remaining20[ri2]);
+      }
+      recList=recByTier;
     }
-    if(!recList.length){toast('当前省份范围内无推荐院校，请扩大筛选范围');return;}
+
+    if(!recList.length){toast('当前范围内无推荐院校，请扩大筛选范围');return;}
     recList.forEach(r=>sel.set(`${r.schoolCode}|${r.majorCode}`,r));
     updateFloat();renderCards();toast('已勾选'+recList.length+'所推荐学校');document.getElementById('floatBar').scrollIntoView({behavior:'smooth'});
   });},150);
