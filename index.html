@@ -1030,6 +1030,8 @@ html[data-theme="dark"] .toast,
 }
 
 /* ===== 专业浏览 · 院校详情弹窗 ===== */
+/* z-index 950 > tierOverlay(900)，确保从三列面板内弹出时不被遮挡 */
+#msdModal{z-index:950}
 .msd-box{max-width:480px;width:calc(100% - 32px);max-height:85vh;display:flex;flex-direction:column;border-radius:14px;overflow:hidden;padding:0;position:relative}
 .msd-close{position:absolute;top:12px;right:12px;z-index:2;background:rgba(0,0,0,.08);border:none;border-radius:50%;width:28px;height:28px;font-size:.82rem;cursor:pointer;color:var(--color-text-secondary);display:flex;align-items:center;justify-content:center;transition:background .12s}
 .msd-close:hover{background:rgba(0,0,0,.15)}
