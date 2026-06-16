@@ -933,27 +933,113 @@ html[data-theme="dark"] .toast,
 .sb-tabs button{border:none;background:none;padding:8px 18px;font-size:.85rem;color:var(--color-text-tertiary);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all var(--_dur-fast);font-weight:500}
 .sb-tabs button.on{color:var(--color-accent);border-bottom-color:var(--color-accent);font-weight:700}
 .sb-tabs button:hover{color:var(--color-text)}
-.si-search-bar{padding:var(--_sp-2) 0}
-.si-search-bar input{width:100%;padding:8px 12px;border:1px solid var(--color-border-light);border-radius:var(--_radius-md);font-size:.82rem;background:var(--color-surface)}
-.si-grid{display:flex;flex-direction:column;gap:var(--_sp-4)}
-.si-card{background:var(--color-surface);border:1px solid var(--color-border-light);border-radius:var(--_radius-lg);overflow:hidden;transition:all var(--_dur-normal) var(--_ease-spring);box-shadow:var(--_shadow-xs)}
-.si-card:hover{box-shadow:var(--_shadow-md);border-color:var(--_brand-300)}
-.si-hero{padding:var(--_sp-4) var(--_sp-5);background:linear-gradient(135deg,var(--_brand-100),#fff);border-bottom:1px solid var(--color-border-light)}
-.si-name{font-size:1.1rem;font-weight:800;color:var(--color-text)}
-.si-tags{margin-left:8px;font-weight:400;font-size:.72rem}
-.si-body{padding:var(--_sp-4) var(--_sp-5)}
-.si-intro{font-size:.8rem;color:var(--color-text-secondary);line-height:1.8;margin-bottom:var(--_sp-3)}
-.si-section{margin-bottom:var(--_sp-3)}
-.si-section-title{font-size:.78rem;font-weight:700;color:var(--color-text);margin-bottom:6px;display:flex;align-items:center;gap:6px}
-.si-section-title::before{content:'';display:inline-block;width:3px;height:14px;background:var(--color-accent);border-radius:2px}
-.si-dorm{font-size:.78rem;color:var(--color-text-secondary);line-height:1.7;background:var(--_brand-100);padding:10px 14px;border-radius:var(--_radius-md)}
-.si-keys{list-style:none;padding:0;margin:0}
-.si-keys li{font-size:.76rem;color:var(--color-text-secondary);line-height:1.7;padding:2px 0;padding-left:16px;position:relative}
-.si-keys li::before{content:'•';position:absolute;left:4px;color:var(--color-accent);font-weight:700}
-.si-expand-btn{display:inline-block;font-size:.74rem;color:var(--color-accent);cursor:pointer;font-weight:600;margin-top:4px;border:none;background:none;padding:0}
-.si-expand-btn:hover{text-decoration:underline}
-.si-intro.collapsed{max-height:5.6em;overflow:hidden;position:relative}
-.si-intro.collapsed::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2em;background:linear-gradient(transparent,var(--color-surface))}
+
+/* Toolbar: search + expand all */
+.si-toolbar{display:flex;align-items:center;gap:var(--_sp-3);margin-bottom:var(--_sp-2)}
+.si-toolbar .sch{display:flex;gap:var(--_sp-2);align-items:center}
+.si-toolbar .sch input{flex:1;min-width:0}
+
+/* Search result highlight */
+.si-highlight{background:rgba(176,133,67,.22);color:var(--color-accent);font-weight:600;border-radius:2px;padding:0 1px}
+
+/* Type filter chips */
+#siTypeFilters{margin-bottom:var(--_sp-4)}
+#siTypeFilters button{transition:all var(--_dur-fast) var(--_ease-spring)}
+#siTypeFilters button.on{background:linear-gradient(165deg,var(--_brand-400),var(--_brand-500));border-color:var(--_brand-400);color:#fff}
+
+/* Toolbar: search + expand all */
+.si-toolbar{display:flex;align-items:center;gap:var(--_sp-3);margin-bottom:var(--_sp-2)}
+.si-toolbar .sch{display:flex;gap:var(--_sp-2);align-items:center}
+.si-toolbar .sch input{flex:1;min-width:0}
+
+/* Search result highlight */
+.si-highlight{background:rgba(176,133,67,.22);color:var(--color-accent);font-weight:600;border-radius:2px;padding:0 1px}
+
+/* ===== COMPACT CARD GRID ===== */
+.si-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--_sp-3)}
+
+/* Mini school card */
+.si-mini-card{
+  background:var(--color-surface);
+  border:1.5px solid var(--color-border-light);
+  border-radius:var(--_radius-md);
+  padding:var(--_sp-4);
+  cursor:pointer;
+  transition:all var(--_dur-normal) var(--_ease-spring);
+  box-shadow:var(--_shadow-xs);
+  position:relative;
+  display:flex;flex-direction:column;gap:var(--_sp-2);
+  user-select:none;
+}
+.si-mini-card:hover{
+  box-shadow:var(--_shadow-md);
+  border-color:var(--_brand-300);
+  transform:translateY(-2px);
+}
+.si-mini-card:active{transform:scale(.98)}
+
+/* Mini card: name */
+.si-mini-name{font-size:.92rem;font-weight:700;color:var(--color-text);line-height:1.3}
+/* Mini card: tags row */
+.si-mini-tags{display:flex;flex-wrap:wrap;gap:4px}
+/* Mini card: city + meta */
+.si-mini-meta{font-size:.72rem;color:var(--color-text-tertiary);display:flex;align-items:center;gap:4px}
+/* Mini card: intro preview */
+.si-mini-intro{font-size:.74rem;color:var(--color-text-secondary);line-height:1.6;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2}
+/* Mini card: "点击查看" hint */
+.si-mini-hint{font-size:.68rem;color:var(--color-accent);font-weight:600;display:flex;align-items:center;gap:3px;margin-top:auto;opacity:.7}
+.si-mini-card:hover .si-mini-hint{opacity:1}
+
+/* ===== DETAIL MODAL ===== */
+#siDetailModal{z-index:300}
+#siDetailModal .mod-pn{max-width:680px;height:auto;max-height:92vh;border-radius:var(--_radius-xl);overflow:hidden;animation:modalSlideUp .3s var(--_ease-out)}
+.si-detail-scroll{overflow-y:auto;max-height:calc(92vh - 120px);-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--color-border) transparent}
+.si-detail-scroll::-webkit-scrollbar{width:4px}
+.si-detail-scroll::-webkit-scrollbar-thumb{background:var(--color-border);border-radius:2px}
+.si-detail-scroll::-webkit-scrollbar-track{background:transparent}
+
+/* Detail hero */
+.si-detail-hero{padding:var(--_sp-5) var(--_sp-6);background:linear-gradient(135deg,var(--_brand-100),#fff);border-bottom:1px solid var(--color-border-light)}
+.si-detail-hero .si-detail-name{font-size:1.2rem;font-weight:800;color:var(--color-text);margin-bottom:6px}
+.si-detail-hero .si-detail-meta{font-size:.78rem;color:var(--color-text-tertiary);display:flex;align-items:center;flex-wrap:wrap;gap:4px 12px}
+.si-detail-hero .si-detail-tags{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px}
+
+/* Detail body */
+.si-detail-body{padding:var(--_sp-4) var(--_sp-6)}
+.si-detail-body .si-detail-section{margin-bottom:var(--_sp-4)}
+.si-detail-body .si-detail-section:last-child{margin-bottom:0}
+.si-detail-body .si-detail-section-title{font-size:.78rem;font-weight:700;color:var(--color-text);margin-bottom:8px;display:flex;align-items:center;gap:6px;letter-spacing:.02em}
+.si-detail-body .si-detail-section-title::before{content:'';display:inline-block;width:3px;height:14px;background:var(--color-accent);border-radius:2px;flex-shrink:0}
+.si-detail-body .si-detail-intro{font-size:.82rem;color:var(--color-text-secondary);line-height:1.85}
+.si-detail-body .si-detail-chips{display:flex;flex-wrap:wrap;gap:6px}
+.si-detail-body .si-detail-chip{display:inline-flex;align-items:center;gap:3px;padding:4px 10px;background:var(--color-surface-alt);border:1px solid var(--color-border-light);border-radius:var(--_radius-full);font-size:.74rem;color:var(--color-text-secondary);white-space:nowrap}
+.si-detail-body .si-detail-chip .si-chip-icon{font-size:.8rem}
+.si-detail-body .si-detail-dorm{font-size:.78rem;color:var(--color-text-secondary);line-height:1.75;background:var(--color-surface-alt);padding:10px 14px;border-radius:var(--_radius-md);white-space:pre-line}
+.si-detail-body .si-detail-weblink{display:inline-flex;align-items:center;gap:5px;font-size:.78rem;color:var(--color-accent);text-decoration:none;font-weight:600;padding:6px 14px;border:1px solid var(--color-accent);border-radius:var(--_radius-sm);transition:all var(--_dur-fast)}
+.si-detail-body .si-detail-weblink:hover{background:var(--color-accent);color:#fff}
+
+/* Detail footer */
+.si-detail-foot{padding:var(--_sp-3) var(--_sp-6);border-top:1px solid var(--color-border-light);display:flex;justify-content:flex-end;gap:8px;background:var(--color-surface-alt)}
+
+/* Dark mode for detail */
+html[data-theme="dark"] .si-detail-hero,
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .si-detail-hero{background:linear-gradient(135deg,rgba(176,133,67,.08),var(--color-surface))}}
+html[data-theme="dark"] .si-mini-card,
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .si-mini-card{background:var(--color-surface)}}
+html[data-theme="dark"] .si-highlight,
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .si-highlight{background:rgba(212,184,122,.18)}}
+
+/* Responsive */
+@media(max-width:640px){
+  .si-toolbar{flex-direction:column;align-items:stretch;gap:var(--_sp-2)}
+  .si-toolbar .sch{width:100%}
+  .si-grid{grid-template-columns:1fr}
+  #siDetailModal .mod-pn{max-width:100%;border-radius:0;max-height:100vh}
+  .si-detail-scroll{max-height:calc(100vh - 120px)}
+  .si-detail-hero{padding:var(--_sp-4) var(--_sp-4)}
+  .si-detail-body{padding:var(--_sp-3) var(--_sp-4)}
+  .si-detail-foot{padding:var(--_sp-2) var(--_sp-4)}
+}
 
 /* ===== MAJOR BROWSER ===== */
 .major-layout{display:grid;grid-template-columns:280px 1fr;gap:var(--_sp-4);margin-top:var(--_sp-3);transition:grid-template-columns .3s ease}
@@ -1408,8 +1494,17 @@ html[data-theme="dark"] .toast,
     </div><!-- /schoolOverviewPanel -->
     <!-- 院校介绍面板 -->
     <div id="schoolIntrosPanel" style="display:none">
-      <div class="si-search-bar">
-        <input type="text" id="siSearch" placeholder="🔍 搜索院校名称...">
+      <div class="si-toolbar">
+        <div class="sch" style="margin-bottom:0;flex:1">
+          <input type="text" id="siSearch" placeholder="🔍 搜索院校名称或城市...">
+          <button class="btn btn-gh btn-sm" id="siSearchClear" style="display:none;flex-shrink:0">✕</button>
+        </div>
+      </div>
+      <div id="siSearchCount" style="font-size:.78rem;color:var(--color-text-tertiary);margin-bottom:var(--_sp-3)"></div>
+      <div class="fil" id="siTypeFilters">
+        <button class="on" data-type="all">全部</button>
+        <button data-type="meiyuan">🎨 九大美院</button>
+        <button data-type="art">🏛️ 艺术学院</button>
       </div>
       <div class="si-grid" id="siGrid"></div>
     </div>
@@ -1571,7 +1666,20 @@ html[data-theme="dark"] .toast,
     <script src="js/school-info.js?v=2" defer></script>
     <script src="js/data.js?v=3" defer></script>
     <script src="js/core.js?v=3" defer></script>
-    <script src="js/school-intros.js" defer></script>
+    <!-- 院校详情弹窗 -->
+<div class="mod hidden" id="siDetailModal">
+  <div class="mod-pn">
+    <div class="mhdr">
+      <h2 id="siDetailTitle">🏫 院校详情</h2>
+      <button class="btn btn-gh btn-sm" onclick="document.getElementById('siDetailModal').classList.add('hidden')">✕ 关闭</button>
+    </div>
+    <div class="si-detail-scroll" id="siDetailContent"></div>
+    <div class="si-detail-foot">
+      <button class="btn btn-gh btn-sm" onclick="document.getElementById('siDetailModal').classList.add('hidden')">关闭</button>
+    </div>
+  </div>
+</div>
+<script src="js/school-intros.js" defer></script>
     <script src="js/app.js?v=19" defer></script>
     <script src="js/auth.js?v=13" defer></script>
 </body>

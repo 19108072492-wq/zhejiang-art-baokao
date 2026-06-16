@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>艺考志愿单</title><style>${printCss}</style></head><body><h1>🎓 非凡教育 · 浙江艺考志愿填报参考单</h1><p class="sub">${new Date().toLocaleString('zh-CN')} | 科学匹配 · 精准冲稳保</p>${formHtml}</body><script>setTimeout(function(){window.print();setTimeout(window.close,500);},300)<\/script></html>`);
     w.document.close();
   });
-  ['lockModal','adminModal','formModal','cmpModal','majorDetailModal'].forEach(id=>document.getElementById(id).addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden');}));
+  ['lockModal','adminModal','formModal','cmpModal','majorDetailModal','siDetailModal'].forEach(id=>document.getElementById(id).addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden');}));
   document.querySelectorAll('#filters button').forEach(b=>b.addEventListener('click',()=>{
     document.querySelectorAll('#filters button').forEach(x=>x.classList.remove('on'));
     b.classList.add('on');curTier=b.dataset.t;renderCards();
@@ -1435,92 +1435,254 @@ function initSchoolSubTabs(){
     var ip=document.getElementById('schoolIntrosPanel');
     if(ov)ov.style.display=st==='overview'?'':'none';
     if(ip)ip.style.display=st==='intros'?'':'none';
-    if(st==='intros')renderSchoolIntros();
+    if(st==='intros'){initSiEvents();renderSchoolIntros();}
   };
 }
 
-// 渲染院校介绍页面
-function renderSchoolIntros(filter){
-  var data=window.SCHOOL_INTROS||[];
-  var grid=document.getElementById('siGrid');
+// ===== 院校介绍：分类 =====
+function classifySchoolType(name, intro){
+  var n=name||''; var t=intro||'';
+  // 九大美院
+  if(/中央美术|中国美术|四川美术|天津美术|西安美术|鲁迅美术|湖北美术|广州美术|清华.*美术/.test(n))return'meiyuan';
+  // 艺术学院（含独立艺术院校）
+  if(/美术|艺术|音乐|舞蹈|戏剧|戏曲|电影|传媒|陶瓷|印刷|服装|工艺|设计/.test(n)||/30所独立|18所参照/.test(t))return'art';
+  // 综合大学
+  return'general';
+}
+
+// ===== 院校介绍：搜索高亮 =====
+function highlightSiText(text, query){
+  if(!query||!text)return esc(text||'');
+  var escaped=esc(text);
+  var q=query.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  var re=new RegExp('('+q+')','gi');
+  return escaped.replace(re,'<mark class="si-highlight">$1</mark>');
+}
+
+// ===== 院校介绍：构建关键信息 chips =====
+function buildSiChips(s, info){
+  var chips=[];
+  // 院校属性
+  if(info){
+    if(info.is985)chips.push({i:'🏛️',t:'985'});
+    if(info.is211&&!info.is985)chips.push({i:'🏛️',t:'211'});
+    if(info.isDoubleFirst)chips.push({i:'🌟',t:'双一流'});
+  }
+  // 从 keys 提取结构化信息
+  if(s.keys&&s.keys.length){
+    // 提取学科评估
+    for(var k=0;k<s.keys.length;k++){
+      var key=s.keys[k];
+      var rm=key.match(/学科评估[：:]\s*(.*)/);
+      if(rm){chips.push({i:'📊',t:rm[1]});break;}
+    }
+    // 提取院校属性
+    for(var k=0;k<s.keys.length;k++){
+      var key=s.keys[k];
+      var rm2=key.match(/院校属性[：:]\s*(.*)/);
+      if(rm2){chips.push({i:'🏷️',t:rm2[1].substring(0,30)});break;}
+    }
+    // 提取学校地址
+    for(var k=0;k<s.keys.length;k++){
+      var key=s.keys[k];
+      var rm3=key.match(/学校地址[：:]\s*(.*)/);
+      if(rm3){chips.push({i:'📍',t:rm3[1].substring(0,20)});break;}
+    }
+  }
+  return chips;
+}
+
+// ===== 院校介绍：初始化事件 =====
+var __siType='all';
+function initSiEvents(){
+  // 搜索
   var searchEl=document.getElementById('siSearch');
-  if(!grid)return;
-  // 初始化搜索
   if(searchEl&&!searchEl.dataset.init){
     searchEl.dataset.init='1';
-    searchEl.oninput=function(){renderSchoolIntros(this.value.trim().toLowerCase());};
+    searchEl.oninput=function(){
+      var q=this.value.trim();
+      document.getElementById('siSearchClear').style.display=q?'':'none';
+      renderSchoolIntros();
+    };
   }
-  var kw=filter||(searchEl?searchEl.value.trim().toLowerCase():'');
+  // 清除按钮
+  var clearBtn=document.getElementById('siSearchClear');
+  if(clearBtn&&!clearBtn.dataset.init){
+    clearBtn.dataset.init='1';
+    clearBtn.onclick=function(){
+      var inp=document.getElementById('siSearch');
+      if(inp){inp.value='';inp.focus();}
+      this.style.display='none';
+      renderSchoolIntros();
+    };
+  }
+  // 类型筛选
+  var filterEl=document.getElementById('siTypeFilters');
+  if(filterEl&&!filterEl.dataset.init){
+    filterEl.dataset.init='1';
+    filterEl.onclick=function(e){
+      if(e.target.tagName!=='BUTTON')return;
+      var btns=filterEl.querySelectorAll('button');
+      for(var i=0;i<btns.length;i++){btns[i].classList.toggle('on',btns[i]===e.target);}
+      __siType=e.target.dataset.type||'all';
+      renderSchoolIntros();
+    };
+  }
+}
+
+// ===== 院校介绍：获取筛选后的数据列表 =====
+function getSiFilteredList(){
+  var data=window.SCHOOL_INTROS||[];
+  var searchEl=document.getElementById('siSearch');
+  var kw=(searchEl?searchEl.value.trim().toLowerCase():'');
   var list=data;
-  if(kw)list=list.filter(function(s){return s.name.toLowerCase().includes(kw);});
-  if(!list.length){grid.innerHTML='<p style="text-align:center;color:var(--color-text-tertiary);padding:40px 0">暂无匹配院校</p>';return;}
+  if(__siType&&__siType!=='all'){
+    list=list.filter(function(s){return classifySchoolType(s.name,s.intro)===__siType;});
+  }
+  if(kw){
+    list=list.filter(function(s){
+      if(s.name.toLowerCase().includes(kw))return true;
+      if(s.keys&&s.keys.length){for(var k=0;k<s.keys.length;k++){if(s.keys[k].toLowerCase().includes(kw))return true;}}
+      var city=siExtractCity(s);
+      if(city&&city.toLowerCase().includes(kw))return true;
+      return false;
+    });
+  }
+  return {list:list,kw:kw};
+}
+
+// ===== 院校介绍：提取城市 =====
+function siExtractCity(s){
+  if(!s.keys||!s.keys.length)return'';
+  for(var k=0;k<s.keys.length;k++){
+    var rm=s.keys[k].match(/学校地址[：:]\s*(.*)/);
+    if(rm)return rm[1].substring(0,30);
+  }
+  return'';
+}
+
+// ===== 院校介绍：渲染迷你卡片网格 =====
+function renderSchoolIntros(){
+  var grid=document.getElementById('siGrid');
+  if(!grid)return;
+  initSiEvents();
+  var result=getSiFilteredList();
+  var list=result.list,kw=result.kw;
+
+  // 结果计数
+  var countEl=document.getElementById('siSearchCount');
+  if(countEl){
+    if(kw||__siType!=='all')countEl.textContent='找到 '+list.length+' 所院校';
+    else countEl.textContent='共 '+list.length+' 所院校';
+  }
+
+  if(!list.length){
+    grid.innerHTML='<div style="text-align:center;padding:48px 0;color:var(--color-text-tertiary);grid-column:1/-1"><div style="font-size:2.5rem;margin-bottom:12px">📭</div><p style="font-size:.85rem">'+((kw||__siType!=='all')?'暂无匹配院校，试试其他关键词或筛选条件':'暂无院校数据')+'</p></div>';
+    return;
+  }
+
   var html='';
   for(var i=0;i<list.length;i++){
     var s=list[i];
-    // 匹配系统中的院校标签
     var info=window.getSchoolInfo?window.getSchoolInfo(s.name):null;
+    // 标签（仅展示 985/211/双一流 + 美院/艺术院校，小卡片精简）
     var tags=[];
     if(info){
       if(info.is985)tags.push('<span class="tag tag-985">985</span>');
       if(info.is211&&!info.is985)tags.push('<span class="tag tag-211">211</span>');
       if(info.isDoubleFirst)tags.push('<span class="tag tag-df">双一流</span>');
     }
-    // 简介截断
+    var stype=classifySchoolType(s.name,s.intro);
+    if(stype==='meiyuan')tags.push('<span class="tag tag-df" style="background:#fef3c7;color:#92400e">🎨 美院</span>');
+    else if(stype==='art')tags.push('<span class="tag tag-df" style="background:#e0f2fe;color:#0369a1">🏛️ 艺术院校</span>');
+
+    // 城市
+    var city=siExtractCity(s);
+
+    // 简介截断（不超过2行）
     var introText=s.intro||'';
-    var isLong=introText.length>200;
-    var shortIntro=isLong?introText.substring(0,200)+'...':introText;
-    // 宿舍
-    var dormHtml='';
-    if(s.dorm){
-      dormHtml='<div class="si-section"><div class="si-section-title">🏠 宿舍条件</div><div class="si-dorm">'+esc(s.dorm)+'</div></div>';
-    }
-    // 关键信息
-    var keysHtml='';
-    if(s.keys&&s.keys.length){
-      keysHtml='<div class="si-section"><div class="si-section-title">📋 关键信息</div><ul class="si-keys">';
-      for(var k=0;k<s.keys.length;k++){
-        keysHtml+='<li>'+esc(s.keys[k])+'</li>';
-      }
-      keysHtml+='</ul></div>';
-    }
-    html+='<div class="si-card">';
-    html+='<div class="si-hero"><span class="si-name">'+esc(s.name)+'</span>'+(tags.length?' <span class="si-tags">'+tags.join(' ')+'</span>':'')+'</div>';
-    html+='<div class="si-body">';
-    html+='<div class="si-section"><div class="si-section-title">📖 院校简介</div>';
-    html+='<div class="si-intro collapsed" id="siIntro'+i+'">'+esc(shortIntro)+'</div>';
-    if(isLong)html+='<span class="si-expand-btn" onclick="toggleSiIntro('+i+',this)">展开全文 ▼</span>';
+    var previewIntro=introText.replace(/\n/g,' ').substring(0,120)+(introText.length>120?'...':'');
+
+    html+='<div class="si-mini-card" onclick="openSiDetail('+i+')">';
+    // 校名
+    html+='<div class="si-mini-name">'+highlightSiText(s.name,kw)+'</div>';
+    // 标签
+    if(tags.length)html+='<div class="si-mini-tags">'+tags.join('')+'</div>';
+    // 城市
+    if(city)html+='<div class="si-mini-meta">📍 '+esc(city)+'</div>';
+    // 简介预览
+    html+='<div class="si-mini-intro">'+esc(previewIntro)+'</div>';
+    // 点击提示
+    html+='<div class="si-mini-hint">👆 点击查看详情</div>';
     html+='</div>';
-    html+=dormHtml;
-    html+=keysHtml;
-    // 官网链接
-    if(info&&info.web){
-      html+='<a class="si-weblink" href="'+escAttr(info.web)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;font-size:.78rem;color:var(--color-accent);font-weight:600;padding:6px 14px;border:1px solid var(--color-accent);border-radius:var(--_radius-sm);text-decoration:none;margin-top:8px;transition:all var(--_dur-fast)">🌐 访问官网 →</a>';
-    }
-    html+='</div></div>';
   }
   grid.innerHTML=html;
 }
 
-function toggleSiIntro(id,btn){
-  var el=document.getElementById('siIntro'+id);
-  if(!el)return;
-  if(el.classList.contains('collapsed')){
-    // 展开全文
-    var data=window.SCHOOL_INTROS||[];
-    var s=data.filter(function(x){return true;}); // need index
-    // 重新找到完整文本
-    var kw=document.getElementById('siSearch')?document.getElementById('siSearch').value.trim().toLowerCase():'';
-    var list=window.SCHOOL_INTROS||[];
-    if(kw)list=list.filter(function(x){return x.name.toLowerCase().includes(kw);});
-    if(list[id]){
-      el.textContent=list[id].intro;
-      el.classList.remove('collapsed');
-      btn.textContent='收起 ▲';
-    }
-  }else{
-    el.classList.add('collapsed');
-    btn.textContent='展开全文 ▼';
+// ===== 院校介绍：打开详情弹窗 =====
+function openSiDetail(idx){
+  var result=getSiFilteredList();
+  var list=result.list,kw=result.kw;
+  if(idx<0||idx>=list.length)return;
+  var s=list[idx];
+  var info=window.getSchoolInfo?window.getSchoolInfo(s.name):null;
+  var stype=classifySchoolType(s.name,s.intro);
+
+  // 标签
+  var tags=[];
+  if(info){
+    if(info.is985)tags.push('<span class="tag tag-985">985</span>');
+    if(info.is211&&!info.is985)tags.push('<span class="tag tag-211">211</span>');
+    if(info.isDoubleFirst)tags.push('<span class="tag tag-df">双一流</span>');
   }
+  if(stype==='meiyuan')tags.push('<span class="tag tag-df" style="background:#fef3c7;color:#92400e">🎨 美院</span>');
+  else if(stype==='art')tags.push('<span class="tag tag-df" style="background:#e0f2fe;color:#0369a1">🏛️ 艺术院校</span>');
+
+  var city=siExtractCity(s);
+
+  // Title
+  document.getElementById('siDetailTitle').innerHTML='🏫 '+highlightSiText(s.name,kw);
+
+  // Chips
+  var chips=buildSiChips(s,info);
+  var chipsHtml='';
+  if(chips.length){
+    chipsHtml='<div class="si-detail-section"><div class="si-detail-section-title">📋 关键信息</div><div class="si-detail-chips">';
+    for(var ci=0;ci<chips.length;ci++){
+      chipsHtml+='<span class="si-detail-chip"><span class="si-chip-icon">'+chips[ci].i+'</span> '+esc(chips[ci].t)+'</span>';
+    }
+    chipsHtml+='</div></div>';
+  }
+
+  // Intro
+  var introText=s.intro||'';
+
+  // Dorm
+  var dormHtml='';
+  if(s.dorm){
+    dormHtml='<div class="si-detail-section"><div class="si-detail-section-title">🏠 宿舍条件</div><div class="si-detail-dorm">'+esc(s.dorm)+'</div></div>';
+  }
+
+  // Web link
+  var webHtml='';
+  if(info&&info.web){
+    webHtml='<div class="si-detail-section"><a class="si-detail-weblink" href="'+escAttr(info.web)+'" target="_blank" rel="noopener">🌐 访问官网</a></div>';
+  }
+
+  var content=document.getElementById('siDetailContent');
+  content.innerHTML=
+    '<div class="si-detail-hero">'+
+      '<div class="si-detail-name">'+highlightSiText(s.name,kw)+'</div>'+
+      (city?'<div class="si-detail-meta">📍 '+esc(city)+'</div>':'')+
+      (tags.length?'<div class="si-detail-tags">'+tags.join('')+'</div>':'')+
+    '</div>'+
+    '<div class="si-detail-body">'+
+      '<div class="si-detail-section"><div class="si-detail-section-title">📖 院校简介</div><div class="si-detail-intro">'+esc(introText)+'</div></div>'+
+      chipsHtml+
+      dormHtml+
+      webHtml+
+    '</div>';
+  document.getElementById('siDetailModal').classList.remove('hidden');
 }
 
 function renderSchoolBrowser(catKey){
