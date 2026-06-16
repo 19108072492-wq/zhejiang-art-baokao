@@ -239,7 +239,7 @@ function calc(){
   }
   var filterInfo='';
   if(subLabel)filterInfo='<div style="font-size:.75rem;color:var(--color-text-secondary);margin-top:4px">筛选条件：'+subLabel+' | 共 '+filteredPool.length+' 条数据</div>';
-  sb.innerHTML=`<div class="sbox"><span class="lbl">你的综合分${subLabel}</span><span class="val">${res.score.toFixed(2)}</span><span class="frm">${res.text}</span></div>${filterInfo}<div class="snote ${canB?'ok':'warn'}">${canB?`✅ 文化分 ${c} ≥ ${minC}，已展示本科及专科结果`:`⚠️ 文化分 ${c} < ${minC}，仅展示专科及低分段结果`}</div>`;
+  sb.innerHTML=`<div class="sbox"><span class="lbl">你的综合分${subLabel}</span><span class="val">${res.score.toFixed(2)}</span><span class="frm">${res.text}</span></div>${filterInfo}`;
 
   // 算法说明面板（完整版才展示）
   var algoCardEl=document.getElementById('algoCard');
