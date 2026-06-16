@@ -413,32 +413,6 @@ function renderCards(){
     if(r.rankLevel){const rl=String(r.rankLevel);const lv=rl.includes('A+')?'🥇':rl.includes('A')?'🥈':rl.includes('B+')?'🥉':'';tags.push(`<span class="tag tag-985" style="background:#f0fdf4;color:#166534">${lv} ${esc(rl)}</span>`);}
     // 艺术院校标签
     if(isArtAcademy(r))tags.push('<span class="tag tag-df" style="background:#fef3c7;color:#92400e">🎨艺术</span>');
-    // 评分详情条
-    let scoreDetailHTML='';
-    if(r.scoreDetail){
-      const sd=r.scoreDetail;
-      const dims=[
-        {k:'proximity',icon:'🎯',color:'var(--g)'},
-        {k:'tier',icon:'🏛️',color:'#3b82f6'},
-        {k:'rank',icon:'📊',color:'#8b5cf6'},
-        {k:'major',icon:'🎨',color:'#f97316'},
-        {k:'cultivate',icon:'🔧',color:'#14b8a6'},
-        {k:'degree',icon:'🎓',color:'#3b82f6'},
-        {k:'confidence',icon:'📋',color:'#06b6d4'},
-        {k:'local',icon:'📍',color:'#f59e0b'},
-        {k:'tuition',icon:'💰',color:'#10b981'},
-        {k:'plan',icon:'📋',color:'#ef4444'},
-        {k:'rankMatch',icon:'🏅',color:'#ec4899'},
-        {k:'cityLevel',icon:'🏙️',color:'#6366f1'},
-        {k:'planTrend',icon:'📈',color:'#84cc16'},
-      ];
-      const dimHtmls=dims.map(d=>{
-        const v=sd[d.k];const sc=v.score||0;
-        const lbl=v.label||'';const shortLbl=lbl.length>4?lbl.slice(0,3):lbl;
-        return`<div class="sb-row"><span class="sbl" title="${v.label}(${v.weight}%)">${d.icon}${shortLbl}</span><div class="sbb"><div class="sbf" style="width:${Math.min(sc,100)}%;background:${d.color}"></div></div><span class="sbv">${sc}</span></div>`;
-      });
-      scoreDetailHTML=`<div class="score-breakdown"><div class="sb-title">📊 推荐评分 <span style="font-weight:400;color:var(--g);font-size:.8rem">${r.recScore||0}分</span></div>${dimHtmls.join('')}</div>`;
-    }
     // 子门类标签
     var subCatTag='';
     if(r.subCategory){
