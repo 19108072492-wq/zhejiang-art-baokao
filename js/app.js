@@ -3479,16 +3479,16 @@ function buildScoreComparison(userScore,userCulture,userArt,catKey,avgScore,minS
   // 按差距分层：>50分特大差距 / 20-50一般差距 / <20小差距 / 已超过
   if(needDiff>50){
     diffLevel='hard';
-    needText='目标文化课 <strong style="color:var(--_red-500);font-size:.85rem">'+needCulture.toFixed(0)+'</strong> 分（还需提升 <strong style="color:var(--_red-500)">'+needDiff.toFixed(0)+'</strong> 分，差距较大，需要加倍努力！）';
+    needText='目标文化课 <strong style="color:var(--_red-500);font-size:.85rem">'+needCulture.toFixed(0)+'</strong> 分（还需提升 <strong style="color:var(--_red-500)">'+needDiff.toFixed(0)+'</strong> 分，差距较大，必须全力冲刺文化课！）';
   }else if(needDiff>20){
     diffLevel='medium';
-    needText='目标文化课 <strong style="color:var(--_orange-500);font-size:.85rem">'+needCulture.toFixed(0)+'</strong> 分（还需提升 <strong style="color:var(--_orange-500)">'+needDiff.toFixed(0)+'</strong> 分，努努力，很有希望！）';
+    needText='目标文化课 <strong style="color:var(--_orange-500);font-size:.85rem">'+needCulture.toFixed(0)+'</strong> 分（还需提升 <strong style="color:var(--_orange-500)">'+needDiff.toFixed(0)+'</strong> 分，集中突破文化课，很有希望！）';
   }else if(needDiff>0){
     diffLevel='easy';
-    needText='目标文化课 <strong style="color:var(--_yellow-600);font-size:.85rem">'+needCulture.toFixed(0)+'</strong> 分（仅差 <strong style="color:var(--_yellow-600)">'+needDiff.toFixed(0)+'</strong> 分，稍微努力即可达成！）';
+    needText='目标文化课 <strong style="color:var(--_yellow-600);font-size:.85rem">'+needCulture.toFixed(0)+'</strong> 分（仅差 <strong style="color:var(--_yellow-600)">'+needDiff.toFixed(0)+'</strong> 分，文化课再加把劲！）';
   }else if(needDiff<=0){
     diffLevel='pass';
-    needText='当前文化课已<strong style="color:var(--_green-500)">超出 '+Math.abs(needDiff).toFixed(0)+' 分</strong>，建议稳固成绩，保持优势！';
+    needText='当前文化课已<strong style="color:var(--_green-500)">超出 '+Math.abs(needDiff).toFixed(0)+' 分</strong>，保持文化课优势，稳中求进！';
   }
 
   var levelBg=diffLevel==='hard'?'var(--_red-50)':diffLevel==='medium'?'var(--_orange-50)':diffLevel==='easy'?'var(--_yellow-50)':'var(--_green-50)';
