@@ -19,7 +19,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('btnLockCancel').addEventListener('click',()=>document.getElementById('lockModal').classList.add('hidden'));
   document.getElementById('btnAdminClose').addEventListener('click',()=>document.getElementById('adminModal').classList.add('hidden'));
   document.getElementById('btnClearAll').addEventListener('click',()=>{if(confirm('确定清空全部数据？')){CATS.forEach(c=>clearData(c.k));renderAdmin();toast('已清空');}});
-  document.getElementById('btnExport').addEventListener('click',exportExcel);
   document.getElementById('btnAddNew').addEventListener('click',addNewRecord);
   document.getElementById('btnSaveEdit').addEventListener('click',()=>{
     if(__editingIdx===-1)saveNewRecord();else saveEditedRecord();
@@ -459,13 +458,12 @@ function updateFloat(){
   var fab=document.getElementById('fabContainer');
   var badge=document.getElementById('fabBadge');
   var btnForm=document.getElementById('fabForm');var btnCmp=document.getElementById('fabCmp');
-  var btnExport=document.getElementById('fabExport');var btnClear=document.getElementById('fabClear');
+  var btnClear2=document.getElementById('fabClear');
   badge.textContent=n;
   badge.classList.toggle('hidden',n===0);
   if(btnForm){btnForm.disabled=n===0;btnForm.style.opacity=n===0?'.4':'1';}
   if(btnCmp){btnCmp.disabled=n<2;btnCmp.style.opacity=n<2?'.4':'1';}
-  if(btnExport){btnExport.disabled=n===0;btnExport.style.opacity=n===0?'.4':'1';}
-  if(btnClear){btnClear.disabled=n===0;btnClear.style.opacity=n===0?'.4':'1';}
+  if(btnClear2){btnClear2.disabled=n===0;btnClear2.style.opacity=n===0?'.4':'1';}
   // 配置 fab 菜单项颜色为独立的样式，通过 disabled class 控制
   if(fab){} // keep fab container state
 }
@@ -487,12 +485,11 @@ function updateFloat(){
     // 菜单项点击后关闭
     var fabForm=document.getElementById('fabForm');
     var fabCmp=document.getElementById('fabCmp');
-    var fabExport=document.getElementById('fabExport');
+    var fabExport=null; // 已移除导出Excel功能
     var fabClear=document.getElementById('fabClear');
     function closeFab(){isOpen=false;main.classList.remove('open');menu.classList.remove('on');}
     if(fabForm)fabForm.addEventListener('click',function(){closeFab();if(sel.size>0)openForm();else toast('请先勾选学校',1);});
     if(fabCmp)fabCmp.addEventListener('click',function(){closeFab();if(sel.size>=2)openCmp();else toast('至少选2所学校',1);});
-    if(fabExport)fabExport.addEventListener('click',function(){closeFab();if(sel.size>0)exportExcel();else toast('请先勾选学校',1);});
     if(fabClear)fabClear.addEventListener('click',function(){closeFab();sel.clear();updateFloat();__schoolSel.clear();renderSchoolBrowser();renderCards();toast('已清空');});
     // 点击空白处关闭菜单
     document.addEventListener('click',function(e){

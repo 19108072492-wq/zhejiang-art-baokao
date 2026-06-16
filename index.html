@@ -1306,13 +1306,12 @@ html[data-theme="dark"] .toast,
     <div class="slist" id="list"></div>
   </div>
   <div class="data-source-card hidden" id="dataSourceCard"><h4>📖 数据与算法说明</h4><p>📊 <strong>综合分公式</strong>：依据浙江省教育考试院规定——<br>美术/音乐/舞蹈/表（导）演/书法类：文化总分×50% + 统考成绩×2.5×50%<br>播音与主持类：文化总分×80% + 统考成绩×2.5×20%</p><p style="margin-top:4px">🏫 <strong>院校数据</strong>：来自浙江省教育考试院历年艺术类录取数据，含综合分、位次、学费、计划数等关键信息。</p><p style="margin-top:4px">🎯 <strong>推荐算法</strong>：采用分差接近度、院校层次、数据可信度、省内优先、学费合理度五维度加权评分，科学平衡"能上"与"上好"。</p><p style="margin-top:4px">⚠️ <strong>免责声明</strong>：本工具仅供参考，不构成报考建议。最终填报请以 <a href="https://www.zjzs.net" target="_blank" rel="noopener">浙江省教育考试院 (zjzs.net)</a> 官方信息为准。预估分院校需谨慎填报。</p></div>
-  <div class="flt" id="floatBar"><span class="cnt">已选 <strong id="floatCnt">0</strong> 所学校</span><div style="display:flex;gap:8px"><button class="btn btn-g btn-sm" id="btnForm" disabled>📋 生成志愿单</button><button class="btn btn-o btn-sm" id="btnCmp" disabled>🔍 对比(<span id="cmpCnt">0</span>/4)</button><button class="btn btn-o btn-sm" id="btnExport">📥 导出Excel</button><button class="btn btn-gh btn-sm" id="btnClr">清空</button></div></div>
+  <div class="flt" id="floatBar"><span class="cnt">已选 <strong id="floatCnt">0</strong> 所学校</span><div style="display:flex;gap:8px"><button class="btn btn-g btn-sm" id="btnForm" disabled>📋 生成志愿单</button><button class="btn btn-o btn-sm" id="btnCmp" disabled>🔍 对比(<span id="cmpCnt">0</span>/4)</button><button class="btn btn-gh btn-sm" id="btnClr">清空</button></div></div>
   <!-- 悬浮快捷操作按钮 -->
   <div class="fab-container hidden" id="fabContainer">
     <div class="fab-menu" id="fabMenu">
       <div class="fab-menu-item"><span class="label">📋 生成志愿单</span><button class="btn-fab" id="fabForm" style="background:var(--color-accent);color:#fff">📋</button></div>
       <div class="fab-menu-item"><span class="label">🔍 院校对比</span><button class="btn-fab" id="fabCmp" style="background:var(--_orange-500);color:#fff">🔍</button></div>
-      <div class="fab-menu-item"><span class="label">📥 导出Excel</span><button class="btn-fab" id="fabExport" style="background:var(--_green-500);color:#fff">📥</button></div>
       <div class="fab-menu-item"><span class="label">🗑 清空选择</span><button class="btn-fab" id="fabClear" style="background:var(--_neutral-500);color:#fff">✕</button></div>
     </div>
     <button class="fab-main" id="fabMain" title="快捷操作">
