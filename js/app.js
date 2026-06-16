@@ -833,34 +833,35 @@ document.addEventListener('DOMContentLoaded',function(){
     var el=document.getElementById(id);if(el)el.addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('btnSciCalc').click();});
   });
 
-  // 专业浏览：内嵌算分器（门类跟随左侧 __majorCat）
-  var btnMci=document.getElementById('btnMciCalc');
+  // 专业浏览：内嵌算分器（委托绑定，动态 DOM 兼容）
   function doMajorCalc(){
     var culture=parseFloat(document.getElementById('mciCulture').value);
     var art=parseFloat(document.getElementById('mciArt').value);
     var resultEl=document.getElementById('mciResult');
     if(isNaN(culture)||isNaN(art)){if(resultEl){resultEl.style.display='';resultEl.innerHTML='<span style="color:var(--_red-500);font-size:.76rem">请填写完整信息</span>';}return;}
-    // 门类来自左侧 Tab 选择
     var cat=__majorCat||'finearts';
     var catKey=cat==='calligraphy'?'finearts':cat;
     var res=calcScore(culture,art,catKey);
     window.__lastUserScore=res.score;window.__lastUserCulture=culture;window.__lastUserArt=art;window.__lastUserCatKey=catKey;
 
-    // 显示综合分
     if(resultEl){resultEl.style.display='';resultEl.innerHTML='<span class="sci-score">'+res.score.toFixed(2)+'</span><span class="sci-formula">'+res.text+'</span>';}
 
-    // 填入综合分并触发一键填报
     setTimeout(function(){
       if(typeof recommendMajorSchools==='function')recommendMajorSchools(res.score);
     },200);
   }
-  if(btnMci&&!btnMci.dataset.init){
-    btnMci.dataset.init='1';
-    btnMci.addEventListener('click',doMajorCalc);
+  // 事件委托：监听整个 document，避免 DOM 重建后事件丢失
+  if(!window.__majorCalcBound){
+    window.__majorCalcBound=true;
+    document.addEventListener('click',function(e){
+      if(e.target&&e.target.id==='btnMciCalc'){doMajorCalc();}
+    });
+    document.addEventListener('keydown',function(e){
+      if(e.key==='Enter'&&(e.target.id==='mciCulture'||e.target.id==='mciArt')){
+        doMajorCalc();
+      }
+    });
   }
-  ['mciCulture','mciArt'].forEach(function(id){
-    var el=document.getElementById(id);if(el)el.addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('btnMciCalc').click();});
-  });
 });
 
 function openCmp(){
