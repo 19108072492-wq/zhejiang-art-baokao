@@ -1741,8 +1741,8 @@ function openSiDetail(idx){
 
 function renderSchoolBrowser(catKey){
   if(catKey!==undefined)__schoolCat=catKey;
-  // 切换门类时重置子门类
-  if(catKey!==undefined)__schoolSubCat='all';
+  // 切换门类时重置子门类 + 清除勾选状态
+  if(catKey!==undefined){__schoolSubCat='all';__schoolSel.clear();}
   var all=getAllRecords();
   if(__schoolCat!=='all')all=all.filter(function(r){return r.catKey===__schoolCat;});
   // 子门类筛选
