@@ -1798,54 +1798,117 @@ function renderMajorBrowser(catKey){
     for(var i=0;i<ranked.length;i++){
       if(!seen[ranked[i].schoolName]){seen[ranked[i].schoolName]=true;dedup.push(ranked[i]);}
     }
-    // 一键填报：按冲稳保排序，同梯度内按综合分降序
-    var tierOrd={reach:0,match:1,safety:2,out:3};
-    if(__majorTierMap){
-      dedup.sort(function(a,b){
-        var ta=tierOrd[__majorTierMap[(a.schoolCode||'')+'|'+(a.majorCode||'')]]||99;
-        var tb=tierOrd[__majorTierMap[(b.schoolCode||'')+'|'+(b.majorCode||'')]]||99;
-        if(ta!==tb)return ta-tb;
-        return (b.compositeScore||0)-(a.compositeScore||0);
-      });
-    }
     // 未授权用户只看前5所
     if(!isPaidUser()&&dedup.length>5){dedup=dedup.slice(0,5);}
-    var lastTierLabel='';
-    for(var i=0;i<dedup.length;i++){
-      var r=dedup[i];
-      var tags=[];
-      // 冲稳保标签 + 分组标题
-      var recKey=(r.schoolCode||'')+'|'+(r.majorCode||'');
-      var curTierLabel='';
-      if(__majorTierMap&&__majorTierMap[recKey]){
-        var tierTag=__majorTierMap[recKey];
-        curTierLabel=tierTag;
-        var tierLabel=tierTag==='reach'?'🔴 冲刺':tierTag==='match'?'🟡 稳妥':tierTag==='safety'?'🟢 保底':'';
-        if(tierLabel)tags.push('<span class="tag tag-tier tag-tier-'+tierTag+'">'+tierLabel+'</span>');
-        // 插入分组标题
-        if(curTierLabel!==lastTierLabel){
-          var tierCount=dedup.filter(function(x){return __majorTierMap[(x.schoolCode||'')+'|'+(x.majorCode||'')]===curTierLabel;}).length;
-          var tierTitle=curTierLabel==='reach'?'🔴 冲刺志愿':curTierLabel==='match'?'🟡 稳妥志愿':curTierLabel==='safety'?'🟢 保底志愿':'其他';
-          rightHtml+='<div class="mr-tier-header">'+tierTitle+'<span class="mr-tier-count">'+tierCount+' 所</span></div>';
-          lastTierLabel=curTierLabel;
-        }
+
+    // ===== 一键填报后：三列冲稳保视图 =====
+    if(__majorTierMap && isPaidUser()){
+      // 按梯度分组
+      var tierGroups={reach:[],match:[],safety:[]};
+      for(var i=0;i<dedup.length;i++){
+        var r=dedup[i];
+        var rk=(r.schoolCode||'')+'|'+(r.majorCode||'');
+        var t=__majorTierMap[rk]||'out';
+        if(tierGroups[t])tierGroups[t].push(r);
       }
-      if(r.is985)tags.push('<span class="tag tag-985">985</span>');
-      if(r.is211)tags.push('<span class="tag tag-211">211</span>');
-      if(r.isDoubleFirst)tags.push('<span class="tag tag-df">双一流</span>');
-      if(r.isPrivate)tags.push('<span class="tag tag-pv">民办</span>');
-      var recChecked=sel.has(recKey);
-      rightHtml+='<div class="mr-school'+(__majorTierMap&&__majorTierMap[recKey]?' mr-school-tier-'+__majorTierMap[recKey]:'')+'"><div class="mr-cb" data-act="majSel" data-key="'+escAttr(recKey)+'"><div class="cb-box'+(recChecked?' on':'')+'">'+(recChecked?'✓':'')+'</div></div><span class="mr-rank">'+(i+1)+'</span><div class="mr-info"><div class="mr-sname">'+esc(r.schoolName)+' '+tags.join(' ')+'</div><div class="mr-smeta">📍 '+esc(r.city||'--')+' | 💰 '+(typeof r.tuition=='number'?r.tuition.toLocaleString():r.tuition||'--')+'/年'+(r.plan25?' | 📋 '+r.plan25+'人':'')+(r.rankPosition?' | 🏅 位次 '+r.rankPosition:'')+'</div></div><span class="mr-score">'+r.compositeScore+'</span></div>';
+      // 同梯度内按综合分降序
+      ['reach','match','safety'].forEach(function(t){
+        tierGroups[t].sort(function(a,b){return (b.compositeScore||0)-(a.compositeScore||0);});
+      });
+      // 计算用户输入分数（从输入框里读，若没有用0）
+      var inputScore=parseFloat((document.getElementById('majorRecScore')||{}).value)||0;
+      function buildTierColCards(list,tier){
+        if(!list.length)return '<div class="mr-tier-col-empty">暂无院校</div>';
+        var h='';
+        for(var i=0;i<list.length;i++){
+          var r=list[i];
+          var rk=(r.schoolCode||'')+'|'+(r.majorCode||'');
+          var isChecked=sel.has(rk);
+          var diffVal=inputScore>0?inputScore-r.compositeScore:null;
+          var diffHtml='';
+          if(diffVal!==null){
+            if(diffVal>=0) diffHtml='<span class="mr-tier-card-diff-up">↑ 高 '+Math.abs(diffVal).toFixed(1)+' 分</span>';
+            else diffHtml='<span class="mr-tier-card-diff-dn">↓ 低 '+Math.abs(diffVal).toFixed(1)+' 分</span>';
+          }
+          var tagHtml='';
+          if(r.is985)tagHtml+='<span class="tag tag-985">985</span>';
+          if(r.is211&&!r.is985)tagHtml+='<span class="tag tag-211">211</span>';
+          h+='<div class="mr-tier-card'+(isChecked?' sel':'')+'" data-act="majSel" data-key="'+escAttr(rk)+'">';
+          h+='<div class="mr-tier-card-row1">';
+          h+='<div class="mr-tier-card-name">'+esc(r.schoolName)+(tagHtml?' '+tagHtml:'')+'</div>';
+          h+='<div class="mr-tier-card-score">'+r.compositeScore+'</div>';
+          h+='</div>';
+          h+='<div class="mr-tier-card-row2">';
+          h+='<span>📍 '+esc(r.city||'--')+'</span>';
+          if(diffHtml)h+=diffHtml;
+          if(r.plan25)h+='<span>📋 '+r.plan25+'人</span>';
+          h+='</div>';
+          h+='</div>';
+        }
+        return h;
+      }
+      rightHtml+='</div>'; // 关闭 mr-schools（空）
+      rightHtml+='<div class="mr-tier-cols">';
+      var tierCfg=[
+        {key:'reach',cls:'col-reach',label:'🔴 冲刺'},
+        {key:'match',cls:'col-match',label:'🟡 稳妥'},
+        {key:'safety',cls:'col-safety',label:'🟢 保底'}
+      ];
+      for(var ti=0;ti<tierCfg.length;ti++){
+        var tc=tierCfg[ti];
+        var tList=tierGroups[tc.key];
+        rightHtml+='<div class="mr-tier-col '+tc.cls+'">';
+        rightHtml+='<div class="mr-tier-col-head"><span class="mr-tier-col-title">'+tc.label+'</span><span class="mr-tier-col-cnt">'+tList.length+' 所</span></div>';
+        rightHtml+='<div class="mr-tier-col-body">'+buildTierColCards(tList,tc.key)+'</div>';
+        rightHtml+='</div>';
+      }
+      rightHtml+='</div>';
+    } else {
+      // ===== 普通列表模式（未填报或体验版） =====
+      // 按冲稳保排序（若有 tierMap）
+      var tierOrd={reach:0,match:1,safety:2,out:3};
+      if(__majorTierMap){
+        dedup.sort(function(a,b){
+          var ta=tierOrd[__majorTierMap[(a.schoolCode||'')+'|'+(a.majorCode||'')]]||99;
+          var tb=tierOrd[__majorTierMap[(b.schoolCode||'')+'|'+(b.majorCode||'')]]||99;
+          if(ta!==tb)return ta-tb;
+          return (b.compositeScore||0)-(a.compositeScore||0);
+        });
+      }
+      var lastTierLabel='';
+      for(var i=0;i<dedup.length;i++){
+        var r=dedup[i];
+        var tags=[];
+        var recKey=(r.schoolCode||'')+'|'+(r.majorCode||'');
+        var curTierLabel='';
+        if(__majorTierMap&&__majorTierMap[recKey]){
+          var tierTag=__majorTierMap[recKey];
+          curTierLabel=tierTag;
+          var tierLabel=tierTag==='reach'?'🔴 冲刺':tierTag==='match'?'🟡 稳妥':tierTag==='safety'?'🟢 保底':'';
+          if(tierLabel)tags.push('<span class="tag tag-tier tag-tier-'+tierTag+'">'+tierLabel+'</span>');
+          if(curTierLabel!==lastTierLabel){
+            var tierCount=dedup.filter(function(x){return __majorTierMap[(x.schoolCode||'')+'|'+(x.majorCode||'')]===curTierLabel;}).length;
+            var tierTitle=curTierLabel==='reach'?'🔴 冲刺志愿':curTierLabel==='match'?'🟡 稳妥志愿':curTierLabel==='safety'?'🟢 保底志愿':'其他';
+            rightHtml+='<div class="mr-tier-header">'+tierTitle+'<span class="mr-tier-count">'+tierCount+' 所</span></div>';
+            lastTierLabel=curTierLabel;
+          }
+        }
+        if(r.is985)tags.push('<span class="tag tag-985">985</span>');
+        if(r.is211)tags.push('<span class="tag tag-211">211</span>');
+        if(r.isDoubleFirst)tags.push('<span class="tag tag-df">双一流</span>');
+        if(r.isPrivate)tags.push('<span class="tag tag-pv">民办</span>');
+        var recChecked=sel.has(recKey);
+        rightHtml+='<div class="mr-school'+(__majorTierMap&&__majorTierMap[recKey]?' mr-school-tier-'+__majorTierMap[recKey]:'')+'"><div class="mr-cb" data-act="majSel" data-key="'+escAttr(recKey)+'"><div class="cb-box'+(recChecked?' on':'')+'">'+(recChecked?'✓':'')+'</div></div><span class="mr-rank">'+(i+1)+'</span><div class="mr-info"><div class="mr-sname">'+esc(r.schoolName)+' '+tags.join(' ')+'</div><div class="mr-smeta">📍 '+esc(r.city||'--')+' | 💰 '+(typeof r.tuition=='number'?r.tuition.toLocaleString():r.tuition||'--')+'/年'+(r.plan25?' | 📋 '+r.plan25+'人':'')+(r.rankPosition?' | 🏅 位次 '+r.rankPosition:'')+'</div></div><span class="mr-score">'+r.compositeScore+'</span></div>';
+      }
+      rightHtml+='</div>'; // 关闭 mr-schools
     }
-    if(dedup.length>50)rightHtml+='<p style="text-align:center;color:var(--color-text-tertiary);padding:10px;font-size:.78rem">仅显示前 50 所（共 '+m.records.length+' 条记录）</p>';
-    rightHtml+='</div>';
     document.getElementById('majorRight').innerHTML=rightHtml;
     // 一键填报栏：未登录时隐藏表单，显示登录提示
     var barEl=document.getElementById('majorRecBar');
     if(barEl)barEl.classList.toggle('hidden',!__isLoggedIn);
     var tipEl=document.getElementById('majorRecLoginTip');
     if(tipEl)tipEl.classList.toggle('hidden',__isLoggedIn);
-    // 复选框事件
+    // 复选框事件（兼容普通列表 .mr-cb 和三列卡片 .mr-tier-card）
     document.getElementById('majorRight').onclick=function(e){
       var cb=e.target.closest('[data-act="majSel"]');
       if(!cb)return;
@@ -1853,7 +1916,7 @@ function renderMajorBrowser(catKey){
       if(sel.has(key)){
         sel.delete(key);
       }else{
-        // 找到该记录
+        // 从 dedup 里找到对应记录
         var found=null;
         for(var i=0;i<dedup.length;i++){
           var dk=(dedup[i].schoolCode||'')+'|'+(dedup[i].majorCode||'');
@@ -1865,13 +1928,21 @@ function renderMajorBrowser(catKey){
         }
       }
       updateFloat();
-      // 重新渲染右侧选中状态
+      // 更新所有匹配该 key 的选中态
       var allCbs=document.querySelectorAll('#majorRight [data-act="majSel"]');
       for(var k=0;k<allCbs.length;k++){
+        var thisKey=allCbs[k].dataset.key;
+        if(thisKey!==key)continue;
+        // 普通列表：内部有 .cb-box
         var box=allCbs[k].querySelector('.cb-box');
         if(box){
-          if(sel.has(allCbs[k].dataset.key)){box.classList.add('on');box.textContent='✓';}
+          if(sel.has(thisKey)){box.classList.add('on');box.textContent='✓';}
           else{box.classList.remove('on');box.textContent='';}
+        }
+        // 三列卡片：自身是 .mr-tier-card
+        if(allCbs[k].classList.contains('mr-tier-card')){
+          if(sel.has(thisKey))allCbs[k].classList.add('sel');
+          else allCbs[k].classList.remove('sel');
         }
       }
     };
