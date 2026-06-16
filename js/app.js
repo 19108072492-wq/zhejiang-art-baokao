@@ -1584,7 +1584,6 @@ function renderSchoolBrowser(catKey){
       '<div class="sch-majors">'+majorsHtml+'</div>'+
       '<div class="sch-scores"><span>综合分区间 <strong>'+s.compositeMin+' ~ '+s.compositeMax+'</strong></span>'+'<span>均值 <strong>'+s.compositeAvg+'</strong></span></div>'+
       infoHtml+
-      '<div class="sch-all-majors hidden" style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--color-border)">'+majorNames.map(function(m){return '<span style="display:block;font-size:.74rem;padding:2px 0">'+esc(m)+'</span>';}).join('')+'</div>'+
     '</div>';
   }
   document.getElementById('schoolList').innerHTML=html;
@@ -1668,8 +1667,6 @@ function toggleSchoolCard(card,event){
     if(cbEl)return;
   }
   card.classList.toggle('exp');
-  var allMajors=card.querySelector('.sch-all-majors');
-  if(allMajors)allMajors.classList.toggle('hidden');
   var infoSec=card.querySelector('.sch-info-section');
   if(infoSec){
     infoSec.classList.toggle('hidden');
