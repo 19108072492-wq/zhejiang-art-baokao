@@ -1326,10 +1326,11 @@ html[data-theme="dark"] .toast,
 <div class="mod hidden" id="registerModal"><div class="mod-sm"><h3>📝 新用户注册</h3><p style="font-size:.78rem;color:var(--t3);margin-bottom:12px">注册后可免费使用分数测算功能</p><input type="tel" id="regPhone" placeholder="请输入11位手机号" autocomplete="tel" style="margin-bottom:8px"><select id="regGrade" style="margin-bottom:8px"><option value="">请选择年级</option><option value="高一">高一</option><option value="高二">高二</option><option value="高三">高三</option><option value="复读">复读</option></select><select id="regDirection" style="margin-bottom:8px"><option value="">请选择专业方向</option><option value="美术与设计">美术与设计</option><option value="音乐">音乐</option><option value="舞蹈">舞蹈</option><option value="播音">播音</option><option value="表导传媒">表导传媒</option><option value="书法">书法</option></select><div style="display:flex;gap:8px;margin-top:4px"><button class="btn btn-g" id="btnRegSubmit">✅ 注册</button><button class="btn btn-gh" id="btnRegCancel">取消</button></div><p style="font-size:.72rem;color:var(--t3);margin-top:10px" id="regHint">已有账号？请返回点击"登录"</p></div></div>
 <div class="mod hidden" id="upgradeModal">
   <div class="mod-box">
-    <div class="up-modal-head">
+    <div class="up-modal-head" style="position:relative">
+      <button onclick="document.getElementById('upgradeModal').classList.add('hidden')" style="position:absolute;top:12px;right:12px;background:rgba(255,255,255,.25);border:none;color:#fff;border-radius:50%;width:28px;height:28px;font-size:.9rem;cursor:pointer;line-height:1">✕</button>
       <span class="up-modal-head-icon">🌟</span>
       <h2>升级完整版，解锁全部功能</h2>
-      <p>联系顾问了解详情</p>
+      <p>如需了解完整版详情，请联系顾问</p>
     </div>
     <div class="up-modal-body">
       <div class="up-compare">
@@ -1353,14 +1354,6 @@ html[data-theme="dark"] .toast,
           <div class="up-feature on"><span class="up-dot">✓</span>推荐评分详情（13维）</div>
           <div class="up-feature on"><span class="up-dot">✓</span>院校对比 / 导出</div>
         </div>
-      </div>
-      <div class="up-contact">
-        <p>如需了解完整版详情，请联系顾问</p>
-        <a href="tel:13912131231" class="up-phone" style="text-decoration:none;display:inline-block;margin-top:4px">📞 139-1213-1231</a>
-      </div>
-      <div class="up-modal-foot">
-        <button class="up-btn-close" onclick="document.getElementById('upgradeModal').classList.add('hidden')">稍后再说</button>
-        <button class="up-btn-upgrade" onclick="window.location.href='tel:13912131231'">📞 立即咨询顾问</button>
       </div>
     </div>
   </div>
