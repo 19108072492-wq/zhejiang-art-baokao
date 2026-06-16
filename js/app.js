@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>艺考志愿单</title><style>${printCss}</style></head><body><h1>🎓 非凡教育 · 浙江艺考志愿填报参考单</h1><p class="sub">${new Date().toLocaleString('zh-CN')} | 科学匹配 · 精准冲稳保</p>${formHtml}</body><script>setTimeout(function(){window.print();setTimeout(window.close,500);},300)<\/script></html>`);
     w.document.close();
   });
-  ['lockModal','adminModal','formModal','cmpModal','majorDetailModal','siDetailModal'].forEach(id=>document.getElementById(id).addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden');}));
+  ['lockModal','adminModal','formModal','cmpModal','majorDetailModal','siDetailModal','msdModal'].forEach(id=>document.getElementById(id).addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden');}));
   document.querySelectorAll('#filters button').forEach(b=>b.addEventListener('click',()=>{
     document.querySelectorAll('#filters button').forEach(x=>x.classList.remove('on'));
     b.classList.add('on');curTier=b.dataset.t;renderCards();
