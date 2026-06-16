@@ -839,8 +839,18 @@ document.addEventListener('DOMContentLoaded',function(){
     var art=parseFloat(document.getElementById('mciArt').value);
     var resultEl=document.getElementById('mciResult');
     if(isNaN(culture)||isNaN(art)){if(resultEl){resultEl.style.display='';resultEl.innerHTML='<span style="color:var(--_red-500);font-size:.76rem">请填写完整信息</span>';}return;}
+    // 选择"全部"门类时,需先选定具体专业,再从专业所属门类推断 catKey
     var cat=__majorCat||'finearts';
     var catKey=cat==='calligraphy'?'finearts':cat;
+    if(cat==='all'){
+      if(!__selectedMajor){
+        if(resultEl){resultEl.style.display='';resultEl.innerHTML='<span style="color:var(--_red-500);font-size:.76rem">请先在左侧选择一个具体专业</span>';}
+        toast('请先在左侧选择一个专业后再填报',1);
+        return;
+      }
+      var keys=Object.keys(__selectedMajor.categories||{});
+      catKey=keys.length?keys[0]:'finearts';
+    }
     var res=calcScore(culture,art,catKey);
     window.__lastUserScore=res.score;window.__lastUserCulture=culture;window.__lastUserArt=art;window.__lastUserCatKey=catKey;
 
