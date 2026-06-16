@@ -2304,18 +2304,6 @@ function showMajorSchoolDetail(schoolName,currentKey,dedup){
     html+='<div class="msd-intro-text">'+esc(info.intro)+'</div>';
     html+='</div>';
   }
-  // --- 当前专业高亮 ---
-  if(curRecord){
-    html+='<div class="msd-cur-major">';
-    html+='<div class="msd-sec-title">当前所选专业</div>';
-    html+='<div class="msd-cur-row">';
-    html+='<span class="msd-cur-name">'+esc(curRecord.majorName||'未知')+'</span>';
-    html+='<span class="msd-cur-score">综合分 <strong>'+curRecord.compositeScore+'</strong></span>';
-    if(curRecord.plan25)html+='<span class="msd-cur-plan">📋 招生 '+curRecord.plan25+' 人</span>';
-    if(typeof curRecord.tuition==='number')html+='<span class="msd-cur-tuition">💰 '+curRecord.tuition.toLocaleString()+'/年</span>';
-    html+='</div>';
-    html+='</div>';
-  }
   // --- 官网链接 ---
   if(info&&info.web){
     html+='<div class="msd-link-row">';
