@@ -1892,11 +1892,18 @@ function renderSchoolBrowser(catKey){
     var infoHtml='';
     var infoBadge='';
     if(info){
+      var introText=info.intro||'';
       infoHtml='<div class="sch-info-section hidden">'+
-        '<div class="sch-info-intro">'+esc(info.intro)+'</div>'+
-        '<a class="sch-info-link" href="'+escAttr(info.web)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">🌐 访问官网 →</a>'+
+        '<div class="sch-info-intro">'+esc(info.intro||'暂无院校介绍')+'</div>'+
+        (info.web?'<a class="sch-info-link" href="'+escAttr(info.web)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">🌐 访问官网 →</a>':'')+
       '</div>';
       infoBadge=' <span class="sch-info-badge" title="点击展开查看院校介绍和官网链接">ℹ️</span>';
+      // 院校介绍简短预览（卡片未展开时显示在 majors 下方）
+      var introPreviewHtml='';
+      if(info&&info.intro){
+        var preview=info.intro.replace(/\n/g,' ').substring(0,120)+(info.intro.length>120?'...':'');
+        introPreviewHtml='<div style="font-size:.74rem;color:var(--t3);margin-top:4px;line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">📖 '+esc(preview)+'</div>';
+      }
     }
     // 未授权用户：隐藏院校介绍，点击卡片不展开详情
   var isPaidUserNow=isPaidUser();
@@ -1906,6 +1913,7 @@ function renderSchoolBrowser(catKey){
       '<div class="sch-name">'+esc(s.schoolName)+infoBadge+' <span style="font-weight:400;font-size:.75rem">'+tags.join(' ')+'</span></div>'+
       '<div class="sch-meta">📍 '+esc(s.city||'--')+' | 💰 '+(s.tuitionMin?s.tuitionMin.toLocaleString():'--')+(s.tuitionMin!==s.tuitionMax?' ~ '+s.tuitionMax.toLocaleString():'')+'/年 | 📚 '+s.majorCount+'个专业</div>'+
       '<div class="sch-majors">'+majorsHtml+'</div>'+
+      introPreviewHtml+
       '<div class="sch-scores"><span>综合分区间 <strong>'+s.compositeMin+' ~ '+s.compositeMax+'</strong></span>'+'<span>均值 <strong>'+s.compositeAvg+'</strong></span></div>'+
       (window.__lastUserScore!=null?buildScoreComparison(window.__lastUserScore,window.__lastUserCulture,window.__lastUserArt,window.__lastUserCatKey,s.compositeAvg||0,s.compositeMin||0,s.compositeMax||0):'')+
       infoHtml+
