@@ -3475,18 +3475,24 @@ function buildScoreComparison(userScore,userCulture,userArt,catKey,avgScore,minS
   // 用院校平均分反算需要的文化分
   var needCulture=reverseCalcCulture(avgScore,userArt,catKey);
   var needDiff=needCulture-userCulture;
-  var needText='';
-  if(needDiff>0){
-    // 还需要提分
-    needText='提升文化课至 <strong style="color:var(--color-accent);font-size:.85rem">'+needCulture.toFixed(0)+'</strong> 分即可达到该校平均录取线'+
-            '（当前<strong style="color:var(--_red-500)">差 '+needDiff.toFixed(0)+' 分</strong>，努努力就能够到！）';
-  }else if(needDiff<0){
-    // 已经够了
-    needText='当前文化课<strong style="color:var(--_green-500)">已超出 '+Math.abs(needDiff).toFixed(0)+' 分</strong>'+
-            '，稳住优势，冲刺更高层次院校！';
-  }else{
-    needText='当前文化课 <strong style="color:var(--color-accent)">'+needCulture.toFixed(0)+'</strong> 分刚好匹配该校录取线，保持住！';
+  var diffLevel='';var needText='';
+  // 按差距分层：>50分特大差距 / 20-50一般差距 / <20小差距 / 已超过
+  if(needDiff>50){
+    diffLevel='hard';
+    needText='目标文化课 <strong style="color:var(--_red-500);font-size:.85rem">'+needCulture.toFixed(0)+'</strong> 分（还需提升 <strong style="color:var(--_red-500)">'+needDiff.toFixed(0)+'</strong> 分，差距较大，需要加倍努力！）';
+  }else if(needDiff>20){
+    diffLevel='medium';
+    needText='目标文化课 <strong style="color:var(--_orange-500);font-size:.85rem">'+needCulture.toFixed(0)+'</strong> 分（还需提升 <strong style="color:var(--_orange-500)">'+needDiff.toFixed(0)+'</strong> 分，努努力，很有希望！）';
+  }else if(needDiff>0){
+    diffLevel='easy';
+    needText='目标文化课 <strong style="color:var(--_yellow-600);font-size:.85rem">'+needCulture.toFixed(0)+'</strong> 分（仅差 <strong style="color:var(--_yellow-600)">'+needDiff.toFixed(0)+'</strong> 分，稍微努力即可达成！）';
+  }else if(needDiff<=0){
+    diffLevel='pass';
+    needText='当前文化课已<strong style="color:var(--_green-500)">超出 '+Math.abs(needDiff).toFixed(0)+' 分</strong>，建议稳固成绩，保持优势！';
   }
+
+  var levelBg=diffLevel==='hard'?'var(--_red-50)':diffLevel==='medium'?'var(--_orange-50)':diffLevel==='easy'?'var(--_yellow-50)':'var(--_green-50)';
+  var levelBorder=diffLevel==='hard'?'var(--_red-500)':diffLevel==='medium'?'var(--_orange-500)':diffLevel==='easy'?'var(--_yellow-600)':'var(--_green-500)';
 
   var html='<div style="margin-top:6px;padding:8px 10px;background:var(--color-surface-alt);border-radius:8px;font-size:.74rem;line-height:1.7">';
   html+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">';
@@ -3494,7 +3500,7 @@ function buildScoreComparison(userScore,userCulture,userArt,catKey,avgScore,minS
   html+='<span style="font-weight:700;color:'+(diff>=0?'var(--_green-500)':'var(--_red-500)')+'">'+diffSign+diffAbs+' 分</span>';
   html+='<span style="color:var(--t3);font-size:.7rem">（你 '+userScore.toFixed(2)+' vs 该校均值 '+avgScore+'）</span>';
   html+='</div>';
-  html+='<div style="color:var(--t2);font-size:.72rem;background:'+(needDiff>0?'var(--_orange-50)':'var(--_green-50)')+';padding:6px 10px;border-radius:6px;border-left:3px solid '+(needDiff>0?'var(--_orange-500)':'var(--_green-500)')+'">💡 '+needText+'</div>';
+  html+='<div style="color:var(--t2);font-size:.72rem;background:'+levelBg+';padding:6px 10px;border-radius:6px;border-left:3px solid '+levelBorder+'">💡 '+needText+'</div>';
   html+='</div>';
   return html;
 }
