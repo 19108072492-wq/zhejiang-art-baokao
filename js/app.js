@@ -1293,7 +1293,7 @@ function switchTab(tabName){
   }
   // 渲染内容
   if(tabName==='dashboard')renderDashboard();
-  else if(tabName==='schoolBrowser')renderSchoolBrowser();
+  else if(tabName==='schoolBrowser'){initSchoolSubTabs();renderSchoolBrowser();}
   else if(tabName==='majorBrowser')renderMajorBrowser();
   else if(tabName==='analysisView')renderDataAnalysis();
   else if(tabName==='inputCard'){
@@ -1415,6 +1415,114 @@ var __schoolCat='all',__schoolSearch='',__schoolSort='scoreDesc',__schoolFilters
 var __schoolSubCat='all'; // 子门类选择
 var __schoolProvince='all',__schoolCity='all'; // 省份/城市筛选
 var __schoolSel=new Set(); // 记录已勾选的学校名
+var __schoolTab='overview'; // 子tab: overview / intros
+
+// 初始化院校浏览子tab切换
+function initSchoolSubTabs(){
+  var tabsEl=document.getElementById('schoolSubTabs');
+  if(!tabsEl||tabsEl.dataset.init)return;
+  tabsEl.dataset.init='1';
+  tabsEl.onclick=function(e){
+    if(e.target.tagName!=='BUTTON')return;
+    var st=e.target.dataset.st;
+    if(!st||st===__schoolTab)return;
+    __schoolTab=st;
+    // 更新按钮样式
+    var btns=tabsEl.querySelectorAll('button');
+    for(var i=0;i<btns.length;i++){btns[i].classList.toggle('on',btns[i].dataset.st===st);}
+    // 切换面板
+    var ov=document.getElementById('schoolOverviewPanel');
+    var ip=document.getElementById('schoolIntrosPanel');
+    if(ov)ov.style.display=st==='overview'?'':'none';
+    if(ip)ip.style.display=st==='intros'?'':'none';
+    if(st==='intros')renderSchoolIntros();
+  };
+}
+
+// 渲染院校介绍页面
+function renderSchoolIntros(filter){
+  var data=window.SCHOOL_INTROS||[];
+  var grid=document.getElementById('siGrid');
+  var searchEl=document.getElementById('siSearch');
+  if(!grid)return;
+  // 初始化搜索
+  if(searchEl&&!searchEl.dataset.init){
+    searchEl.dataset.init='1';
+    searchEl.oninput=function(){renderSchoolIntros(this.value.trim().toLowerCase());};
+  }
+  var kw=filter||(searchEl?searchEl.value.trim().toLowerCase():'');
+  var list=data;
+  if(kw)list=list.filter(function(s){return s.name.toLowerCase().includes(kw);});
+  if(!list.length){grid.innerHTML='<p style="text-align:center;color:var(--color-text-tertiary);padding:40px 0">暂无匹配院校</p>';return;}
+  var html='';
+  for(var i=0;i<list.length;i++){
+    var s=list[i];
+    // 匹配系统中的院校标签
+    var info=window.getSchoolInfo?window.getSchoolInfo(s.name):null;
+    var tags=[];
+    if(info){
+      if(info.is985)tags.push('<span class="tag tag-985">985</span>');
+      if(info.is211&&!info.is985)tags.push('<span class="tag tag-211">211</span>');
+      if(info.isDoubleFirst)tags.push('<span class="tag tag-df">双一流</span>');
+    }
+    // 简介截断
+    var introText=s.intro||'';
+    var isLong=introText.length>200;
+    var shortIntro=isLong?introText.substring(0,200)+'...':introText;
+    // 宿舍
+    var dormHtml='';
+    if(s.dorm){
+      dormHtml='<div class="si-section"><div class="si-section-title">🏠 宿舍条件</div><div class="si-dorm">'+esc(s.dorm)+'</div></div>';
+    }
+    // 关键信息
+    var keysHtml='';
+    if(s.keys&&s.keys.length){
+      keysHtml='<div class="si-section"><div class="si-section-title">📋 关键信息</div><ul class="si-keys">';
+      for(var k=0;k<s.keys.length;k++){
+        keysHtml+='<li>'+esc(s.keys[k])+'</li>';
+      }
+      keysHtml+='</ul></div>';
+    }
+    html+='<div class="si-card">';
+    html+='<div class="si-hero"><span class="si-name">'+esc(s.name)+'</span>'+(tags.length?' <span class="si-tags">'+tags.join(' ')+'</span>':'')+'</div>';
+    html+='<div class="si-body">';
+    html+='<div class="si-section"><div class="si-section-title">📖 院校简介</div>';
+    html+='<div class="si-intro collapsed" id="siIntro'+i+'">'+esc(shortIntro)+'</div>';
+    if(isLong)html+='<span class="si-expand-btn" onclick="toggleSiIntro('+i+',this)">展开全文 ▼</span>';
+    html+='</div>';
+    html+=dormHtml;
+    html+=keysHtml;
+    // 官网链接
+    if(info&&info.web){
+      html+='<a class="si-weblink" href="'+escAttr(info.web)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;font-size:.78rem;color:var(--color-accent);font-weight:600;padding:6px 14px;border:1px solid var(--color-accent);border-radius:var(--_radius-sm);text-decoration:none;margin-top:8px;transition:all var(--_dur-fast)">🌐 访问官网 →</a>';
+    }
+    html+='</div></div>';
+  }
+  grid.innerHTML=html;
+}
+
+function toggleSiIntro(id,btn){
+  var el=document.getElementById('siIntro'+id);
+  if(!el)return;
+  if(el.classList.contains('collapsed')){
+    // 展开全文
+    var data=window.SCHOOL_INTROS||[];
+    var s=data.filter(function(x){return true;}); // need index
+    // 重新找到完整文本
+    var kw=document.getElementById('siSearch')?document.getElementById('siSearch').value.trim().toLowerCase():'';
+    var list=window.SCHOOL_INTROS||[];
+    if(kw)list=list.filter(function(x){return x.name.toLowerCase().includes(kw);});
+    if(list[id]){
+      el.textContent=list[id].intro;
+      el.classList.remove('collapsed');
+      btn.textContent='收起 ▲';
+    }
+  }else{
+    el.classList.add('collapsed');
+    btn.textContent='展开全文 ▼';
+  }
+}
+
 function renderSchoolBrowser(catKey){
   if(catKey!==undefined)__schoolCat=catKey;
   // 切换门类时重置子门类

@@ -928,6 +928,33 @@ html[data-theme="dark"] .toast,
 .school-card .sch-info-link{display:inline-block;font-size:.74rem;color:var(--color-accent);text-decoration:none;font-weight:600;padding:4px 10px;border:1px solid var(--color-accent);border-radius:var(--_radius-sm);transition:all var(--_dur-fast)}
 .school-card .sch-info-link:hover{background:var(--color-accent);color:#fff}
 
+/* ===== SCHOOL INTRO TABS & CARDS ===== */
+.sb-tabs{gap:0!important;border-bottom:2px solid var(--color-border-light);margin-bottom:var(--_sp-3)}
+.sb-tabs button{border:none;background:none;padding:8px 18px;font-size:.85rem;color:var(--color-text-tertiary);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all var(--_dur-fast);font-weight:500}
+.sb-tabs button.on{color:var(--color-accent);border-bottom-color:var(--color-accent);font-weight:700}
+.sb-tabs button:hover{color:var(--color-text)}
+.si-search-bar{padding:var(--_sp-2) 0}
+.si-search-bar input{width:100%;padding:8px 12px;border:1px solid var(--color-border-light);border-radius:var(--_radius-md);font-size:.82rem;background:var(--color-surface)}
+.si-grid{display:flex;flex-direction:column;gap:var(--_sp-4)}
+.si-card{background:var(--color-surface);border:1px solid var(--color-border-light);border-radius:var(--_radius-lg);overflow:hidden;transition:all var(--_dur-normal) var(--_ease-spring);box-shadow:var(--_shadow-xs)}
+.si-card:hover{box-shadow:var(--_shadow-md);border-color:var(--_brand-300)}
+.si-hero{padding:var(--_sp-4) var(--_sp-5);background:linear-gradient(135deg,var(--_brand-100),#fff);border-bottom:1px solid var(--color-border-light)}
+.si-name{font-size:1.1rem;font-weight:800;color:var(--color-text)}
+.si-tags{margin-left:8px;font-weight:400;font-size:.72rem}
+.si-body{padding:var(--_sp-4) var(--_sp-5)}
+.si-intro{font-size:.8rem;color:var(--color-text-secondary);line-height:1.8;margin-bottom:var(--_sp-3)}
+.si-section{margin-bottom:var(--_sp-3)}
+.si-section-title{font-size:.78rem;font-weight:700;color:var(--color-text);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.si-section-title::before{content:'';display:inline-block;width:3px;height:14px;background:var(--color-accent);border-radius:2px}
+.si-dorm{font-size:.78rem;color:var(--color-text-secondary);line-height:1.7;background:var(--_brand-100);padding:10px 14px;border-radius:var(--_radius-md)}
+.si-keys{list-style:none;padding:0;margin:0}
+.si-keys li{font-size:.76rem;color:var(--color-text-secondary);line-height:1.7;padding:2px 0;padding-left:16px;position:relative}
+.si-keys li::before{content:'•';position:absolute;left:4px;color:var(--color-accent);font-weight:700}
+.si-expand-btn{display:inline-block;font-size:.74rem;color:var(--color-accent);cursor:pointer;font-weight:600;margin-top:4px;border:none;background:none;padding:0}
+.si-expand-btn:hover{text-decoration:underline}
+.si-intro.collapsed{max-height:5.6em;overflow:hidden;position:relative}
+.si-intro.collapsed::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2em;background:linear-gradient(transparent,var(--color-surface))}
+
 /* ===== MAJOR BROWSER ===== */
 .major-layout{display:grid;grid-template-columns:280px 1fr;gap:var(--_sp-4);margin-top:var(--_sp-3);transition:grid-template-columns .3s ease}
 .major-layout.expanded{grid-template-columns:0 1fr}
@@ -1350,6 +1377,13 @@ html[data-theme="dark"] .toast,
   <!-- 院校浏览 -->
   <div class="card hidden" id="schoolBrowser">
     <div class="card-tt">🏫 院校浏览</div>
+    <!-- 子tab：院校总览 / 院校介绍 -->
+    <div class="fil sb-tabs" id="schoolSubTabs">
+      <button class="on" data-st="overview">院校总览</button>
+      <button data-st="intros">院校介绍</button>
+    </div>
+    <!-- 院校总览面板 -->
+    <div id="schoolOverviewPanel">
     <div class="card-sub" id="schoolSub"></div>
     <div id="schoolFreeBanner" class="upgrade-banner hidden">
       <div class="upgrade-banner-left">
@@ -1371,6 +1405,14 @@ html[data-theme="dark"] .toast,
     </div>
     <div class="fil" id="schoolFilters"></div>
     <div class="school-grid" id="schoolList"></div>
+    </div><!-- /schoolOverviewPanel -->
+    <!-- 院校介绍面板 -->
+    <div id="schoolIntrosPanel" style="display:none">
+      <div class="si-search-bar">
+        <input type="text" id="siSearch" placeholder="🔍 搜索院校名称...">
+      </div>
+      <div class="si-grid" id="siGrid"></div>
+    </div>
   </div>
   
   <!-- 专业浏览 -->
@@ -1529,6 +1571,7 @@ html[data-theme="dark"] .toast,
     <script src="js/school-info.js?v=2" defer></script>
     <script src="js/data.js?v=3" defer></script>
     <script src="js/core.js?v=3" defer></script>
+    <script src="js/school-intros.js" defer></script>
     <script src="js/app.js?v=19" defer></script>
     <script src="js/auth.js?v=13" defer></script>
 </body>
