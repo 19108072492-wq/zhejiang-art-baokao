@@ -2310,6 +2310,30 @@ function showMajorSchoolDetail(schoolName,currentKey,dedup){
     html+='<a class="msd-weblink" href="'+escAttr(info.web)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">🌐 访问官网 →</a>';
     html+='</div>';
   }
+  // --- 该校专业列表（次要区域） ---
+  if(majorList.length>0){
+    html+='<div class="msd-major-list">';
+    html+='<div class="msd-sec-title">该校可报专业（'+majorList.length+' 个）</div>';
+    for(var i=0;i<majorList.length;i++){
+      var mj=majorList[i];
+      var isCur=curRecord&&(curRecord.majorName===mj.name||normMajorName(curRecord.majorName)===mj.normName);
+      // 设计学类：展示原始完整名（含括号细分），前面加「设计学类」标签便于识别
+      var dispName=mj.name;
+      if(mj.normName==='设计学类'&&mj.name!=='设计学类'){
+        // 提取括号内的细分专业
+        var bracketMatch=mj.name.match(/[（(](.*)[）)]/);
+        var subs=bracketMatch?bracketMatch[1]:'';
+        dispName='<span class="msd-mj-tag">设计学类</span>'+(subs?'<span class="msd-mj-subs">'+esc(subs)+'</span>':'');
+      }else{
+        dispName=esc(mj.name);
+      }
+      html+='<div class="msd-major-row'+(isCur?' cur':'')+'">'+
+        '<span class="msd-mj-name">'+dispName+'</span>'+
+        '<span class="msd-mj-score">'+mj.score+'</span>'+
+        '</div>';
+    }
+    html+='</div>';
+  }
   // 写入并打开弹窗
   var contentEl=document.getElementById('msdContent');
   var modal=document.getElementById('msdModal');
