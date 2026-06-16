@@ -7,7 +7,7 @@ var __isLoggedIn=false;
 var __isPaidUser=false;
 var __paidExpires=null;
 
-(function initAuth(){
+function initAuth(){
   setupAuthUI();
 
   // 检查 localStorage 中是否有登录标记
@@ -24,17 +24,17 @@ var __paidExpires=null;
         localStorage.setItem('zjyk_is_paid','0');
       }
     }
-    function tryShow(){
-      if(typeof showDashboard==='function'){showDashboard();}
-      else{setTimeout(tryShow,80);}
-    }
-    if(document.readyState!=='loading'){setTimeout(tryShow,0);}
-    else{document.addEventListener('DOMContentLoaded',tryShow,{once:true});}
+    // showDashboard 由 app.js 定义，defer 顺序已保证其先于 auth.js 执行
+    if(typeof showDashboard==='function'){showDashboard();}
+    else{console.error('[auth] showDashboard undefined — check script load order');}
   }else{
     var gc=document.getElementById('gateCard');if(gc)gc.classList.remove('hidden');
     var ic=document.getElementById('inputCard');if(ic)ic.classList.add('hidden');
   }
-})();
+}
+
+// defer 脚本在 DOMContentLoaded 后执行，直接调用即可
+document.addEventListener('DOMContentLoaded',function(){initAuth();});
 
 function setupAuthUI(){
   // === 登录按钮 ===
