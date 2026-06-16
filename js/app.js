@@ -833,38 +833,32 @@ document.addEventListener('DOMContentLoaded',function(){
     var el=document.getElementById(id);if(el)el.addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('btnSciCalc').click();});
   });
 
-  // 专业浏览：合算分器 + 一键填报
+  // 专业浏览：内嵌算分器（门类跟随左侧 __majorCat）
   var btnMci=document.getElementById('btnMciCalc');
-  if(btnMci)btnMci.addEventListener('click',function(){
-    var cat=document.getElementById('mciCat').value;
+  function doMajorCalc(){
     var culture=parseFloat(document.getElementById('mciCulture').value);
     var art=parseFloat(document.getElementById('mciArt').value);
     var resultEl=document.getElementById('mciResult');
-    if(!cat||isNaN(culture)||isNaN(art)){if(resultEl){resultEl.classList.remove('hidden');resultEl.innerHTML='<span style="color:var(--_red-500);font-size:.76rem">请填写完整信息</span>';}return;}
+    if(isNaN(culture)||isNaN(art)){if(resultEl){resultEl.style.display='';resultEl.innerHTML='<span style="color:var(--_red-500);font-size:.76rem">请填写完整信息</span>';}return;}
+    // 门类来自左侧 Tab 选择
+    var cat=__majorCat||'finearts';
     var catKey=cat==='calligraphy'?'finearts':cat;
     var res=calcScore(culture,art,catKey);
     window.__lastUserScore=res.score;window.__lastUserCulture=culture;window.__lastUserArt=art;window.__lastUserCatKey=catKey;
 
     // 显示综合分
-    if(resultEl){resultEl.classList.remove('hidden');resultEl.innerHTML='<span class="sci-score">'+res.score.toFixed(2)+'</span><span class="sci-formula">'+res.text+'</span>';}
+    if(resultEl){resultEl.style.display='';resultEl.innerHTML='<span class="sci-score">'+res.score.toFixed(2)+'</span><span class="sci-formula">'+res.text+'</span>';}
 
-    // 自动同步到专业浏览：切换门类并填入综合分
-    if(!document.getElementById('majorBrowser').classList.contains('hidden')){
-      // 切换到对应门类
-      if(__majorCat!==cat||__majorCat!==catKey){
-        renderMajorBrowser(cat);
-      }
-      // 延迟填入综合分并触发一键填报
-      setTimeout(function(){
-        var scoreInput=document.getElementById('majorRecScore');
-        if(scoreInput){scoreInput.value=res.score.toFixed(2);}
-        if(typeof recommendMajorSchools==='function')recommendMajorSchools();
-      },300);
-    }else{
-      renderMajorBrowser(cat);
-    }
-  });
-  ['mciCat','mciCulture','mciArt'].forEach(function(id){
+    // 填入综合分并触发一键填报
+    setTimeout(function(){
+      if(typeof recommendMajorSchools==='function')recommendMajorSchools(res.score);
+    },200);
+  }
+  if(btnMci&&!btnMci.dataset.init){
+    btnMci.dataset.init='1';
+    btnMci.addEventListener('click',doMajorCalc);
+  }
+  ['mciCulture','mciArt'].forEach(function(id){
     var el=document.getElementById(id);if(el)el.addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('btnMciCalc').click();});
   });
 });
@@ -2135,7 +2129,13 @@ function renderMajorBrowser(catKey){
   if(__selectedMajor && __selectedMajor.records.length>0){
     var m=__selectedMajor;
     // 一键填报按钮：体验版和完整版均可用（但完整版卡片展示更详细）
-    var recBarHtml='<div class="mr-rec-bar" id="majorRecBar">我的综合分 <input type="number" id="majorRecScore" placeholder="如 520" style="width:90px;padding:4px 8px;border-radius:6px;border:1px solid var(--color-border);font-size:.85rem;margin:0 6px"> <button class="btn btn-sm" onclick="recommendMajorSchools()" style="font-size:.82rem">🤖 一键填报</button> <span id="majorRecLoginTip" class="hidden" style="font-size:.78rem;color:var(--color-accent);margin-left:8px">请先登录</span></div>';
+    var recBarHtml='<div class="score-calc-inline" id="majorRecBar" style="margin:8px 0;padding:8px 12px">'+
+      '<div class="sci-row">'+
+        '<div class="sci-item"><label>文化课</label><input type="number" id="mciCulture" placeholder="满分750" min="0" max="750" step="0.5" style="height:32px"></div>'+
+        '<div class="sci-item"><label>统考成绩</label><input type="number" id="mciArt" placeholder="例：245" min="0" step="0.5" style="height:32px"></div>'+
+        '<div class="sci-item sci-btn"><button class="btn btn-g btn-sm" id="btnMciCalc">🔢 计算并一键填报</button></div>'+
+      '</div>'+
+      '<div class="sci-result" id="mciResult" style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--color-border)"></div></div>';
     var rightHtml='<button class="mr-back" onclick="collapseMajorLayout()">← 返回专业列表</button><div class="mr-header"><h4 style="cursor:pointer"'+(isPaidUser()?' onclick="openMajorDetail(\''+escAttr(m.majorName)+'\')"':'')+'>📚 '+esc(m.majorName)+(isPaidUser()?' <span style="font-size:.68rem;color:var(--color-accent)">📈 查看详情</span>':'')+'</h4><div class="mr-stats">开设院校：<strong>'+m.schoolCount+'</strong> 所 | 综合分区间：<strong>'+m.scoreMin+' ~ '+m.scoreMax+'</strong> | 均值：<strong>'+m.scoreAvg+'</strong> | 平均学费：<strong>'+(m.tuitionAvg||'--').toLocaleString()+'</strong>/年</div></div>'+recBarHtml;
     rightHtml+='<div class="mr-schools">';
     var ranked=m.records;
@@ -2156,7 +2156,7 @@ function renderMajorBrowser(catKey){
         tierGroups[t].sort(function(a,b){return (b.compositeScore||0)-(a.compositeScore||0);});
       });
       // 计算用户输入分数（从输入框里读，若没有用0）
-      var inputScore=parseFloat((document.getElementById('majorRecScore')||{}).value)||0;
+      var inputScore=window.__lastUserScore||parseFloat((document.getElementById('majorRecScore')||{}).value)||0;
       function buildTierColCards(list,tier){
         if(!list.length)return '<div class="mr-tier-col-empty">暂无院校</div>';
         var h='';
@@ -2710,13 +2710,13 @@ function collapseMajorLayout(){
   renderMajorBrowser();
 }
 
-function recommendMajorSchools(){
+function recommendMajorSchools(presetScore){
   if(!__isLoggedIn){
     toast('请先登录后使用一键填报功能',1);
     document.getElementById('authModal').classList.remove('hidden');
     return;
   }
-  var score=parseFloat(document.getElementById('majorRecScore').value);
+  var score=presetScore||parseFloat(document.getElementById('majorRecScore')?(document.getElementById('majorRecScore').value||0):0);
   if(isNaN(score)||score<=0){
     toast('请输入有效的综合分',1);
     return;
