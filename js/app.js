@@ -752,9 +752,10 @@ function openMajorDetail(majorName){
   // 归一化处理（与 renderMajorBrowser 保持一致，确保专业名匹配）
   var allNorm=all.map(function(r){
     var cn=normMajorName(r.majorName);
+    if(!cn)return null;
     if(cn===r.majorName)return r;
     var nr=Object.assign({},r);nr.majorName=cn;nr._origMajorName=r.majorName;return nr;
-  });
+  }).filter(Boolean);
   var majors=aggregateByMajor(allNorm);
   var target=null;
   for(var i=0;i<majors.length;i++){if(majors[i].majorName===majorName){target=majors[i];break;}}
@@ -1697,12 +1698,13 @@ function renderMajorBrowser(catKey){
   // 仅做浅拷贝（不修改原始 data.js 数据），归一化仅在展示层生效
   var allNorm=all.map(function(r){
     var cn=normMajorName(r.majorName);
+    if(!cn)return null; // 脏数据过滤
     if(cn===r.majorName)return r; // 名称无变化，直接用原对象节省内存
     var nr=Object.assign({},r);
     nr.majorName=cn;
     nr._origMajorName=r.majorName; // 保留原始名，供详情展示用
     return nr;
-  });
+  }).filter(Boolean); // 去掉脏数据（null）
   var majors=aggregateByMajor(allNorm);
 
   // 省份/城市变更时，同步更新已选专业的数据（否则右侧面板仍显示旧数据）
@@ -2203,7 +2205,24 @@ var __majorNormMap = {
 };
 // 归一化专业名：展示层使用，不修改原始数据
 function normMajorName(name){
-  return __majorNormMap[name]||name;
+  if(!name)return name;
+  // 清洗脏数据：去除零宽字符、换行、前后空格
+  var cleaned=name.replace(/[\u200b\u200c\u200d\ufeff\r\n]/g,'').trim();
+  // 精确匹配优先
+  if(__majorNormMap[cleaned])return __majorNormMap[cleaned];
+  // 前缀兜底：以大类名开头的全部归入该大类（覆盖括号/空格/换行变体）
+  var prefixRules=[
+    ['设计学类','设计学类'],
+    ['美术学类','美术学类'],
+    ['音乐学类','音乐学类'],
+    ['舞蹈学类','舞蹈学类'],
+  ];
+  for(var i=0;i<prefixRules.length;i++){
+    if(cleaned.indexOf(prefixRules[i][0])===0)return prefixRules[i][1];
+  }
+  // 过滤无效脏数据（纯数字/单字符等）
+  if(/^\d+$/.test(cleaned)||cleaned.length<=2)return null;
+  return cleaned||name;
 }
 
 function showMajorSchoolDetail(schoolName,currentKey,dedup){
@@ -2354,9 +2373,10 @@ function selectMajor(majorName){
   // 同步归一化（与 renderMajorBrowser 保持一致）
   var allNorm=all.map(function(r){
     var cn=normMajorName(r.majorName);
+    if(!cn)return null;
     if(cn===r.majorName)return r;
     var nr=Object.assign({},r);nr.majorName=cn;nr._origMajorName=r.majorName;return nr;
-  });
+  }).filter(Boolean);
   var majors=aggregateByMajor(allNorm);
   for(var i=0;i<majors.length;i++){
     if(majors[i].majorName===majorName){__selectedMajor=majors[i];break;}
