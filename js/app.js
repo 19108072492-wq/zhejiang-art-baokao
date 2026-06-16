@@ -2238,12 +2238,16 @@ function showMajorSchoolDetail(schoolName,currentKey,dedup){
     if(!campusVal&&schoolRecords[i].campus)campusVal=schoolRecords[i].campus;
     if(dormVal&&campusVal)break;
   }
-  // 专业去重列表（使用归一化名合并同类）
+  // 专业去重列表
+  // 设计学类特殊处理：保留原始名（含括号内细分专业），其余专业按归一化名合并
   var majorMap={};
   for(var i=0;i<schoolRecords.length;i++){
     var r=schoolRecords[i];
-    var mn=normMajorName(r.majorName)||'未知专业';
-    if(!majorMap[mn])majorMap[mn]={name:mn,score:r.compositeScore,plan:r.plan25,tuition:r.tuition};
+    var origName=r.majorName||'未知专业';
+    var normName=normMajorName(origName);
+    // 设计学类：用原始名作为 key，展示括号内具体细分专业
+    var key=normName==='设计学类'?origName:normName;
+    if(!majorMap[key])majorMap[key]={name:key,normName:normName,score:r.compositeScore,plan:r.plan25,tuition:r.tuition};
   }
   var majorList=Object.values(majorMap).sort(function(a,b){return (b.score||0)-(a.score||0);});
   // ===== 构建 HTML =====
@@ -2305,9 +2309,19 @@ function showMajorSchoolDetail(schoolName,currentKey,dedup){
     html+='<div class="msd-sec-title">该校可报专业（'+majorList.length+' 个）</div>';
     for(var i=0;i<majorList.length;i++){
       var mj=majorList[i];
-      var isCur=curRecord&&curRecord.majorName===mj.name;
+      var isCur=curRecord&&(curRecord.majorName===mj.name||normMajorName(curRecord.majorName)===mj.normName);
+      // 设计学类：展示原始完整名（含括号细分），前面加「设计学类」标签便于识别
+      var dispName=mj.name;
+      if(mj.normName==='设计学类'&&mj.name!=='设计学类'){
+        // 提取括号内的细分专业
+        var bracketMatch=mj.name.match(/[（(](.*)[）)]/);
+        var subs=bracketMatch?bracketMatch[1]:'';
+        dispName='<span class="msd-mj-tag">设计学类</span>'+(subs?'<span class="msd-mj-subs">'+esc(subs)+'</span>':'');
+      }else{
+        dispName=esc(mj.name);
+      }
       html+='<div class="msd-major-row'+(isCur?' cur':'')+'">'+
-        '<span class="msd-mj-name">'+esc(mj.name)+'</span>'+
+        '<span class="msd-mj-name">'+dispName+'</span>'+
         '<span class="msd-mj-score">'+mj.score+'</span>'+
         '</div>';
     }
