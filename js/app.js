@@ -2608,6 +2608,10 @@ function showMajorSchoolDetail(schoolName,currentKey,dedup){
     html+='<span class="msd-score-badge">艺术综合分 <strong>'+scoreMin+(scoreMin!==scoreMax?' ~ '+scoreMax:'')+'</strong></span>';
   }
   html+='</div>';
+  // --- 分数对比区：如果用户已算过分，显示差距 + 目标文化分 ---
+  if(window.__lastUserScore!=null&&curRecord&&curRecord.compositeScore){
+    html+=buildScoreComparison(window.__lastUserScore,window.__lastUserCulture,window.__lastUserArt,window.__lastUserCatKey,curRecord.compositeScore||scoreMin||0,scoreMin||0,scoreMax||0);
+  }
   // --- 信息卡片网格（宿舍/校区/招生计划/学费）---
   var gridItems=[];
   if(dormVal)gridItems.push({label:'🏠 宿舍条件',value:dormVal});
