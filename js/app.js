@@ -526,7 +526,20 @@ function openForm(){
     groups[t]=groups[t]||[];
     groups[t].push(r);
   }
-  for(const k of Object.keys(groups))groups[k].sort((a,b)=>Math.abs(a.diff)-Math.abs(b.diff));
+  // 按 __formOrder 自定义顺序排序（无自定义顺序时按 diff 排序）
+  for(const k of Object.keys(groups)){
+    var gOrder=window.__formOrder||[];
+    groups[k].sort(function(a,b){
+      var ka=a.schoolCode+'|'+a.majorCode;
+      var kb=b.schoolCode+'|'+b.majorCode;
+      var ia=gOrder.indexOf(ka);
+      var ib=gOrder.indexOf(kb);
+      if(ia>=0&&ib>=0)return ia-ib;
+      if(ia>=0)return -1;
+      if(ib>=0)return 1;
+      return Math.abs(a.diff)-Math.abs(b.diff);
+    });
+  }
   const labels={reach:'冲刺',match:'稳妥',safety:'保底'};
   const labelColors={reach:'#c0392b',match:'#c07830',safety:'#2d7a4a'};
   let html='<div style="font-size:.72rem;color:var(--t3);margin-bottom:8px">💡 使用 <span style="font-size:.82rem">▲ ▼</span> 按钮调整志愿顺序，同一梯度内排序生效</div>';
