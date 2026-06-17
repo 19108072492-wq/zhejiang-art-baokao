@@ -509,209 +509,78 @@ function updateFloat(){
 function openForm(){
   if(!isPaidUser())return showUpgradeModal('form');
   if(!sel.size)return toast('请先勾选学校',1);
-  // 用 __formOrder 维护自定义排序（持久化在 sel 的插入顺序）
+  // 用 __formOrder 维护自定义排序
   if(!window.__formOrder)window.__formOrder=[];
   // 同步：根据 sel 重建 __formOrder
   var selKeys=[...sel.keys()];
   var oldOrder=window.__formOrder||[];
   var newOrder=[];
-  // 保留旧顺序中仍在 sel 里的 key
   for(var i=0;i<oldOrder.length;i++){if(sel.has(oldOrder[i]))newOrder.push(oldOrder[i]);}
-  // 添加新勾选的 key（追加到末尾）
   for(var i=0;i<selKeys.length;i++){if(newOrder.indexOf(selKeys[i])<0)newOrder.push(selKeys[i]);}
   window.__formOrder=newOrder;
 
   const groups={reach:[],match:[],safety:[]};
   for(const r of sel.values()){
     var t=r.tier||'match';
-    if(t==='out')t='safety'; // 专科/线外归入保底
+    if(t==='out')t='safety';
     groups[t]=groups[t]||[];
     groups[t].push(r);
   }
   for(const k of Object.keys(groups))groups[k].sort((a,b)=>Math.abs(a.diff)-Math.abs(b.diff));
-  const slots={reach:8,match:7,safety:5};
   const labels={reach:'冲刺',match:'稳妥',safety:'保底'};
   const labelColors={reach:'#c0392b',match:'#c07830',safety:'#2d7a4a'};
-  let html='<div style="font-size:.72rem;color:var(--t3);margin-bottom:8px">💡 点击 <span style="font-size:.82rem">🔼</span> 可调整志愿顺序（同一梯度内拖动排序），顺序将影响最终填报优先级</div>';
+  let html='<div style="font-size:.72rem;color:var(--t3);margin-bottom:8px">💡 使用 <span style="font-size:.82rem">▲ ▼</span> 按钮调整志愿顺序，同一梯度内排序生效</div>';
   for(const tier of['reach','match','safety']){
     const list=groups[tier];
     if(!list.length)continue;
     var _paid=isPaidUser();
-    var _extraTh=_paid?'<th>评分</th><th>位次</th><th>学费</th>':'';
-    html+=`<div class="vsec ${tier}"><h3><span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:.78rem;font-weight:700;color:#fff;background:${labelColors[tier]}">${labels[tier]}</span> <small style="color:var(--t3)">（${list.length} 所）</small></h3><div class="vtbl-wrap"><table class="vtab"><thead><tr><th class="col-drag"></th><th class="col-seq">#</th><th>院校</th><th>专业</th><th>综合分</th>${_extraTh}<th>城市</th><th class="col-act">操作</th></tr></thead><tbody>`;
+    var _extraTh=_paid?'<th>文化分还需要</th><th>位次</th><th>学费</th>':'';
+    // 获取用户当前分数信息（用于反算文化分差距）
+    var _userArt=window.__lastUserArt||0;
+    var _userCulture=window.__lastUserCulture||0;
+    var _userCatKey=window.__lastUserCatKey||'finearts';
+    html+=`<div class="vsec ${tier}"><h3><span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:.78rem;font-weight:700;color:#fff;background:${labelColors[tier]}">${labels[tier]}</span> <small style="color:var(--t3)">（${list.length} 所）</small></h3><div class="vtbl-wrap"><table class="vtab"><thead><tr><th class="col-seq">#</th><th>院校</th><th>专业</th><th>综合分</th>${_extraTh}<th>城市</th><th class="col-act">操作</th></tr></thead><tbody>`;
     for(let i=0;i<list.length;i++){
       const r=list[i];
       const key=(r.schoolCode||'')+'|'+(r.majorCode||'');
-      var _extraTd=_paid
-        ?`<td style="font-weight:700;color:var(--g)">${r.recScore||'--'}</td><td>${r.rankPosition||'--'}</td><td>${typeof r.tuition=='number'?r.tuition.toLocaleString():r.tuition||'--'}</td>`
-        :'';
-      html+=`<tr data-key="${escAttr(key)}" data-tier="${tier}" class="${tier} draggable-row" draggable="true">
-        <td class="col-drag"><span class="drag-handle" title="拖拽排序">⋮</span></td>
+      var _extraTd='';
+      if(_paid){
+        // 计算：专业分不变，还需要多少文化分
+        var _needCulture=reverseCalcCulture(r.compositeScore||0,_userArt,_userCatKey);
+        var _cultureGap=_needCulture-_userCulture;
+        var _gapDisplay='';
+        if(_cultureGap>0){
+          _gapDisplay='<span style="color:var(--color-reach);font-weight:700">还需 '+_cultureGap.toFixed(0)+' 分</span>';
+        }else{
+          _gapDisplay='<span style="color:var(--color-safety);font-weight:700">已超出 '+Math.abs(_cultureGap).toFixed(0)+' 分</span>';
+        }
+        _extraTd='<td style="font-size:.76rem">'+_gapDisplay+'</td><td>'+((r.rankPosition||'--'))+'</td><td>'+((typeof r.tuition=='number'?r.tuition.toLocaleString():r.tuition||'--'))+'</td>';
+      }
+      // 操作列：▲ 上移 + ▼ 下移 + ✕ 移除（始终按钮可见，首位禁用上移，末位禁用下移）
+      var isFirst=(i===0);
+      var isLast=(i===list.length-1);
+      var moveBtns='<div class="form-action-group">'+
+        `<button class="form-action-btn" onclick="moveFormItem('${escAttr(key)}','up')" ${isFirst?'disabled':''} title="上移">▲</button>`+
+        `<button class="form-action-btn" onclick="moveFormItem('${escAttr(key)}','down')" ${isLast?'disabled':''} title="下移">▼</button>`+
+        `<button class="form-action-btn remove" onclick="removeFormItem('${escAttr(key)}')" title="移除">✕</button>`+
+        '</div>';
+      html+=`<tr data-key="${escAttr(key)}" data-tier="${tier}">
         <td class="col-seq">${i+1}</td>
         <td>${esc(r.schoolName)}${r.scoreSource==='estimated'?' <span style="color:#c0392b;font-size:.68rem">⚠️预估</span>':''}</td>
         <td>${esc(normMajorName(r.majorName)||r.majorName||'')}</td>
         <td><strong>${r.compositeScore}</strong></td>
         ${_extraTd}
         <td>${esc(r.city)}</td>
-        <td class="col-act">
-          ${i>0?`<button class="btn btn-gh btn-xs" onclick="moveFormItem('${escAttr(key)}','up')" title="上移">🔼</button>`:'<span class="col-drag"></span>'}
-          ${i<list.length-1?`<button class="btn btn-gh btn-xs" onclick="moveFormItem('${escAttr(key)}','down')" title="下移">🔽</button>`:'<span class="col-drag"></span>'}
-          <button class="btn btn-gh btn-xs" onclick="removeFormItem('${escAttr(key)}')" title="移除">✕</button>
-        </td>
+        <td class="col-act">${moveBtns}</td>
       </tr>`;
     }
     html+='</tbody></table></div>';
   }
   document.getElementById('formBody').innerHTML=html;
   document.getElementById('formModal').classList.remove('hidden');
-  // 绑定拖拽排序
-  initFormDrag();
 }
 
-// ===== 志愿单拖拽排序 =====
-var __dragRow=null; // 当前拖拽行
-function initFormDrag(){
-  var tbody=document.querySelectorAll('#formBody .vtab tbody');
-  for(var t=0;t<tbody.length;t++){
-    var rows=tbody[t].querySelectorAll('tr.draggable-row');
-    for(var i=0;i<rows.length;i++){
-      rows[i].addEventListener('dragstart',onDragStart);
-      rows[i].addEventListener('dragend',onDragEnd);
-      rows[i].addEventListener('dragover',onDragOver);
-      rows[i].addEventListener('dragleave',onDragLeave);
-      rows[i].addEventListener('drop',onDrop);
-      // 触摸事件支持（移动端）
-      rows[i].addEventListener('touchstart',onTouchStart,{passive:false});
-      rows[i].addEventListener('touchmove',onTouchMove,{passive:false});
-      rows[i].addEventListener('touchend',onTouchEnd);
-    }
-  }
-}
-
-function onDragStart(e){
-  __dragRow=this;
-  this.classList.add('dragging');
-  e.dataTransfer.effectAllowed='move';
-  e.dataTransfer.setData('text/plain',this.dataset.key);
-  // 半透明效果
-  setTimeout(function(){__dragRow.style.opacity='0.4';},0);
-}
-
-function onDragEnd(e){
-  this.classList.remove('dragging');
-  this.style.opacity='';
-  // 清除所有占位样式
-  var allRows=document.querySelectorAll('#formBody .draggable-row');
-  for(var i=0;i<allRows.length;i++){
-    allRows[i].classList.remove('drag-over','drag-before','drag-after');
-  }
-  __dragRow=null;
-}
-
-function onDragOver(e){
-  e.preventDefault();
-  e.dataTransfer.dropEffect='move';
-  if(!__dragRow||this===__dragRow)return;
-  // 只允许同梯度内拖拽
-  if(this.dataset.tier!==__dragRow.dataset.tier)return;
-  // 显示插入位置指示
-  this.classList.remove('drag-before','drag-after');
-  var rect=this.getBoundingClientRect();
-  var midY=rect.top+rect.height/2;
-  if(e.clientY<midY){
-    this.classList.add('drag-before');
-  }else{
-    this.classList.add('drag-after');
-  }
-}
-
-function onDragLeave(e){
-  this.classList.remove('drag-before','drag-after');
-}
-
-function onDrop(e){
-  e.preventDefault();
-  if(!__dragRow||this===__dragRow)return;
-  // 只允许同梯度内拖拽
-  if(this.dataset.tier!==__dragRow.dataset.tier)return;
-  var dragKey=__dragRow.dataset.key;
-  var dropKey=this.dataset.key;
-  // 确定插入位置：之前还是之后
-  var rect=this.getBoundingClientRect();
-  var midY=rect.top+rect.height/2;
-  var insertBefore=e.clientY<midY;
-  // 在 __formOrder 中移动
-  var order=window.__formOrder||[];
-  var fromIdx=order.indexOf(dragKey);
-  var toIdx=order.indexOf(dropKey);
-  if(fromIdx<0||toIdx<0)return;
-  // 从原位置移除
-  order.splice(fromIdx,1);
-  // 重新查找目标位置（因为 splice 改变了索引）
-  toIdx=order.indexOf(dropKey);
-  if(!insertBefore)toIdx++;
-  order.splice(toIdx,0,dragKey);
-  window.__formOrder=order;
-  openForm(); // 重新渲染
-}
-
-// ===== 触摸拖拽支持（移动端）=====
-var __touchRow=null,__touchClone=null,__touchStartY=0;
-function onTouchStart(e){
-  var handle=e.target.closest('.drag-handle');
-  if(!handle)return;
-  __touchRow=this;
-  __touchStartY=e.touches[0].clientY;
-  this.classList.add('dragging');
-  e.preventDefault(); // 阻止滚动
-}
-
-function onTouchMove(e){
-  if(!__touchRow)return;
-  e.preventDefault();
-  var touch=e.touches[0];
-  // 找到触摸位置下的行
-  var allRows=document.querySelectorAll('#formBody .draggable-row[data-tier="'+__touchRow.dataset.tier+'"]');
-  for(var i=0;i<allRows.length;i++){
-    allRows[i].classList.remove('drag-over','drag-before','drag-after');
-    var rect=allRows[i].getBoundingClientRect();
-    if(touch.clientY>=rect.top&&touch.clientY<=rect.bottom){
-      var midY=rect.top+rect.height/2;
-      if(touch.clientY<midY)allRows[i].classList.add('drag-before');
-      else allRows[i].classList.add('drag-after');
-    }
-  }
-}
-
-function onTouchEnd(e){
-  if(!__touchRow)return;
-  // 找到最终放置位置
-  var target=document.querySelector('#formBody .drag-before, #formBody .drag-after');
-  if(target&&target!==__touchRow&&target.dataset.tier===__touchRow.dataset.tier){
-    var dragKey=__touchRow.dataset.key;
-    var dropKey=target.dataset.key;
-    var isBefore=target.classList.contains('drag-before');
-    var order=window.__formOrder||[];
-    var fromIdx=order.indexOf(dragKey);
-    var toIdx=order.indexOf(dropKey);
-    if(fromIdx>=0&&toIdx>=0){
-      order.splice(fromIdx,1);
-      toIdx=order.indexOf(dropKey);
-      if(!isBefore)toIdx++;
-      order.splice(toIdx,0,dragKey);
-      window.__formOrder=order;
-    }
-  }
-  // 清理
-  var allRows=document.querySelectorAll('#formBody .draggable-row');
-  for(var i=0;i<allRows.length;i++){
-    allRows[i].classList.remove('dragging','drag-over','drag-before','drag-after');
-  }
-  __touchRow=null;
-  if(window.__formOrder&&window.__formOrder.length)openForm();
-}
-
-// 志愿单内上移/下移
+// 志愿单内上移/下移（同梯度内交换位置）
 function moveFormItem(key,dir){
   var order=window.__formOrder||[];
   var idx=order.indexOf(key);

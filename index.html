@@ -1254,16 +1254,14 @@ html[data-theme="dark"] .si-highlight,
 .vsec{margin-bottom:var(--_sp-5)}
 .vsec h3{font-size:.88rem;margin-bottom:var(--_sp-2)}
 .vsec h3 .tier-badge{padding:2px 10px;border-radius:12px;font-size:.78rem;font-weight:700;color:#fff}
-.col-drag{width:28px;text-align:center;color:var(--color-text-tertiary);cursor:grab;user-select:none;font-size:.9rem}
 .col-seq{width:32px;text-align:center;font-weight:700;color:var(--color-accent)}
-.col-act{width:90px;text-align:center;white-space:nowrap}
-.drag-handle{cursor:grab;padding:2px 4px;color:var(--color-text-tertiary);user-select:none;font-size:.95rem}
-.drag-handle:hover{color:var(--color-accent)}
-.draggable-row{transition:background .15s}
-.draggable-row.dragging{opacity:.4;background:var(--color-surface-secondary)}
-.draggable-row.drag-before{border-top:2px solid var(--color-accent)!important}
-.draggable-row.drag-after{border-bottom:2px solid var(--color-accent)!important}
-.draggable-row.drag-over{background:var(--color-surface-secondary)}
+.col-act{width:110px;text-align:center;white-space:nowrap}
+/* 志愿单操作列 · 上下按钮 */
+.form-action-group{display:inline-flex;align-items:center;gap:2px;vertical-align:middle}
+.form-action-btn{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--color-border);border-radius:var(--_radius-xs);background:var(--color-surface);cursor:pointer;color:var(--color-text-secondary);font-size:.72rem;transition:all var(--_dur-fast);padding:0}
+.form-action-btn:hover{border-color:var(--color-accent);color:var(--color-accent);background:var(--color-accent-light)}
+.form-action-btn:disabled{opacity:.3;cursor:not-allowed;pointer-events:none}
+.form-action-btn.remove:hover{border-color:var(--color-reach);color:var(--color-reach);background:var(--color-reach-bg)}
 .btn-xs{padding:2px 6px;font-size:.68rem;border-radius:var(--_radius-xs);border:1px solid var(--color-border);background:var(--color-surface);cursor:pointer;color:var(--color-text-secondary)}
 .btn-xs:hover{background:var(--color-surface-alt);color:var(--color-accent)}
 .vtbl-wrap{overflow-x:auto}
