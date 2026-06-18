@@ -1,5 +1,5 @@
 /**
- * 非凡教育 · 浙江艺考志愿助手 — Supabase REST 客户端（零 CDN 依赖）
+ * 小凡择校·艺考志愿填报神器 — Supabase REST 客户端（零 CDN 依赖）
  * 全部使用原生 fetch，内置超时 + 重试，适配国内网络环境
  */
 var SUPABASE_URL='https://nhewhebhbknydhcbvjnv.supabase.co';

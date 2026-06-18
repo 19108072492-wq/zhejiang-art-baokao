@@ -1,5 +1,5 @@
 /**
- * 非凡教育 · 浙江艺考志愿助手 — UI 交互
+ * 小凡择校·艺考志愿填报神器 — UI 交互
  */
 let cur=[],curTier='all',sel=new Map(),MAX_CMP=4,curSearch='',curSort='diff';
 
@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       @page{margin:0;size:A4}
       @media print{button{display:none!important}}
     `;
-    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>艺考志愿单</title><style>${printCss}</style></head><body><h1>🎓 非凡教育 · 浙江艺考志愿填报参考单</h1><p class="sub">${new Date().toLocaleString('zh-CN')} | 科学匹配 · 精准冲稳保</p>${formHtml}</body><script>setTimeout(function(){window.print();setTimeout(window.close,500);},300)<\/script></html>`);
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>小凡择校·艺考志愿填报神器参考单</title><style>${printCss}</style></head><body><h1>🎓 小凡择校·艺考志愿填报神器参考单</h1><p class="sub">${new Date().toLocaleString('zh-CN')} | 科学匹配 · 精准冲稳保</p>${formHtml}</body><script>setTimeout(function(){window.print();setTimeout(window.close,500);},300)<\/script></html>`);
     w.document.close();
   });
   ['lockModal','adminModal','formModal','cmpModal','majorDetailModal','siDetailModal','msdModal'].forEach(id=>document.getElementById(id).addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden');}));
@@ -1030,7 +1030,7 @@ function exportExcel(){
   ws['!cols']=[{wch:6},{wch:20},{wch:22},{wch:12},{wch:12},{wch:10},{wch:10},{wch:12},{wch:14},{wch:30},{wch:20},{wch:10},{wch:14},{wch:30}];
   const wb=X.utils.book_new();
   X.utils.book_append_sheet(wb,ws,'志愿选择');
-  X.writeFile(wb,`浙江艺考志愿_${new Date().toISOString().slice(0,10)}.xlsx`);
+  X.writeFile(wb,`小凡择校_艺考志愿_${new Date().toISOString().slice(0,10)}.xlsx`);
   toast('✅ 已导出Excel');
 }
 
@@ -1329,7 +1329,7 @@ function renderDashboard(){
   var phoneTail=phone?phone.slice(-4):'用户';
   var hour=new Date().getHours();
   var greet=hour<12?'上午好':hour<18?'下午好':'晚上好';
-  document.getElementById('dashWelcome').innerHTML='<div class="dash-welcome">👋 '+greet+'，<span class="dw-phone">****'+esc(phoneTail)+'</span></div><div style="font-size:.78rem;color:var(--color-text-tertiary)">欢迎使用非凡教育 · 浙江艺考志愿助手</div>';
+  document.getElementById('dashWelcome').innerHTML='<div class="dash-welcome">👋 '+greet+'，<span class="dw-phone">****'+esc(phoneTail)+'</span></div><div style="font-size:.78rem;color:var(--color-text-tertiary)">欢迎使用小凡择校·艺考志愿填报神器</div>';
   
   // 统计卡片
   document.getElementById('dashStats').innerHTML=
