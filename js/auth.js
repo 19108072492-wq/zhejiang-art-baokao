@@ -286,7 +286,7 @@ function updatePaidUI(){
     }
     bar.innerHTML='<span style="display:flex;align-items:center;gap:12px"><span style="color:var(--gr);font-weight:600">✅ 已授权 '+expText+'</span></span>';
   }else if(__isLoggedIn){
-    bar.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;background:linear-gradient(135deg,#fff7ed,#fef3c7);border:1.5px solid #f59e0b;border-radius:var(--rd);padding:8px 12px"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:1.1rem">🎁</span><div><div style="font-size:.82rem;font-weight:700;color:#92400e">体验版</div><div style="font-size:.73rem;color:#b45309">升级解锁院校详情/院校浏览/专业浏览等完整功能</div></div></div><button class="upgrade-banner-btn" id="btnUpgrade" style="font-size:.76rem;padding:5px 12px">🔓 升级</button></div>';
+    bar.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;background:linear-gradient(135deg,var(--_brand-100),var(--_brand-50));border:1.5px solid rgba(127,94,8,.18);border-left:4px solid var(--_brand-500);border-radius:var(--rd);padding:8px 12px"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:1.1rem">🎁</span><div><div style="font-size:.82rem;font-weight:700;color:var(--_ink)">体验版</div><div style="font-size:.73rem;color:#5a4b25">升级解锁院校详情/院校浏览/专业浏览等完整功能</div></div></div><button class="upgrade-banner-btn" id="btnUpgrade" style="font-size:.76rem;padding:5px 12px">🔓 升级</button></div>';
     setTimeout(function(){
       var bu=document.getElementById('btnUpgrade');
       if(bu)bu.addEventListener('click',showUpgradeModal);
