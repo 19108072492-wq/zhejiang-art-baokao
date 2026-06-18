@@ -102,24 +102,24 @@
 
 /* Layer 1: Semantic Tokens */
 :root {
-  --color-page:           #fff9e8;
+  --color-page:           #ffffff;
   --color-surface:        #ffffff;
-  --color-surface-alt:    #fff3cf;
+  --color-surface-alt:    #f8f7f4;
   --color-surface-raised: #ffffff;
   --color-surface-secondary: var(--color-surface-alt);
 
   --color-text:           var(--_ink);
   --color-text-primary:   var(--_ink);
   --color-text-secondary: #4a4230;
-  --color-text-tertiary:  #766d55;
+  --color-text-tertiary:  #6f6a5f;
   --color-text-inverse:   var(--_ink);
 
-  --color-border:         #e4cc82;
-  --color-border-light:   #f2e4b4;
+  --color-border:         #e4dfd4;
+  --color-border-light:   #f0ede6;
 
   --color-accent:         var(--_brand-500);
   --color-accent-hover:   var(--_brand-600);
-  --color-accent-light:   #fff0bd;
+  --color-accent-light:   #fff8e8;
   --color-accent-soft:    var(--_brand-200);
 
   --color-reach:      var(--_red-500);
@@ -167,9 +167,7 @@
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
 body{
   font-family:var(--_font-sans);
-  background:
-    radial-gradient(circle at 20% -10%, rgba(201,154,18,.16), transparent 36%),
-    linear-gradient(180deg,#fffdf6 0%,var(--color-page) 48%,#fff2c8 100%);
+  background:var(--color-page);
   color:var(--color-text);
   line-height:var(--_leading-relaxed);
   -webkit-font-smoothing:antialiased;
