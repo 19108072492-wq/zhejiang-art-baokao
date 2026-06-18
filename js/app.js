@@ -282,10 +282,9 @@ function calc(){
     tierExplain.classList.add('hidden');
   }
 
-  // 数据来源卡片（完整版才展示）
+  // 数据来源说明公开展示
   var dsc=document.getElementById('dataSourceCard');
-  if(isPaidUser())dsc.classList.remove('hidden');
-  else dsc.classList.add('hidden');
+  if(dsc)dsc.classList.remove('hidden');
 
   const m=matchSchools(res.score,k,c,filteredPool);
   cur=m.results;window.__rec=m.rec20;

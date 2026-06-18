@@ -760,14 +760,20 @@ body{
 
 /* ===== DATA SOURCE CARD ===== */
 .data-source-card{
-  background:var(--color-accent-light);
+  background:var(--color-surface);
   border-radius:var(--_radius-md);padding:var(--_sp-4) var(--_sp-5);
   margin-top:var(--_sp-4);font-size:.72rem;color:var(--color-text-secondary);
-  border:1px solid rgba(5,5,5,.16);
-  line-height:1.8;
+  border:1px solid var(--color-border-light);
+  line-height:1.7;
 }
-.data-source-card h4{font-size:.82rem;font-weight:700;margin-bottom:var(--_sp-2);color:var(--color-text)}
+.data-source-card h4{font-size:.9rem;font-weight:800;margin-bottom:var(--_sp-1);color:var(--color-text)}
+.data-source-card .source-intro{font-size:.76rem;color:var(--color-text-secondary);margin-bottom:var(--_sp-3)}
 .data-source-card a{color:var(--color-accent);font-weight:600;text-decoration:underline;text-underline-offset:2px}
+.source-list{display:grid;gap:0;border-top:1px solid var(--color-border-light)}
+.source-row{display:grid;grid-template-columns:112px 1fr;gap:var(--_sp-3);padding:var(--_sp-3) 0;border-bottom:1px solid var(--color-border-light)}
+.source-row strong{color:var(--color-text);font-size:.74rem;line-height:1.5}
+.source-row span{color:var(--color-text-secondary);font-size:.72rem;line-height:1.65}
+@media(max-width:480px){.source-row{grid-template-columns:1fr;gap:2px}}
 
 /* ===== ADMIN USERS SECTION ===== */
 #adminUsers .ct tbody tr:nth-child(even) td{background:var(--color-surface-alt)}
@@ -1694,7 +1700,7 @@ html[data-theme="dark"] .si-data-table tr:nth-child(even),
     <div class="fil" id="filters"><button class="on" data-t="all">全部</button><button data-t="reach">🔴 冲刺</button><button data-t="match">🟡 稳妥</button><button data-t="safety">🟢 保底</button></div>
     <div class="slist" id="list"></div>
   </div>
-  <div class="data-source-card hidden" id="dataSourceCard"><h4>📖 数据与算法说明</h4><p>📊 <strong>综合分公式</strong>：依据浙江省教育考试院规定——<br>美术/音乐/舞蹈/表（导）演/书法类：文化总分×50% + 统考成绩×2.5×50%<br>播音与主持类：文化总分×80% + 统考成绩×2.5×20%</p><p style="margin-top:4px">🏫 <strong>院校数据</strong>：来自浙江省教育考试院历年艺术类录取数据，含综合分、位次、学费、计划数等关键信息。</p><p style="margin-top:4px">🎯 <strong>推荐算法</strong>：采用分差接近度、院校层次、数据可信度、省内优先、学费合理度五维度加权评分，科学平衡"能上"与"上好"。</p><p style="margin-top:4px">⚠️ <strong>免责声明</strong>：本工具仅供参考，不构成报考建议。最终填报请以 <a href="https://www.zjzs.net" target="_blank" rel="noopener">浙江省教育考试院 (zjzs.net)</a> 官方信息为准。预估分院校需谨慎填报。</p></div>
+  <div class="data-source-card" id="dataSourceCard"><h4>数据来源说明</h4><p class="source-intro">数据来源于非凡数据库，数据库资料由以下权威来源交叉整理构成。</p><div class="source-list"><div class="source-row"><strong>教育部与阳光高考</strong><span>招生政策、招生章程、院校库、专业目录、特殊类型招生、全国高校名单。</span></div><div class="source-row"><strong>省级考试院</strong><span>一分一段表、批次线、投档线、录取查询、志愿填报安排和本省招生政策。</span></div><div class="source-row"><strong>高校本科招生网</strong><span>招生章程、分省分专业招生计划、历年录取分数、学费住宿、转专业政策。</span></div><div class="source-row"><strong>高校公开资料</strong><span>就业质量报告、本科教学质量报告、信息公开年报、学院与专业官方介绍。</span></div></div></div>
   <div class="flt" id="floatBar"><span class="cnt">已选 <strong id="floatCnt">0</strong> 所学校</span><div style="display:flex;gap:8px"><button class="btn btn-g btn-sm" id="btnForm" disabled>📋 生成志愿单</button><button class="btn btn-o btn-sm" id="btnCmp" disabled>🔍 对比(<span id="cmpCnt">0</span>/4)</button><button class="btn btn-gh btn-sm" id="btnClr">清空</button></div></div>
   <!-- 悬浮快捷操作按钮 -->
   <div class="fab-container hidden" id="fabContainer">
@@ -1847,7 +1853,7 @@ html[data-theme="dark"] .si-data-table tr:nth-child(even),
   </div>
 </div>
 <script src="js/school-intros.js" defer></script>
-    <script src="js/app.js?v=27" defer></script>
+    <script src="js/app.js?v=28" defer></script>
     <script src="js/auth.js?v=13" defer></script>
 <!-- 编辑顾问弹窗 -->
 <div class="mod hidden" id="editAdvisorModal">
