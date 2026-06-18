@@ -2,3 +2,4 @@
 node_modules
 *.bak
 *.bak2
+.DS_Store

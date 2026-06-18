@@ -459,7 +459,9 @@ function updateFloat(){
   document.getElementById('btnForm').disabled=n===0;
   document.getElementById('btnCmp').disabled=n<2;
   document.getElementById('cmpCnt').textContent=Math.min(n,MAX_CMP);
-  document.getElementById('floatBar').classList.toggle('on',n>0);
+  var floatBar=document.getElementById('floatBar');
+  var wasOn=floatBar.classList.contains('on');
+  floatBar.classList.toggle('on',n>0);
   // 悬浮按钮同步
   var fab=document.getElementById('fabContainer');
   var badge=document.getElementById('fabBadge');
@@ -470,6 +472,17 @@ function updateFloat(){
   if(btnForm){btnForm.disabled=n===0;btnForm.style.opacity=n===0?'.4':'1';}
   if(btnCmp){btnCmp.disabled=n<2;btnCmp.style.opacity=n<2?'.4':'1';}
   if(btnClear2){btnClear2.disabled=n===0;btnClear2.style.opacity=n===0?'.4':'1';}
+  // 当首次有选择时，给主按钮加一个弹跳提示，增强桌面端可见性
+  var mainBtn=document.getElementById('fabMain');
+  if(mainBtn){
+    mainBtn.classList.toggle('has-sel',n>0);
+    if(n>0 && !wasOn){
+      mainBtn.classList.remove('attention');
+      void mainBtn.offsetWidth;
+      mainBtn.classList.add('attention');
+      setTimeout(function(){mainBtn.classList.remove('attention');},520);
+    }
+  }
   // 配置 fab 菜单项颜色为独立的样式，通过 disabled class 控制
   if(fab){} // keep fab container state
 }
@@ -483,20 +496,22 @@ function updateFloat(){
     var container=document.getElementById('fabContainer');
     if(!main||!menu||!container)return;
     var isOpen=false;
+    function closeFab(){isOpen=false;main.classList.remove('open');menu.classList.remove('on');}
     main.addEventListener('click',function(){
       isOpen=!isOpen;
       main.classList.toggle('open',isOpen);
       menu.classList.toggle('on',isOpen);
     });
-    // 菜单项点击后关闭
-    var fabForm=document.getElementById('fabForm');
-    var fabCmp=document.getElementById('fabCmp');
-    var fabExport=null; // 已移除导出Excel功能
-    var fabClear=document.getElementById('fabClear');
-    function closeFab(){isOpen=false;main.classList.remove('open');menu.classList.remove('on');}
-    if(fabForm)fabForm.addEventListener('click',function(){closeFab();if(sel.size>0)openForm();else toast('请先勾选学校',1);});
-    if(fabCmp)fabCmp.addEventListener('click',function(){closeFab();if(sel.size>=2)openCmp();else toast('至少选2所学校',1);});
-    if(fabClear)fabClear.addEventListener('click',function(){closeFab();sel.clear();updateFloat();__schoolSel.clear();renderSchoolBrowser();renderCards();toast('已清空');});
+    // 菜单项点击：整行（文字+图标）都可触发，通过 data-action 分发
+    menu.addEventListener('click',function(e){
+      var item=e.target.closest('.fab-menu-item');
+      if(!item) return;
+      var action=item.getAttribute('data-action');
+      closeFab();
+      if(action==='form'){if(sel.size>0)openForm();else toast('请先勾选学校',1);}
+      else if(action==='cmp'){if(sel.size>=2)openCmp();else toast('至少选2所学校',1);}
+      else if(action==='clear'){sel.clear();updateFloat();__schoolSel.clear();renderSchoolBrowser();renderCards();toast('已清空');}
+    });
     // 点击空白处关闭菜单
     document.addEventListener('click',function(e){
       if(isOpen && !container.contains(e.target)){closeFab();}

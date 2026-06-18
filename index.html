@@ -1298,55 +1298,100 @@ html[data-theme="dark"] .si-highlight,
   @page{margin:8mm;size:A4}
 }
 .fab-container{
-  position:fixed;bottom:100px;right:20px;z-index:140;
-  display:flex;flex-direction:column;align-items:center;gap:12px;
+  position:fixed;bottom:80px;right:28px;z-index:140;
+  display:flex;flex-direction:column;align-items:center;gap:14px;
+  filter:drop-shadow(0 6px 18px rgba(90,70,40,.22));
 }
 .fab-menu{
-  display:flex;flex-direction:column;align-items:center;gap:10px;
+  display:flex;flex-direction:column;align-items:center;gap:12px;
   opacity:0;pointer-events:none;
   transform:translateY(16px);
   transition:all .25s var(--_ease-out);
 }
 .fab-menu.on{opacity:1;pointer-events:auto;transform:translateY(0)}
 .fab-menu-item{
-  display:flex;align-items:center;gap:8px;
+  display:flex;align-items:center;gap:10px;
   white-space:nowrap;
+  cursor:pointer;
+  padding:4px 0;
+  -webkit-tap-highlight-color:transparent;
 }
+.fab-menu-item:hover .label{transform:translateX(-2px)}
+.fab-menu-item:hover .btn-fab{transform:scale(1.08)}
 .fab-menu-item .label{
-  font-size:.72rem;font-weight:600;color:#fff;
-  background:rgba(24,26,29,.88);padding:5px 12px;
+  font-size:.85rem;font-weight:700;color:#fff;
+  background:rgba(24,26,29,.9);padding:6px 14px;
   border-radius:var(--_radius-full);
   box-shadow:var(--_shadow-md);
+  cursor:pointer;
+  pointer-events:auto;
+  transition:transform .2s var(--_ease-out),background .2s var(--_ease-out);
 }
 .fab-menu-item .btn-fab{
-  width:42px;height:42px;border-radius:50%;
+  width:48px;height:48px;border-radius:50%;
   border:none;box-shadow:var(--_shadow-lg);
-  font-size:1rem;cursor:pointer;
+  font-size:1.1rem;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
   transition:all .2s var(--_ease-spring);
   flex-shrink:0;
 }
 .fab-menu-item .btn-fab:active{transform:scale(.9)}
 .fab-main{
-  width:52px;height:52px;border-radius:50%;
+  width:68px;height:68px;border-radius:50%;
   background:var(--color-accent);color:#fff;
-  border:none;box-shadow:0 4px 20px rgba(139,101,48,.35);
-  font-size:1.3rem;cursor:pointer;
+  border:2px solid rgba(255,255,255,.55);
+  box-shadow:0 6px 26px rgba(139,101,48,.42);
+  font-size:1.6rem;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
   transition:all .3s var(--_ease-spring);
   z-index:2;
+  position:relative;
+}
+.fab-main::after{
+  content:'';position:absolute;inset:-8px;border-radius:50%;
+  border:2px solid rgba(176,133,67,.35);
+  opacity:0;
+  transform:scale(0.85);
+  transition:opacity .3s var(--_ease-out),transform .3s var(--_ease-out);
+  pointer-events:none;
 }
 .fab-main.open{transform:rotate(45deg);background:var(--color-accent-hover)}
+.fab-main.open::after{opacity:1;transform:scale(1)}
 .fab-main:active{transform:scale(.9)}
+.fab-main.attention{animation:fab-attention .5s var(--_ease-spring)}
+.fab-main.has-sel{animation:fab-glow 2.2s ease-in-out infinite}
+@keyframes fab-attention{
+  0%{transform:scale(1)}
+  40%{transform:scale(1.12)}
+  60%{transform:scale(1.05)}
+  100%{transform:scale(1)}
+}
+@keyframes fab-glow{
+  0%,100%{box-shadow:0 6px 26px rgba(139,101,48,.42),0 0 0 0 rgba(176,133,67,.18)}
+  50%{box-shadow:0 8px 32px rgba(176,133,67,.55),0 0 0 8px rgba(176,133,67,0)}
+}
 .fab-badge{
-  position:absolute;top:-4px;right:-4px;
-  min-width:20px;height:20px;padding:0 5px;
-  border-radius:10px;font-size:.65rem;font-weight:700;
+  position:absolute;top:-5px;right:-5px;
+  min-width:22px;height:22px;padding:0 6px;
+  border-radius:11px;font-size:.72rem;font-weight:800;
   background:var(--_red-500);color:#fff;
   display:flex;align-items:center;justify-content:center;
   pointer-events:none;
+  box-shadow:0 2px 6px rgba(0,0,0,.2);
 }
-.fab-main .badge-wrap{position:relative;display:flex}
+.fab-main .badge-wrap{position:relative;display:flex;align-items:center;justify-content:center}
+.fab-main-wrap{position:relative;display:flex;align-items:center;justify-content:center}
+.fab-hint{
+  position:absolute;right:calc(100% + 10px);top:50%;
+  transform:translateY(-50%) translateX(6px);
+  font-size:.78rem;font-weight:700;white-space:nowrap;
+  background:rgba(255,255,255,.92);color:var(--color-text);
+  padding:5px 12px;border-radius:var(--_radius-full);
+  box-shadow:var(--_shadow-md);
+  opacity:0;pointer-events:none;
+  transition:opacity .2s var(--_ease-out),transform .2s var(--_ease-out);
+}
+.fab-main-wrap:hover .fab-hint{opacity:1;transform:translateY(-50%) translateX(0)}
 
 /* ===== RESPONSIVE UPDATES ===== */
 @media(max-width:640px){
@@ -1359,7 +1404,11 @@ html[data-theme="dark"] .si-highlight,
   .major-layout.expanded .major-left{max-height:0;padding:0}
   .ana-bignums{grid-template-columns:repeat(2,1fr)}
   .ana-grid-2{grid-template-columns:1fr}
-  .fab-container{bottom:90px;right:16px}
+  .fab-container{bottom:90px;right:16px;gap:12px}
+  .fab-main{width:60px;height:60px;font-size:1.4rem}
+  .fab-hint{font-size:.72rem;padding:4px 10px;right:calc(100% + 8px)}
+  .fab-menu-item .btn-fab{width:44px;height:44px;font-size:1rem}
+  .fab-menu-item .label{font-size:.78rem;padding:5px 12px}
   .gear{bottom:20px;right:20px;width:38px;height:38px;font-size:.9rem}
 }
 /* ===== 体验版精简卡片 ===== */
@@ -1611,13 +1660,16 @@ html[data-theme="dark"] .si-highlight,
   <!-- 悬浮快捷操作按钮 -->
   <div class="fab-container hidden" id="fabContainer">
     <div class="fab-menu" id="fabMenu">
-      <div class="fab-menu-item"><span class="label">📋 生成志愿单</span><button class="btn-fab" id="fabForm" style="background:var(--color-accent);color:#fff">📋</button></div>
-      <div class="fab-menu-item"><span class="label">🔍 院校对比</span><button class="btn-fab" id="fabCmp" style="background:var(--_orange-500);color:#fff">🔍</button></div>
-      <div class="fab-menu-item"><span class="label">🗑 清空选择</span><button class="btn-fab" id="fabClear" style="background:var(--_neutral-500);color:#fff">✕</button></div>
+      <div class="fab-menu-item" data-action="form"><span class="label">📋 生成志愿单</span><button class="btn-fab" id="fabForm" style="background:var(--color-accent);color:#fff">📋</button></div>
+      <div class="fab-menu-item" data-action="cmp"><span class="label">🔍 院校对比</span><button class="btn-fab" id="fabCmp" style="background:var(--_orange-500);color:#fff">🔍</button></div>
+      <div class="fab-menu-item" data-action="clear"><span class="label">🗑 清空选择</span><button class="btn-fab" id="fabClear" style="background:var(--_neutral-500);color:#fff">✕</button></div>
     </div>
-    <button class="fab-main" id="fabMain" title="快捷操作">
-      <span class="badge-wrap">+<span class="fab-badge hidden" id="fabBadge">0</span></span>
-    </button>
+    <div class="fab-main-wrap">
+      <button class="fab-main" id="fabMain" title="快捷操作">
+        <span class="badge-wrap">+<span class="fab-badge hidden" id="fabBadge">0</span></span>
+      </button>
+      <span class="fab-hint">快捷操作</span>
+    </div>
   </div>
   <div class="ft"><p>⚠️ 本工具仅供参考，不构成报考建议。最终填报请以浙江省教育考试院 (zjzs.net) 官方信息为准。</p><p>数据在浏览器本地处理，不会上传到任何服务器。</p></div>
 </div>
