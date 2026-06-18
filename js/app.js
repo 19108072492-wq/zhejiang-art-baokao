@@ -1585,43 +1585,230 @@ function renderSchoolIntros(){
   grid.innerHTML=html;
 }
 
-function siFormatMultiSection(text){
-  if(!text)return '';
-  var blocks=text.split(/\n\s*\n/);
-  var out='';
-  for(var b=0;b<blocks.length;b++){
-    var block=blocks[b].trim();
-    if(!block)continue;
-    var lines=block.split('\n').map(function(l){return l.trim();}).filter(function(l){return l;});
-    if(lines.length===0)continue;
-    // 检测表格：至少2行，每行有>=3个字段（2+空格分隔），且第一行不像列表或标题
-    var isTable=true;
-    var rows=[];
-    for(var i=0;i<lines.length;i++){
-      var cells=lines[i].split(/\s{2,}/).filter(function(c){return c.trim();});
-      // 排除列表项、纯标题、过长单字段
-      if(cells.length<3 || /^[一二三四五六七八九十\d]+[\.、]/.test(lines[i]) || /[:：]$/.test(lines[i]) || (cells.length===1 && lines[i].length>30)){
-        isTable=false;break;
+function siPreprocessTableText(text){
+  if(!text) return '';
+  var lines = text.split('\n');
+  var out = [];
+  for(var i = 0; i < lines.length; i++){
+    var line = lines[i].trim();
+    if(!line){
+      // 如果上一行看起来被截断，跳过空行继续合并
+      if(out.length > 0 && /[（(]$/.test(out[out.length-1])){
+        continue;
       }
-      rows.push(cells);
+      out.push('');
+      continue;
     }
-    if(isTable && rows.length>=2){
-      out+='<div class="si-table-wrap"><table class="si-data-table"><thead><tr>';
-      for(var j=0;j<rows[0].length;j++) out+='<th>'+esc(rows[0][j])+'</th>';
-      out+='</tr></thead><tbody>';
-      for(var i=1;i<rows.length;i++){
-        out+='<tr>';
-        for(var j=0;j<rows[i].length;j++) out+='<td>'+esc(rows[i][j])+'</td>';
-        out+='</tr>';
+    if(out.length > 0){
+      var prev = out[out.length-1];
+      // 如果上一行包含未闭合的括号，当前行合并到上一行
+      var openRound = (prev.match(/\(/g) || []).length;
+      var closeRound = (prev.match(/\)/g) || []).length;
+      var openCn = (prev.match(/（/g) || []).length;
+      var closeCn = (prev.match(/）/g) || []).length;
+      if(openRound > closeRound || openCn > closeCn){
+        out[out.length-1] = prev + ' ' + line;
+        continue;
       }
-      out+='</tbody></table></div>';
-    }else{
-      for(var i=0;i<lines.length;i++){
-        out+='<p>'+esc(lines[i])+'</p>';
+      // 当前行很短且以数字或右括号开头，通常是上一行被换行拆散的后半部分
+      if(line.length <= 6 && /^[）)\d]/.test(line)){
+        out[out.length-1] = prev + ' ' + line;
+        continue;
+      }
+      // 当前行以“…）”类前缀开头且没有数字，可能是上一行字段的换行续接
+      if(line.length <= 8 && /^[）)].*[）)]/.test(line)){
+        out[out.length-1] = prev + ' ' + line;
+        continue;
+      }
+    }
+    out.push(line);
+  }
+  return out.join('\n');
+}
+
+function siFormatMultiSection(text){
+  if(!text) return '';
+  text = siPreprocessTableText(text);
+  var blocks = text.split(/\n\s*\n/);
+  var out = '';
+  for(var b = 0; b < blocks.length; b++){
+    var block = blocks[b].trim();
+    if(!block) continue;
+    var lines = block.split('\n').map(function(l){return l.trim();}).filter(function(l){return l;});
+    if(lines.length === 0) continue;
+    var table = siTryParseTable(lines);
+    if(table){
+      out += '<div class="si-table-wrap"><table class="si-data-table">';
+      if(table.caption){
+        out += '<caption>' + esc(table.caption) + '</caption>';
+      }
+      for(var h = 0; h < table.headers.length; h++){
+        out += '<tr>';
+        for(var c = 0; c < table.headers[h].length; c++){
+          out += '<th>' + esc(table.headers[h][c]) + '</th>';
+        }
+        out += '</tr>';
+      }
+      for(var r = 0; r < table.rows.length; r++){
+        out += '<tr>';
+        for(var c = 0; c < table.rows[r].length; c++){
+          out += '<td>' + esc(table.rows[r][c]) + '</td>';
+        }
+        out += '</tr>';
+      }
+      out += '</table></div>';
+    } else {
+      for(var i = 0; i < lines.length; i++){
+        out += '<p>' + esc(lines[i]) + '</p>';
       }
     }
   }
   return out;
+}
+
+function siTryParseTable(lines){
+  if(lines.length < 2) return null;
+
+  var tableKeywords = /专业|计划|招生|录取|分数|综合分|位次|分数线|年份|校考|统考|科目|考试|时间|学制|学费|代码|方向|类别|最低|最高|合格|破格|成绩|名次|位次|满分|分值|画幅|时长|招考/;
+  var numericLike = /^\d+(\.\d+)?$/;
+  var digitLike = /\d/;
+
+  function splitCells(line){
+    var hasKeyword = tableKeywords.test(line);
+    var hasDigits = /\d/.test(line);
+    var hasCnPunct = /[，。：；！？、]/.test(line);
+    var words = line.trim().split(/\s+/).filter(function(c){return c.trim();});
+    // 如果有数字或表格关键词，且至少2个词，使用单空格分隔（优先识别表格数据，中文标点不影响）
+    if(words.length >= 2 && (hasDigits || hasKeyword)) return words;
+    // 否则使用 2+ 空格分隔
+    return line.split(/\s{2,}/).filter(function(c){return c.trim();});
+  }
+
+  var parsed = lines.map(function(line){ return splitCells(line); });
+
+  function isMeta(idx){
+    var line = lines[idx];
+    var cells = parsed[idx];
+    return /^[一二三四五六七八九十\d]+[\.、]/.test(line) ||
+           /[:：]$/.test(line) ||
+           /^注[：:：]?/.test(line) ||
+           (cells.length === 1 && line.length > 40 && !tableKeywords.test(line));
+  }
+
+  function isHeaderLine(idx){
+    if(isMeta(idx)) return false;
+    var line = lines[idx];
+    var cells = parsed[idx];
+    if(cells.length === 1 && tableKeywords.test(line)) return true;
+    if(tableKeywords.test(line) && cells.length >= 2) return true;
+    if(/\d{4}年|年份|时间|时段|阶段/.test(line) && cells.length <= 3) return true;
+    return false;
+  }
+
+  function isDataLine(idx){
+    if(isMeta(idx)) return false;
+    var cells = parsed[idx];
+    if(cells.length >= 3) return true;
+    if(cells.length >= 2 && cells.some(function(c){ return numericLike.test(c) || /^第?\d+名/.test(c) || /^\/$/.test(c); })) return true;
+    return false;
+  }
+
+  var startIdx = 0;
+  var caption = null;
+  if(parsed[0].length <= 2 && (lines[0].length <= 8 || !isHeaderLine(0)) && (lines.slice(1).some(function(_, i){ return isHeaderLine(i+1); }) || lines.slice(1).some(function(_, i){ return isDataLine(i+1); }))){
+    caption = lines[0];
+    startIdx = 1;
+  }
+
+  var headerEnd = startIdx;
+  var maxHeaderRows = 3;
+  for(var i = startIdx; i < Math.min(lines.length, startIdx + maxHeaderRows); i++){
+    if(isHeaderLine(i)){
+      headerEnd = i + 1;
+    } else {
+      break;
+    }
+  }
+
+  if(headerEnd === startIdx){
+    for(var i = startIdx; i < lines.length; i++){
+      if(isDataLine(i)){
+        headerEnd = i + 1;
+        break;
+      }
+    }
+  }
+
+  if(headerEnd >= lines.length) return null;
+
+  var dataRows = [];
+  for(var i = headerEnd; i < lines.length; i++){
+    if(isMeta(i)) break;
+    if(isDataLine(i)){
+      dataRows.push(parsed[i]);
+    } else if(parsed[i].length >= 2 && tableKeywords.test(lines[i])){
+      // 关键字行也可能是数据（如“统考专业录取数据”后的表头）
+      dataRows.push(parsed[i]);
+    } else {
+      break;
+    }
+  }
+  if(dataRows.length < 2) return null;
+
+  var headers = [];
+  for(var i = startIdx; i < headerEnd; i++){
+    headers.push(parsed[i]);
+  }
+
+  var targetCols = Math.max.apply(null, headers.concat(dataRows).map(function(r){return r.length;}));
+
+  // 如果表头有3行且其中一行是1列，把单列移到最前（通常对应“专业名称”）
+  if(headers.length === 3){
+    var oneColIdx = -1;
+    for(var i = 0; i < headers.length; i++){
+      if(headers[i].length === 1) { oneColIdx = i; break; }
+    }
+    if(oneColIdx > 0){
+      var oneCol = headers.splice(oneColIdx, 1)[0];
+      headers.unshift(oneCol);
+    }
+  }
+
+  // 合并长度相同且互补的连续表头行
+  if(headers.length >= 2){
+    var merged = [headers[0]];
+    for(var i = 1; i < headers.length; i++){
+      var prev = merged[merged.length - 1];
+      var curr = headers[i];
+      if(prev.length === curr.length && prev.length > 0){
+        var combined = [];
+        for(var c = 0; c < prev.length; c++){
+          var a = prev[c].trim();
+          var b = curr[c].trim();
+          if(a && b && a.length < 14 && b.length < 14 && !/[：:]$/.test(a) && !/^[（(]/.test(b)){
+            combined.push(a + b);
+          } else {
+            combined.push(a || b);
+          }
+        }
+        merged[merged.length - 1] = combined;
+      } else {
+        merged.push(curr);
+      }
+    }
+    headers = merged;
+  }
+
+  headers = headers.map(function(r){
+    while(r.length < targetCols) r.push('');
+    return r;
+  });
+  dataRows = dataRows.map(function(r){
+    while(r.length < targetCols) r.push('');
+    return r;
+  });
+
+  return { caption: caption, headers: headers, rows: dataRows };
 }
 
 // ===== 院校介绍：打开详情弹窗 =====
