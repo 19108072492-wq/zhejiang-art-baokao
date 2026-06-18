@@ -282,7 +282,7 @@ function calc(){
     tierExplain.classList.add('hidden');
   }
 
-  // 数据来源说明公开展示
+  // 首页 FAQ 公开展示
   var dsc=document.getElementById('dataSourceCard');
   if(dsc)dsc.classList.remove('hidden');
 

@@ -758,22 +758,23 @@ body{
 .ft{text-align:center;padding:var(--_sp-5);font-size:.72rem;color:var(--color-text-tertiary);border-top:1px solid var(--color-border-light);margin-top:var(--_sp-2)}
 .ft p+p{margin-top:var(--_sp-1)}
 
-/* ===== DATA SOURCE CARD ===== */
-.data-source-card{
-  background:var(--color-surface);
-  border-radius:var(--_radius-md);padding:var(--_sp-4) var(--_sp-5);
-  margin-top:var(--_sp-4);font-size:.72rem;color:var(--color-text-secondary);
-  border:1px solid var(--color-border-light);
-  line-height:1.7;
+/* ===== FAQ ===== */
+.faq-section{
+  margin-top:var(--_sp-5);
+  padding:0 0 var(--_sp-2);
 }
-.data-source-card h4{font-size:.9rem;font-weight:800;margin-bottom:var(--_sp-1);color:var(--color-text)}
-.data-source-card .source-intro{font-size:.76rem;color:var(--color-text-secondary);margin-bottom:var(--_sp-3)}
-.data-source-card a{color:var(--color-accent);font-weight:600;text-decoration:underline;text-underline-offset:2px}
-.source-list{display:grid;gap:0;border-top:1px solid var(--color-border-light)}
-.source-row{display:grid;grid-template-columns:112px 1fr;gap:var(--_sp-3);padding:var(--_sp-3) 0;border-bottom:1px solid var(--color-border-light)}
-.source-row strong{color:var(--color-text);font-size:.74rem;line-height:1.5}
-.source-row span{color:var(--color-text-secondary);font-size:.72rem;line-height:1.65}
-@media(max-width:480px){.source-row{grid-template-columns:1fr;gap:2px}}
+.faq-section h4{font-size:1.1rem;font-weight:800;color:var(--color-text);margin-bottom:var(--_sp-3)}
+.faq-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--_sp-3)}
+.faq-card{
+  background:var(--color-surface);
+  border:1px solid var(--color-border-light);
+  border-radius:var(--_radius-lg);
+  padding:var(--_sp-5);
+  box-shadow:var(--_shadow-xs);
+}
+.faq-card strong{display:block;font-size:.86rem;color:var(--color-text);margin-bottom:var(--_sp-2);line-height:1.45}
+.faq-card p{font-size:.78rem;color:var(--color-text-secondary);line-height:1.75}
+@media(max-width:760px){.faq-grid{grid-template-columns:1fr}.faq-card{padding:var(--_sp-4)}}
 
 /* ===== ADMIN USERS SECTION ===== */
 #adminUsers .ct tbody tr:nth-child(even) td{background:var(--color-surface-alt)}
@@ -1336,7 +1337,7 @@ html[data-theme="dark"] .si-data-table tr:nth-child(even),
   body *{visibility:hidden}
   .mod-pn,.mod-pn *{visibility:visible}
   .mod-pn{position:absolute;left:0;top:0;width:100%;max-width:100%!important;box-shadow:none!important;border:none!important;padding:10px 16px!important}
-  .mhdr,.fab-container,.gear,.hdr,.ft,.flt,.float-bar,.sbar,.sch,.data-source-card{display:none!important}
+  .mhdr,.fab-container,.gear,.hdr,.ft,.flt,.float-bar,.sbar,.sch,.faq-section{display:none!important}
   .vsec table{font-size:11pt!important;page-break-inside:avoid}
   .vsec table th{background:#f0f0f0!important;color:#333!important}
   .vsec h3{font-size:12pt!important;color:#333!important}
@@ -1700,7 +1701,7 @@ html[data-theme="dark"] .si-data-table tr:nth-child(even),
     <div class="fil" id="filters"><button class="on" data-t="all">全部</button><button data-t="reach">🔴 冲刺</button><button data-t="match">🟡 稳妥</button><button data-t="safety">🟢 保底</button></div>
     <div class="slist" id="list"></div>
   </div>
-  <div class="data-source-card" id="dataSourceCard"><h4>数据来源说明</h4><p class="source-intro">数据来源于非凡数据库，数据库资料由以下权威来源交叉整理构成。</p><div class="source-list"><div class="source-row"><strong>教育部与阳光高考</strong><span>招生政策、招生章程、院校库、专业目录、特殊类型招生、全国高校名单。</span></div><div class="source-row"><strong>省级考试院</strong><span>一分一段表、批次线、投档线、录取查询、志愿填报安排和本省招生政策。</span></div><div class="source-row"><strong>高校本科招生网</strong><span>招生章程、分省分专业招生计划、历年录取分数、学费住宿、转专业政策。</span></div><div class="source-row"><strong>高校公开资料</strong><span>就业质量报告、本科教学质量报告、信息公开年报、学院与专业官方介绍。</span></div></div></div>
+  <section class="faq-section" id="dataSourceCard"><h4>FAQ</h4><div class="faq-grid"><div class="faq-card"><strong>小凡报考神器能做什么？</strong><p>它会根据考生省份、科类、分数、位次、目标学校、目标专业和风险偏好，生成冲稳保候选学校、专业建议、录取风险和需要核验的数据来源。</p></div><div class="faq-card"><strong>这个工具会替我填报志愿吗？</strong><p>不会。它只提供报考分析、风险判断和核验建议，不会替用户登录志愿填报系统，也不会提交、修改或确认志愿。</p></div><div class="faq-card"><strong>数据来源权威吗？</strong><p>数据来源于非凡数据库，资料由教育部与阳光高考、省级考试院、高校本科招生网、高校信息公开与质量报告等权威来源交叉整理构成。</p></div></div></section>
   <div class="flt" id="floatBar"><span class="cnt">已选 <strong id="floatCnt">0</strong> 所学校</span><div style="display:flex;gap:8px"><button class="btn btn-g btn-sm" id="btnForm" disabled>📋 生成志愿单</button><button class="btn btn-o btn-sm" id="btnCmp" disabled>🔍 对比(<span id="cmpCnt">0</span>/4)</button><button class="btn btn-gh btn-sm" id="btnClr">清空</button></div></div>
   <!-- 悬浮快捷操作按钮 -->
   <div class="fab-container hidden" id="fabContainer">
