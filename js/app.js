@@ -1606,17 +1606,17 @@ function siPreprocessTableText(text){
       var closeRound = (prev.match(/\)/g) || []).length;
       var openCn = (prev.match(/（/g) || []).length;
       var closeCn = (prev.match(/）/g) || []).length;
-      if(openRound > closeRound || openCn > closeCn){
+      if(prev && (openRound > closeRound || openCn > closeCn)){
         out[out.length-1] = prev + ' ' + line;
         continue;
       }
       // 当前行很短且以数字或右括号开头，通常是上一行被换行拆散的后半部分
-      if(line.length <= 6 && /^[）)\d]/.test(line)){
+      if(prev && line.length <= 6 && /^[）)\d]/.test(line)){
         out[out.length-1] = prev + ' ' + line;
         continue;
       }
       // 当前行以“…）”类前缀开头且没有数字，可能是上一行字段的换行续接
-      if(line.length <= 8 && /^[）)].*[）)]/.test(line)){
+      if(prev && line.length <= 8 && /^[）)].*[）)]/.test(line)){
         out[out.length-1] = prev + ' ' + line;
         continue;
       }
@@ -1699,6 +1699,10 @@ function siTryParseTable(lines){
     if(isMeta(idx)) return false;
     var line = lines[idx];
     var cells = parsed[idx];
+    var yearLike = /^\d{4}$|^\d{2,4}年/;
+    // 如果一行包含非年份数字单元格（如“69人”“500人”），更可能是数据行而非表头
+    var valueCells = cells.filter(function(c){ return digitLike.test(c) && !yearLike.test(c); }).length;
+    if(cells.length >= 2 && valueCells >= 1) return false;
     if(cells.length === 1 && tableKeywords.test(line)) return true;
     if(tableKeywords.test(line) && cells.length >= 2) return true;
     if(/\d{4}年|年份|时间|时段|阶段/.test(line) && cells.length <= 3) return true;
@@ -1709,7 +1713,7 @@ function siTryParseTable(lines){
     if(isMeta(idx)) return false;
     var cells = parsed[idx];
     if(cells.length >= 3) return true;
-    if(cells.length >= 2 && cells.some(function(c){ return numericLike.test(c) || /^第?\d+名/.test(c) || /^\/$/.test(c); })) return true;
+    if(cells.length >= 2 && cells.some(function(c){ return numericLike.test(c) || digitLike.test(c) || /^第?\d+名/.test(c) || /^\/$/.test(c); })) return true;
     return false;
   }
 
