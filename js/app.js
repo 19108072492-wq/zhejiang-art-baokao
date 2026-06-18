@@ -1257,7 +1257,11 @@ function switchTab(tabName){
     }
   }
   // 渲染内容
-  if(tabName==='dashboard')renderDashboard();
+  if(tabName==='dashboard'){
+    renderDashboard();
+    var faq=document.getElementById('dataSourceCard');
+    if(faq)faq.classList.remove('hidden');
+  }
   else if(tabName==='schoolBrowser'){initSchoolSubTabs();renderSchoolBrowser();}
   else if(tabName==='majorBrowser')renderMajorBrowser();
   else if(tabName==='analysisView')renderDataAnalysis();
