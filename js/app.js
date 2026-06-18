@@ -1585,6 +1585,45 @@ function renderSchoolIntros(){
   grid.innerHTML=html;
 }
 
+function siFormatMultiSection(text){
+  if(!text)return '';
+  var blocks=text.split(/\n\s*\n/);
+  var out='';
+  for(var b=0;b<blocks.length;b++){
+    var block=blocks[b].trim();
+    if(!block)continue;
+    var lines=block.split('\n').map(function(l){return l.trim();}).filter(function(l){return l;});
+    if(lines.length===0)continue;
+    // 检测表格：至少2行，每行有>=3个字段（2+空格分隔），且第一行不像列表或标题
+    var isTable=true;
+    var rows=[];
+    for(var i=0;i<lines.length;i++){
+      var cells=lines[i].split(/\s{2,}/).filter(function(c){return c.trim();});
+      // 排除列表项、纯标题、过长单字段
+      if(cells.length<3 || /^[一二三四五六七八九十\d]+[\.、]/.test(lines[i]) || /[:：]$/.test(lines[i]) || (cells.length===1 && lines[i].length>30)){
+        isTable=false;break;
+      }
+      rows.push(cells);
+    }
+    if(isTable && rows.length>=2){
+      out+='<div class="si-table-wrap"><table class="si-data-table"><thead><tr>';
+      for(var j=0;j<rows[0].length;j++) out+='<th>'+esc(rows[0][j])+'</th>';
+      out+='</tr></thead><tbody>';
+      for(var i=1;i<rows.length;i++){
+        out+='<tr>';
+        for(var j=0;j<rows[i].length;j++) out+='<td>'+esc(rows[i][j])+'</td>';
+        out+='</tr>';
+      }
+      out+='</tbody></table></div>';
+    }else{
+      for(var i=0;i<lines.length;i++){
+        out+='<p>'+esc(lines[i])+'</p>';
+      }
+    }
+  }
+  return out;
+}
+
 // ===== 院校介绍：打开详情弹窗 =====
 function openSiDetail(idx){
   var result=getSiFilteredList();
@@ -1626,7 +1665,31 @@ function openSiDetail(idx){
   // Dorm
   var dormHtml='';
   if(s.dorm){
-    dormHtml='<div class="si-detail-section"><div class="si-detail-section-title">🏠 宿舍条件</div><div class="si-detail-dorm">'+esc(s.dorm)+'</div></div>';
+    dormHtml='<div class="si-detail-section"><div class="si-detail-section-title">🏠 宿舍条件</div><div class="si-detail-dorm">'+siFormatMultiSection(s.dorm)+'</div></div>';
+  }
+
+  // Subjects
+  var subjectsHtml='';
+  if(s.subjects){
+    subjectsHtml='<div class="si-detail-section"><div class="si-detail-section-title">📝 考试科目</div><div class="si-detail-subjects">'+siFormatMultiSection(s.subjects)+'</div></div>';
+  }
+
+  // Plans
+  var plansHtml='';
+  if(s.plans){
+    plansHtml='<div class="si-detail-section"><div class="si-detail-section-title">📊 招生计划</div><div class="si-detail-plans">'+siFormatMultiSection(s.plans)+'</div></div>';
+  }
+
+  // Scores
+  var scoresHtml='';
+  if(s.scores){
+    scoresHtml='<div class="si-detail-section"><div class="si-detail-section-title">📈 录取分数</div><div class="si-detail-scores">'+siFormatMultiSection(s.scores)+'</div></div>';
+  }
+
+  // Guides
+  var guidesHtml='';
+  if(s.guides){
+    guidesHtml='<div class="si-detail-section"><div class="si-detail-section-title">🎯 报考指导</div><div class="si-detail-guides">'+siFormatMultiSection(s.guides)+'</div></div>';
   }
 
   // Web link
@@ -1646,6 +1709,10 @@ function openSiDetail(idx){
       '<div class="si-detail-section"><div class="si-detail-section-title">📖 院校简介</div><div class="si-detail-intro">'+esc(introText)+'</div></div>'+
       chipsHtml+
       dormHtml+
+      subjectsHtml+
+      plansHtml+
+      scoresHtml+
+      guidesHtml+
       webHtml+
     '</div>';
   document.getElementById('siDetailModal').classList.remove('hidden');

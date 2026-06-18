@@ -1015,6 +1015,18 @@ html[data-theme="dark"] .toast,
 .si-detail-body .si-detail-chip{display:inline-flex;align-items:center;gap:3px;padding:4px 10px;background:var(--color-surface-alt);border:1px solid var(--color-border-light);border-radius:var(--_radius-full);font-size:.74rem;color:var(--color-text-secondary);white-space:nowrap}
 .si-detail-body .si-detail-chip .si-chip-icon{font-size:.8rem}
 .si-detail-body .si-detail-dorm{font-size:.78rem;color:var(--color-text-secondary);line-height:1.75;background:var(--color-surface-alt);padding:10px 14px;border-radius:var(--_radius-md);white-space:pre-line}
+.si-detail-body .si-detail-subjects,.si-detail-body .si-detail-plans,.si-detail-body .si-detail-scores,.si-detail-body .si-detail-guides{font-size:.78rem;color:var(--color-text-secondary);line-height:1.75}
+.si-detail-body .si-detail-subjects p,.si-detail-body .si-detail-plans p,.si-detail-body .si-detail-scores p,.si-detail-body .si-detail-guides p{margin:0 0 8px}
+.si-detail-body .si-detail-subjects p:last-child,.si-detail-body .si-detail-plans p:last-child,.si-detail-body .si-detail-scores p:last-child,.si-detail-body .si-detail-guides p:last-child{margin-bottom:0}
+.si-table-wrap{width:100%;overflow-x:auto;margin:8px 0 12px;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--color-border) transparent;border-radius:var(--_radius-md);border:1px solid var(--color-border-light)}
+.si-table-wrap::-webkit-scrollbar{height:4px}
+.si-table-wrap::-webkit-scrollbar-thumb{background:var(--color-border);border-radius:2px}
+.si-data-table{width:100%;border-collapse:collapse;font-size:.72rem;min-width:480px}
+.si-data-table th,.si-data-table td{padding:7px 9px;text-align:left;border-bottom:1px solid var(--color-border-light);vertical-align:top;white-space:nowrap}
+.si-data-table th{background:var(--color-surface-alt);font-weight:700;color:var(--color-text);position:sticky;top:0;z-index:1}
+.si-data-table td{color:var(--color-text-secondary)}
+.si-data-table tr:last-child td{border-bottom:none}
+.si-data-table tr:nth-child(even){background:rgba(0,0,0,.02)}
 .si-detail-body .si-detail-weblink{display:inline-flex;align-items:center;gap:5px;font-size:.78rem;color:var(--color-accent);text-decoration:none;font-weight:600;padding:6px 14px;border:1px solid var(--color-accent);border-radius:var(--_radius-sm);transition:all var(--_dur-fast)}
 .si-detail-body .si-detail-weblink:hover{background:var(--color-accent);color:#fff}
 
@@ -1028,6 +1040,12 @@ html[data-theme="dark"] .si-mini-card,
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .si-mini-card{background:var(--color-surface)}}
 html[data-theme="dark"] .si-highlight,
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .si-highlight{background:rgba(212,184,122,.18)}}
+html[data-theme="dark"] .si-data-table th,
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .si-data-table th{background:var(--color-surface);color:var(--color-text)}}
+html[data-theme="dark"] .si-data-table td,
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .si-data-table td{color:var(--color-text-secondary)}}
+html[data-theme="dark"] .si-data-table tr:nth-child(even),
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .si-data-table tr:nth-child(even){background:rgba(255,255,255,.03)}}
 
 /* Responsive */
 @media(max-width:640px){
