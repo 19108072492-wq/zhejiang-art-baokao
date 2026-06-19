@@ -71,9 +71,18 @@ function filterBySubcat(records,subcatKey){
   });
 }
 
-function loadData(k){if(window.__D__&&window.__D__[k])return window.__D__[k];console.warn('[Core] 数据尚未加载: '+k+'，返回空数组');return[];}
-function saveData(k,d){localStorage.setItem('zjyk_'+k,JSON.stringify(d));}
-function clearData(k){localStorage.removeItem('zjyk_'+k);}
+function loadData(k){
+  var stored=localStorage.getItem('zjyk_'+k);
+  if(stored!==null){
+    try{return JSON.parse(stored);}catch(e){console.warn('[Core] localStorage 数据解析失败: '+k,e);}
+  }
+  if(window.__D__&&window.__D__[k])return window.__D__[k];
+  console.warn('[Core] 数据尚未加载: '+k+'，返回空数组');
+  return[];
+}
+function saveData(k,d){localStorage.setItem('zjyk_'+k,JSON.stringify(d));clearAllRecordsCache();}
+function clearData(k){localStorage.setItem('zjyk_'+k,'[]');clearAllRecordsCache();}
+function clearAllRecordsCache(){try{sessionStorage.removeItem('zjyk_all_records_v2');}catch(e){}}
 function totalCount(){let s=0;CATS.forEach(c=>s+=loadData(c.k).length);return s;}
 
 // ===== 省份/城市筛选 =====
