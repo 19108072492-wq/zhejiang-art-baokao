@@ -1039,48 +1039,103 @@ async function up(input){
   const k=input.dataset.art,p=document.getElementById('p-'+k);
   p.textContent='⏳ 解析中...';
   try{
-    const X=window.XLSX;if(!X){p.textContent='❌ 组件未加载';return;}
+    const X=window.XLSX;if(!X){p.textContent='❌ XLSX 组件未加载';return;}
     let all=[];
     for(const f of fs){
       const buf=await f.arrayBuffer(),wb=X.read(buf,{type:'array'});
       for(const sn of wb.SheetNames){
         const rows=X.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:''});
-        all.push(...parseRows(rows,sn));
+        const parsed=parseRows(rows,sn);
+        if(parsed.length===0){
+          console.warn('[up] 工作表未识别表头:',sn,rows.slice(0,5));
+        }
+        all.push(...parsed);
       }
     }
+    if(!all.length){p.textContent='❌ 未识别到数据（请检查表头/工作表）';input.value='';return;}
     const map=new Map();
-    for(const r of all){const k=r.schoolName+'|'+r.majorName+'|'+r.compositeScore;if(!map.has(k))map.set(k,r);}
-    const fi=[...map.values()];saveData(k,fi);
+    for(const r of all){const key=r.schoolName+'|'+r.majorName+'|'+r.compositeScore+'|'+r.majorCode;if(!map.has(key))map.set(key,r);}
+    const fi=[...map.values()].map(r=>{r.catKey=k;r.rawCategory=CATS.find(c=>c.k===k)?.l||'';return r;});
+    saveData(k,fi);
     p.textContent=`✅ ${fs.length}文件→${fi.length}条`;
-    renderAdmin();toast(`✅ ${fi.length}条`);
-  }catch(e){p.textContent='❌ (数据格式错误)';}
+    renderAdmin();toast(`✅ ${fi.length}条已导入${CATS.find(c=>c.k===k)?.l||''}`);
+  }catch(e){
+    console.error('[up] 上传失败:',e);
+    p.textContent='❌ 解析失败：'+e.message;
+  }
   input.value='';
 }
 
 function parseRows(rows,sn){
-  const markers=['院校','专业','学费','综合分','位次','计划数','招生数','省份','城市','宿舍','校区','软科','培养','课程','备注','科类','方向','代码','名称'];
-  const isH=r=>{const t=r.map(c=>String(c||'')).join(' ').toLowerCase();return markers.filter(m=>t.includes(m)).length>=3;};
+  if(!rows||rows.length<2)return[];
+  const kw={
+    schoolCode:['院校代码','学校代码'],
+    schoolName:['院校名称','学校名称','院校','学校'],
+    majorCode:['专业代码','专业编号'],
+    majorName:['专业名称','专业（大类','专业'],
+    province:['省份','省市'],
+    city:['城市','市'],
+    schoolType:['公办','民办','独立学院','985','211','双一流','省重点'],
+    tuition:['学费','收费标准'],
+    dorm:['宿舍','住宿'],
+    campus:['校区','地址','所在校区','具体地址'],
+    plan24:['25计划数','25届计划数','25届招生数','去年计划数','招生计划25'],
+    plan25:['26计划数','26届计划数','26届招生数','今年计划数','计划数','招生数'],
+    compositeScore:['综合分','25届综合分','26届综合分','录取分','最低分','投档线'],
+    rankLevel:['软科实力等级','软科实力排名','软科','专业排名'],
+    scoreLineReq:['小分线','小分','选课要求','选课','要求','身高','专业要求','身体条件','单科要求'],
+    rankPosition:['位次号','位次','25届位次','26届位次','最低位次'],
+    note:['国家级/省级一流本科专业','一流专业','硕士点','二级学院','中外合作','是否有一级学科','备注','特殊备注'],
+    courseGuide:['专业导向','课程设置','课程','专业课程'],
+    talentGoal:['培养人才目标','培养目标','培养','人才目标'],
+    subCategory:['科类方向名称','科类','方向','科类方向','专业方向']
+  };
+  const headerMarkers=['院校','专业','学费','综合分','位次','计划数','招生数','省份','城市','宿舍','校区','软科','培养','课程','备注','科类','方向','代码','名称','小分','选课','硕士点','二级学院','一流专业','具体要求','录取分','最低分'];
+  const isH=r=>{
+    if(!r||r.every(c=>!String(c).trim()))return false;
+    const t=r.map(c=>String(c||'').trim()).join(' ').toLowerCase();
+    const hit=headerMarkers.filter(m=>t.includes(m)).length;
+    return hit>=3;
+  };
   let hi=-1,mapping=null;
-  for(let i=0;i<Math.min(5,rows.length);i++){
+  for(let i=0;i<Math.min(8,rows.length);i++){
     if(isH(rows[i])){
-      mapping=rows[i].map(c=>{const raw=String(c||'').trim();if(!raw)return null;const kw={schoolCode:['院校代码'],schoolName:['院校名称'],majorCode:['专业代码'],majorName:['专业名称'],city:['省份和城市','省份城市','省份','城市'],schoolType:['985','211','双一流','公办','民办','独立学院'],tuition:['学费'],dorm:['宿舍'],campus:['校区'],plan24:['24计划数','24届计划数','24届招生数'],plan25:['25计划数','25届计划数','25届招生数'],compositeScore:['综合分','预估综合分','预估分','预估分数','25届预估综合分','25届预估分数'],rankLevel:['软科实力排名','软科'],scoreLineReq:['分数线','小分','选课','要求'],rankPosition:['位次号','位次'],note:['备注','特殊备注'],courseGuide:['课程','专业导向'],talentGoal:['培养','人才目标'],subCategory:['科类','方向']};let bf=null,bs=0;for(const[f,ks]of Object.entries(kw))for(const k of ks)if(raw.includes(k)&&k.length>bs){bs=k.length;bf=f;}return bf;});
-      if(mapping.filter(m=>m).length>=4){hi=i;break;}
+      const tmp=rows[i].map(c=>{const raw=String(c||'').trim();if(!raw)return null;let bf=null,bs=0;for(const[f,ks]of Object.entries(kw))for(const k of ks){if(raw.includes(k)&&k.length>bs){bs=k.length;bf=f;}}return bf;});
+      if(tmp.filter(m=>m).length>=4){hi=i;mapping=tmp;break;}
     }
   }
   if(hi===-1)return[];
-  const res=[],isSus='停招' in sn,isNew='新增' in sn||'预估' in sn;
-  const numCols=new Set(['tuition','plan24','plan25','compositeScore','rankPosition','rankLevel']);
+  const res=[],isSus=/停招/.test(sn),isNew=/新增|预估/.test(sn);
+  const numCols=new Set(['tuition','plan24','plan25','compositeScore','rankPosition']);
   for(let r=hi+1;r<rows.length;r++){
     const row=rows[r];if(!row||row.every(c=>!String(c).trim()))continue;
     const obj={scoreSource:isNew?'estimated':'actual',rawCategory:'',isSuspended:isSus,isNew};
-    for(let i=0;i<mapping.length;i++){const f=mapping[i];if(!f)continue;let v=row[i];if(v===undefined||v===null)continue;const sv=String(v).trim();if(!sv)continue;if(numCols.has(f)){const clean=sv.replace(/[,，元/年\s]/g,'');const n=parseFloat(clean);obj[f]=isNaN(n)?sv:n;}else obj[f]=sv;}
+    for(let i=0;i<mapping.length;i++){
+      const f=mapping[i];if(!f)continue;
+      let v=row[i];if(v===undefined||v===null)continue;
+      const sv=String(v).trim();if(!sv)continue;
+      if(f==='province'){obj.province=sv;continue;}
+      if(numCols.has(f)){
+        const clean=sv.replace(/[,，元/年\s]/g,'').replace(/[（(].*?[）)]/g,'');
+        const n=parseFloat(clean);
+        obj[f]=isNaN(n)?sv:n;
+      }else{
+        obj[f]=sv;
+      }
+    }
     if(!obj.schoolName)continue;
+    // 合并省份到城市字段
+    if(obj.province){
+      obj.city=(obj.province.replace(/省|市$/,'')+(obj.city||'')).trim();
+      delete obj.province;
+    }
     if(!obj.schoolCode)obj.schoolCode='PS'+String(Math.abs(hs(obj.schoolName))%10000).padStart(4,'0');
     if(obj.tuition&&obj.tuition<10)obj.tuition*=10000;
     if(obj.compositeScore===0||obj.compositeScore==='无')obj.compositeScore=null;
     const st=obj.schoolType||'';
     obj.is985=/985/.test(st);obj.is211=/211/.test(st);obj.isDoubleFirst=/双一流/.test(st);
-    obj.isPublic=/公办/.test(st)&&!/民办/.test(st);obj.isPrivate=/民办/.test(st)||/独立学院/.test(st);
+    obj.isPublic=/公办|省重点/.test(st)&&!/民办/.test(st);obj.isPrivate=/民办/.test(st)||/独立学院/.test(st);
+    obj.isProvincial=/省重点/.test(st);
     res.push(obj);
   }
   return res;
