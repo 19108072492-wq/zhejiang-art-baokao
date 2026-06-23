@@ -13,7 +13,17 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('cat').addEventListener('change',updateSubCatUI);
   document.getElementById('btnGear').addEventListener('click',()=>document.getElementById('lockModal').classList.remove('hidden'));
   document.getElementById('btnUnlock').addEventListener('click',()=>{
-    if(document.getElementById('pwdInput').value==='ffjyyyds123456'){window.__adminAccess=true;document.getElementById('lockModal').classList.add('hidden');document.getElementById('adminModal').classList.remove('hidden');renderAdmin();showAdminSection('data');}
+    if(document.getElementById('pwdInput').value==='ffjyyyds123456'){
+      window.__adminAccess=true;
+      document.getElementById('lockModal').classList.add('hidden');
+      document.getElementById('adminModal').classList.remove('hidden');
+      if(typeof isCoreDataLoaded==='function'&&!isCoreDataLoaded()){
+        toast('正在加载管理数据，请稍候...');
+        ensureCoreDataLoaded().then(function(){renderAdmin();showAdminSection('data');}).catch(function(){toast('管理数据加载失败，请刷新重试',1);});
+      }else{
+        renderAdmin();showAdminSection('data');
+      }
+    }
     else toast('密码错误',1);
   });
   document.getElementById('btnLockCancel').addEventListener('click',()=>document.getElementById('lockModal').classList.add('hidden'));
@@ -77,7 +87,6 @@ document.addEventListener('DOMContentLoaded',()=>{
     curSort=this.value;renderCards();
   });
   document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!['adminModal','lockModal'].some(id=>!document.getElementById(id).classList.contains('hidden')))calc();});
-  renderAdmin();
 });
 
 // ===== 结果区省份/城市筛选 =====
@@ -193,6 +202,11 @@ function getSubcatLabel(catKey,subcatKey){
 }
 
 function calc(){
+  if(typeof isCoreDataLoaded==='function'&&!isCoreDataLoaded()){
+    toast('正在加载院校数据，请稍候...');
+    ensureCoreDataLoaded().then(function(){calc();}).catch(function(){toast('数据加载失败，请检查网络后刷新',1);});
+    return;
+  }
   // 检查是否已登录（未登录提示登录）
   if(!__isLoggedIn){
     toast('请先登录后使用智能填报功能',1);
@@ -1004,9 +1018,28 @@ function saveNewRecord(){
 }
 
 // ===== 导出 Excel =====
+var __xlsxLoadPromise=null;
+function ensureXlsxLoaded(){
+  if(window.XLSX)return Promise.resolve(window.XLSX);
+  if(__xlsxLoadPromise)return __xlsxLoadPromise;
+  __xlsxLoadPromise=new Promise(function(resolve,reject){
+    var s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.onload=function(){window.XLSX?resolve(window.XLSX):reject(new Error('XLSX组件加载失败'));};
+    s.onerror=function(){__xlsxLoadPromise=null;reject(new Error('XLSX组件加载失败'));};
+    document.head.appendChild(s);
+  });
+  return __xlsxLoadPromise;
+}
+
 function exportExcel(){
   const selected=[...sel.values()];
   if(!selected.length)return toast('请先勾选学校',1);
+  if(!window.XLSX){
+    toast('正在加载导出组件，请稍候...');
+    ensureXlsxLoaded().then(exportExcel).catch(function(){toast('导出组件加载失败，请检查网络',1);});
+    return;
+  }
   const X=window.XLSX;
   if(!X){toast('XLSX组件未加载，请检查网络',1);return;}
   const rows=selected.map(r=>({
@@ -1039,6 +1072,10 @@ async function up(input){
   const k=input.dataset.art,p=document.getElementById('p-'+k);
   p.textContent='⏳ 解析中...';
   try{
+    if(!window.XLSX){
+      p.textContent='⏳ 加载 XLSX 组件...';
+      await ensureXlsxLoaded();
+    }
     const X=window.XLSX;if(!X){p.textContent='❌ XLSX 组件未加载';return;}
     let all=[];
     for(const f of fs){
@@ -1258,6 +1295,12 @@ function switchTab(tabName){
     if(!__isLoggedIn){showUpgradeModal();switchTab('dashboard');return;}
     if(!isPaidUser()){showUpgradeModal();switchTab('dashboard');return;}
   }
+  var dataTabs=['schoolBrowser','majorBrowser','analysisView'];
+  if(dataTabs.indexOf(tabName)>=0&&typeof isCoreDataLoaded==='function'&&!isCoreDataLoaded()){
+    toast('正在加载院校数据，请稍候...');
+    ensureCoreDataLoaded().then(function(){switchTab(tabName);}).catch(function(){toast('数据加载失败，请检查网络后刷新',1);});
+    return;
+  }
   // 隐藏所有顶层卡片
   var cards=['dashboard','inputCard','resultBox','schoolBrowser','majorBrowser','analysisView'];
   for(var i=0;i<cards.length;i++){
@@ -1372,6 +1415,24 @@ if(typeof window.__authInitPending==='function'){
 
 // ===== 仪表盘 =====
 function renderDashboard(){
+  if(typeof isCoreDataLoaded==='function'&&!isCoreDataLoaded()){
+    var stats=document.getElementById('dashStats');
+    var entries=document.getElementById('dashEntries');
+    var overview=document.getElementById('dashOverview');
+    var welcome=document.getElementById('dashWelcome');
+    if(welcome){
+      var phone=localStorage.getItem('zjyk_phone')||'';
+      var phoneTail=phone?phone.slice(-4):'用户';
+      welcome.innerHTML='<div class="dash-welcome">👋 欢迎，<span class="dw-phone">****'+esc(phoneTail)+'</span></div><div style="font-size:.78rem;color:var(--color-text-tertiary)">正在准备院校数据...</div>';
+    }
+    if(stats)stats.innerHTML='<div class="dash-stat" style="grid-column:1/-1"><div class="ds-num" style="font-size:1rem">加载中</div><div class="ds-lbl">首次打开会稍等片刻</div></div>';
+    if(entries)entries.innerHTML='';
+    if(overview)overview.innerHTML='';
+    ensureCoreDataLoaded().then(function(){renderDashboard();}).catch(function(){
+      if(stats)stats.innerHTML='<div class="dash-stat" style="grid-column:1/-1"><div class="ds-num" style="font-size:1rem;color:var(--_red-500)">加载失败</div><div class="ds-lbl">请刷新页面或检查网络</div></div>';
+    });
+    return;
+  }
   var all=getAllRecords();
   var schools=aggregateBySchool(all);
   var majors=aggregateByMajor(all);

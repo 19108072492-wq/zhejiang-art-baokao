@@ -80,6 +80,30 @@ function loadData(k){
   console.warn('[Core] 数据尚未加载: '+k+'，返回空数组');
   return[];
 }
+var __coreDataLoadPromise=null;
+function isCoreDataLoaded(){
+  return !!(window.__D__&&window.__D__.finearts);
+}
+function ensureCoreDataLoaded(){
+  if(isCoreDataLoaded())return Promise.resolve(window.__D__);
+  if(__coreDataLoadPromise)return __coreDataLoadPromise;
+  __coreDataLoadPromise=new Promise(function(resolve,reject){
+    var existing=document.querySelector('script[data-core-data="1"]');
+    if(existing){
+      existing.addEventListener('load',function(){resolve(window.__D__||{});});
+      existing.addEventListener('error',function(){reject(new Error('数据加载失败'));});
+      return;
+    }
+    var s=document.createElement('script');
+    s.src='js/data.js?v=4';
+    s.defer=true;
+    s.dataset.coreData='1';
+    s.onload=function(){resolve(window.__D__||{});};
+    s.onerror=function(){__coreDataLoadPromise=null;reject(new Error('数据加载失败'));};
+    document.head.appendChild(s);
+  });
+  return __coreDataLoadPromise;
+}
 function saveData(k,d){localStorage.setItem('zjyk_'+k,JSON.stringify(d));clearAllRecordsCache();}
 function clearData(k){localStorage.setItem('zjyk_'+k,'[]');clearAllRecordsCache();}
 function clearAllRecordsCache(){try{sessionStorage.removeItem('zjyk_all_records_v2');}catch(e){}}

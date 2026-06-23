@@ -6,12 +6,14 @@
 var __isLoggedIn=false;
 var __isPaidUser=false;
 var __paidExpires=null;
+var __advisorRefFromUrl=false;
 
 // ===== 顾问追踪：URL 参数捕获 =====
 (function(){
   var params=new URLSearchParams(window.location.search);
   var ref=params.get('ref');
   if(ref){
+    __advisorRefFromUrl=true;
     localStorage.setItem('zjyk_advisor_code',ref);
     console.log('[auth] 顾问码已捕获：'+ref);
   }
@@ -40,6 +42,16 @@ function initAuth(){
   }else{
     var gc=document.getElementById('gateCard');if(gc)gc.classList.remove('hidden');
     var ic=document.getElementById('inputCard');if(ic)ic.classList.add('hidden');
+    if(__advisorRefFromUrl){
+      setTimeout(function(){
+        var modal=document.getElementById('registerModal');
+        if(modal){
+          modal.classList.remove('hidden');
+          var rp=document.getElementById('regPhone');
+          if(rp)rp.focus();
+        }
+      },120);
+    }
   }
 }
 
