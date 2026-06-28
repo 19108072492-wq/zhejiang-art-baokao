@@ -1414,7 +1414,39 @@ if(typeof window.__authInitPending==='function'){
 }
 
 // ===== 仪表盘 =====
+function renderTrialDashboard(){
+  var phone=localStorage.getItem('zjyk_phone')||'';
+  var phoneTail=phone?phone.slice(-4):'用户';
+  var hour=new Date().getHours();
+  var greet=hour<12?'上午好':hour<18?'下午好':'晚上好';
+  var welcome=document.getElementById('dashWelcome');
+  var stats=document.getElementById('dashStats');
+  var entries=document.getElementById('dashEntries');
+  var overview=document.getElementById('dashOverview');
+  if(welcome){
+    welcome.innerHTML='<div class="dash-welcome">👋 '+greet+'，<span class="dw-phone">****'+esc(phoneTail)+'</span></div><div style="font-size:.78rem;color:var(--color-text-tertiary)">当前为体验版，可先使用智能填报</div>';
+  }
+  if(stats){
+    stats.innerHTML=
+      '<div class="dash-stat"><div class="ds-num" style="font-size:1rem">体验版</div><div class="ds-lbl">当前状态</div></div>'+
+      '<div class="dash-stat"><div class="ds-num" style="font-size:1rem">智能填报</div><div class="ds-lbl">立即可用</div></div>'+
+      '<div class="dash-stat"><div class="ds-num" style="font-size:1rem">10 所</div><div class="ds-lbl">试用展示</div></div>'+
+      '<div class="dash-stat"><div class="ds-num" style="font-size:1rem">升级</div><div class="ds-lbl">解锁完整数据</div></div>';
+  }
+  if(entries){
+    entries.innerHTML=
+      '<div class="dash-entry" data-tab="inputCard" onclick="dashEntryClick(\'inputCard\')"><span class="de-icon">🎯</span><div class="de-title">智能填报</div><div class="de-desc">输入成绩，匹配冲稳保院校</div></div>'+
+      '<div class="dash-entry" data-tab="myForm" onclick="dashEntryClick(\'myForm\')"><span class="de-icon">📋</span><div class="de-title">我的志愿单</div><div class="de-desc">查看已保存的志愿选择</div></div>'+
+      '<div class="dash-entry" onclick="showUpgradeModal()" style="border-color:var(--_orange-500);background:var(--_orange-50)"><span class="de-icon">🔓</span><div class="de-title" style="color:var(--_orange-500)">升级完整版</div><div class="de-desc">解锁院校详情 / 院校浏览 / 专业浏览 / 算法评分</div></div>';
+  }
+  if(overview)overview.innerHTML='';
+}
+
 function renderDashboard(){
+  if(typeof __isLoggedIn!=='undefined'&&__isLoggedIn&&!isPaidUser()){
+    renderTrialDashboard();
+    return;
+  }
   if(typeof isCoreDataLoaded==='function'&&!isCoreDataLoaded()){
     var stats=document.getElementById('dashStats');
     var entries=document.getElementById('dashEntries');
